@@ -24,7 +24,7 @@ public class ExileMapsSettings : ISettings
     [Menu("Content and Special Map Highlighting")]
     public HighlightSettings Highlights { get; set; } = new HighlightSettings();
 
-    [Menu("Colours and performance settings.")]
+    [Menu("Colors and performance settings.")]
     // Graphic settings
     public GraphicSettings Graphics { get; set; } = new GraphicSettings();
     
@@ -72,7 +72,7 @@ public class FeatureSettings
     public ToggleNode DebugMode { get; set; } = new ToggleNode(false);
 }
 
-[Submenu(CollapsedByDefault = false)]
+[Submenu(CollapsedByDefault = true)]
 public class HighlightSettings
 {
     [Menu("Highlight Breaches", "Highlight breaches with a ring on the Atlas")]
@@ -119,14 +119,14 @@ public class HighlightSettings
     [Menu("Draw Distance Markers on Lines", "Draw the name and distance to the node on the line")]
     public ToggleNode DrawDistanceOnLine { get; set; } = new ToggleNode(true);
 
-    [Menu("Text Scale", "Text scale for distance markers on lines")]
+    [Menu("Distance Marker Scale", "Interpolation factor for distance markers on lines")]
     public RangeNode<float> DrawDistanceOnLineScale { get; set; } = new RangeNode<float>(0.03f, 0, 1);
 
     [Menu("Line Width")]
     public RangeNode<float> MapLineWidth { get; set; } = new RangeNode<float>(4.0f, 0, 10);
 }
 
-[Submenu(CollapsedByDefault = false)]
+[Submenu(CollapsedByDefault = true)]
 public class GraphicSettings
 {
     [Menu("Render every N ticks", "Throttle the renderer to only re-render every Nth tick - can improve performance.")]
@@ -160,11 +160,11 @@ public class GraphicSettings
     public ColorNode traderColor { get; set; } = new ColorNode(Color.FromArgb(100, 0, 0, 0));
 
     [Menu("Citadel Color", "Color of the ring around citadels on the Atlas")]
-    public ColorNode citadelColor { get; set; } = new ColorNode(Color.FromArgb(100, 0, 0, 0));
+    public ColorNode citadelColor { get; set; } = new ColorNode(Color.FromArgb(150, 255, 0, 0));
 
 }
 
-[Submenu(CollapsedByDefault = false)]
+[Submenu(CollapsedByDefault = true)]
 public class MapHighlightSettings
 {
     public Dictionary<string, Map> Maps { get; set; } = new Dictionary<string, Map>();

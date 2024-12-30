@@ -5,6 +5,7 @@ using System.Linq;
 using ImGuiNET;
 using System.Numerics;
 using System.Drawing;
+using System.Text.Json;
 using ExileCore2.PoEMemory;
 using ExileCore2.Shared.Nodes;
 
@@ -387,7 +388,7 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
             return;
 
         var radius = 5 - (mapNode.Element.GetClientRect().Right - mapNode.Element.GetClientRect().Left) / 2;
-        Graphics.DrawCircleFilled(mapNode.Element.GetClientRect().Center, radius, map.NodeColor, 32);
+        Graphics.DrawCircleFilled(mapNode.Element.GetClientRect().Center, radius, map.NodeColor, 8);
     }
 
     private void DrawMapName(AtlasNodeDescription mapNode)
