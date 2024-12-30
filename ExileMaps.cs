@@ -2,16 +2,18 @@
 using ExileCore2.PoEMemory.MemoryObjects;
 using ExileCore2.PoEMemory.Elements.AtlasElements;
 using System.Linq;
-
+using ImGuiNET;
 using System.Numerics;
-
 using System.Drawing;
 using ExileCore2.PoEMemory;
-namespace ExileMaps;
+using ExileCore2.Shared.Nodes;
 
+namespace ExileMaps;
 
 public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
 {
+    private int tickCount { get; set; }
+
     private IngameState State => GameController.IngameState;
 
     public override bool Initialise()
@@ -24,7 +26,32 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
         //{
         //    var data = File.ReadAllText(configPath);
         //}
+        // if Maps is empty, populate with default
+        if (Settings.MapHighlightSettings.Maps.Count == 0) {
+            var defaultMaps = "Abyss,Augury,Backwash,Bloodwood,Blooming Field,Burial Bog,Canal Hideout,Cenotes,Creek,Crimson Shores,Crypt,Decay,Deserted,Felled Hideout,Forge,Fortress,Gothic City,Hidden Grotto,Hive,Limestone Hideout,Lofty Summit,Lost Towers,Mire,Moment of Zen,Necropolis,Oasis,Penitentiary,Ravine,Riverside,Rustbowl,Savannah,Sandspit,Seepage,Slick,Spider Woods,Steaming Springs,Sulphuric Caverns,Steppe,Sump,The Copper Citadel ,The Iron Citadel,The Stone Citadel,Untainted Paradise,Vaal Foundry ,Vaal Factory ,Willow,Woodland"
+                .Split(',');
 
+            foreach (var map in defaultMaps)
+            {
+                Settings.MapHighlightSettings.Maps.Add(map.Replace(" ",""), 
+                new Map { 
+                    Name = map, 
+                    ID = map.Replace(" ",""),
+                    Highlight = false,
+                    NodeColor = Color.FromArgb(180, 25, 200, 25),
+                    NameColor = Color.FromArgb(255, 255, 255, 255),
+                    BackgroundColor = Color.FromArgb(100, 0, 0, 0)
+                });
+                // Log
+                LogMessage($"Added {map} to MapHighlightSettings");
+            }
+
+            
+
+        }
+                
+        
+        
         return true;
     }
 
@@ -55,12 +82,20 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
     {
         var WorldMap = State.IngameUi.WorldMap.AtlasPanel;
 
+
         if (!WorldMap.IsVisible)
             return;
 
+        
+        tickCount++;
+        if (Settings.Graphics.RenderNTicks.Value % tickCount != 0) 
+            return;  
 
-        // Get all the map nodes
-        var mapNodes = WorldMap.Descriptions;//.FindAll(x => x.Element.IsUnlocked && !x.Element.IsVisited);
+        var screenCenter = State.IngameUi.GetClientRect().Center;
+
+        tickCount = 0;
+
+        var mapNodes = WorldMap.Descriptions.FindAll(x => Vector2.Distance(screenCenter, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000));//
 
         var zigguratNode = mapNodes.Find(x => x.Element.Area.Name.Contains("Ziggurat"));
         // Visible Nodes
@@ -73,7 +108,7 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
         var lockedNodes = visibleNodes.FindAll(x => !x.Element.IsUnlocked);
 
         // Unlocked Nodes
-        var unlockedNodes = visibleNodes.FindAll(x => x.Element.IsUnlocked);
+        var unlockedNodes = visibleNodes.FindAll(x => x.Element.IsUnlocked && !x.Element.IsVisited);
 
         // Invisible Nodes
         var invisibleNodes = mapNodes.FindAll(x => !x.Element.IsVisible);
@@ -146,10 +181,15 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
 
                     ringCount++;
                 }
-                if (Settings.Features.UnlockedNames)
-                {
+
+                
+                if (Settings.Features.NodeHighlighting)
+                    DrawMapNode(mapNode);
+
+                if (Settings.Features.UnlockedNames)                
                     DrawMapName(mapNode);
-                }
+                
+
             }
         }
         if (Settings.Features.LockedNodes) {
@@ -220,10 +260,14 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
                     ringCount++;
                 }
 
-                if (Settings.Features.LockedNames)
-                {
+                if (Settings.Features.NodeHighlighting)
+                    DrawMapNode(mapNode);
+
+                if (Settings.Features.LockedNames)                
                     DrawMapName(mapNode);
-                }
+                
+
+
             }
         }
         
@@ -295,11 +339,11 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
                     ringCount++;
                 }
 
-                if (Settings.Features.UnrevealedNames)
-                {
-                    DrawMapName(mapNode);
-                }
+                if (Settings.Features.NodeHighlighting)
+                    DrawMapNode(mapNode);
 
+                if (Settings.Features.UnrevealedNames)                
+                    DrawMapName(mapNode);
 
             }
         }
@@ -309,33 +353,12 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
             foreach (var mapNode in mapNodes)
             {
                 var text = mapNode.Address.ToString("X");
-
-                // text += $"\n{mapNode.Element.Area.Name}";
-
-                // var mapContent = mapNode.Element.Content;
-                // // Draw list of content on map
-                // foreach (var content in mapContent)
-                // {
-                //     text += $"\n{content.Name}";
-                // }
                 Graphics.DrawText(text, mapNode.Element.GetClientRect().TopLeft, Color.Red);
             }
         }
-        // Draw description address on each map node
-
-
-        //Any Imgui or Graphics calls go here. This is called after Tick
-        //Graphics.DrawText($"Plugin {GetType().Name} is working.", new Vector2(100, 100), Color.Red);
     }
 
-
-    public override void EntityAdded(Entity entity)
-    {
-        //If you have a reason to process every entity only once,
-        //this is a good place to do so.
-        //You may want to use a queue and run the actual
-        //processing (if any) inside the Tick method.
-    }
+    
 
     private void HighlightMapNode(AtlasNodeDescription mapNode, int Count, Color color)
     {
@@ -345,14 +368,43 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
 
     private void DrawLineToMapNode(AtlasNodeDescription mapNode, AtlasNodeDescription fromNode, Color color)
     {
-        Graphics.DrawLine(fromNode.Element.GetClientRect().Center, mapNode.Element.GetClientRect().Center, 4.0f, color);
+        Vector2 position = Vector2.Lerp(State.IngameUi.GetClientRect().Center, mapNode.Element.GetClientRect().Center, Settings.Highlights.DrawDistanceOnLineScale);
+        if (Settings.Highlights.DrawDistanceOnLine) {
+            string text = mapNode.Element.Area.Name;
+            text += $" ({Vector2.Distance(State.IngameUi.GetClientRect().Center, mapNode.Element.GetClientRect().Center).ToString("0")})";
+            
+            DrawTextWithBackground(text, position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+        }
+
+        Graphics.DrawLine(position, mapNode.Element.GetClientRect().Center, Settings.Highlights.MapLineWidth, color);
+    }
+
+    private void DrawMapNode(AtlasNodeDescription mapNode)
+    {
+        var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name == mapNode.Element.Area.Name && x.Value.Highlight == true).Value;
+
+        if (map == null)
+            return;
+
+        var radius = 5 - (mapNode.Element.GetClientRect().Right - mapNode.Element.GetClientRect().Left) / 2;
+        Graphics.DrawCircleFilled(mapNode.Element.GetClientRect().Center, radius, map.NodeColor, 32);
     }
 
     private void DrawMapName(AtlasNodeDescription mapNode)
     {
+        if (Settings.Features.NameHighlighting) {            
+            var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name == mapNode.Element.Area.Name && x.Value.Highlight == true).Value;
+
+            if (map != null) {
+                DrawTextWithBackground(map.Name.ToUpper(), mapNode.Element.GetClientRect().Center, map.NameColor, map.BackgroundColor, true, 10, 3);
+                return;
+            }
+        }
+
         DrawTextWithBackground(mapNode.Element.Area.Name.ToUpper(), mapNode.Element.GetClientRect().Center, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 3);
+        
     }
-    private Vector2 DrawTextWithBackground(string text, Vector2 position, Color color, Color backgroundColor, bool center = false, int xPadding = 0, int yPadding = 0)
+    private void DrawTextWithBackground(string text, Vector2 position, Color color, Color backgroundColor, bool center = false, int xPadding = 0, int yPadding = 0)
     {
         var boxSize = Graphics.MeasureText(text);
 
@@ -367,6 +419,7 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
         position += new Vector2(xPadding / 2, yPadding / 2);
 
         Graphics.DrawText(text, position, color);
-        return boxSize;
     }
+
+
 }
