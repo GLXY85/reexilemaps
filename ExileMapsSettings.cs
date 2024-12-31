@@ -336,13 +336,14 @@ public class MapHighlightSettings
                                 
                                 if (Maps.ContainsKey(mapId)) {
                                     // Update the map properties                                    
+                                    Maps[mapId].Name = mapName;
                                     Maps[mapId].RealID = mapNode.Element.Area.Id;                                    
-                                    Maps[mapId].Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name.Trim() == mapName.Trim());
+                                    Maps[mapId].Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name.Trim() == mapName);
                                 } else {
                                     var map = new Map
                                     {
-                                        Name = mapName.Trim(),
-                                        ID = mapName.Replace(" ", "").Trim(),
+                                        Name = mapName,
+                                        ID = mapName.Replace(" ", ""),
                                         RealID = mapNode.Element.Area.Id,
                                         NameColor = Color.White,
                                         BackgroundColor = Color.FromArgb(100, 0, 0, 0),
