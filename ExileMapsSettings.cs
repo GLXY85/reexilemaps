@@ -23,9 +23,6 @@ public class ExileMapsSettings : ISettings
     [Menu("Toggle Features")]
     public FeatureSettings Features { get; set; } = new FeatureSettings();
 
-    [Menu("Map and Waypoint Settings")]
-    public MapHighlightSettings MapHighlightSettings { get; set; } = new MapHighlightSettings();
-
     [Menu("Map Node Labelling")]
     public LabelSettings Labels { get; set; } = new LabelSettings();
 
@@ -35,6 +32,8 @@ public class ExileMapsSettings : ISettings
     [Menu("Graphics, Colors, and Performance Settings")]    
     public GraphicSettings Graphics { get; set; } = new GraphicSettings();
     
+    [Menu("Map and Waypoint Settings")]
+    public MapHighlightSettings MapHighlightSettings { get; set; } = new MapHighlightSettings();
 
 }
 
@@ -43,12 +42,17 @@ public class FeatureSettings
 {
     [Menu("Atlas Range", "Range (from your current viewpoint) to process atlas nodes.")]
     public RangeNode<int> AtlasRange { get; set; } = new(2000, 100, 10000);
+    [Menu("Use Atlas Range for Node Connections", "Drawing node connections is performance intensive. By default it uses a range of 1000, but you can change it to use the Atlas range.")]
+    public ToggleNode UseAtlasRange { get; set; } = new ToggleNode(false);
 
     [Menu("Process Unlocked Map Nodes")]
     public ToggleNode ProcessUnlockedNodes { get; set; } = new ToggleNode(true);
 
     [Menu("Process Locked Map Nodes")]
     public ToggleNode ProcessLockedNodes { get; set; } = new ToggleNode(true);
+
+    [Menu("Draw Connections for Visible Map Nodes")]
+    public ToggleNode DrawVisibleNodeConnections { get; set; } = new ToggleNode(true);
     
     [Menu("Process Hidden Map Nodes")]
     public ToggleNode ProcessHiddenNodes { get; set; } = new ToggleNode(true);
@@ -105,7 +109,7 @@ public class FeatureSettings
 }
 
 
-[Submenu(CollapsedByDefault = true)]
+[Submenu(CollapsedByDefault = false)]
 public class LabelSettings
 {
     [Menu("Label Unlocked Map Nodes")]
@@ -165,7 +169,7 @@ public class HighlightSettings
     public ColorNode bossColor { get; set; } = new ColorNode(Color.FromArgb(200, 195, 156, 105));
 }
 
-[Submenu(CollapsedByDefault = true)]
+[Submenu(CollapsedByDefault = false)]
 public class GraphicSettings
 {
     [Menu("Render every N ticks", "Throttle the renderer to only re-render every Nth tick - can improve performance.")]

@@ -76,13 +76,26 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             ringCount += HighlightMapNode(mapNode, ringCount, "Ritual", Settings.Highlights.HighlightRitual, Settings.Highlights.ritualColor);
             ringCount += HighlightMapNode(mapNode, ringCount, "Boss", Settings.Highlights.HighlightBosses, Settings.Highlights.bossColor);
                 
-            DrawLineToMapNode(mapNode); // Draw waypoint lines
+            DrawWaypointLine(mapNode); // Draw waypoint lines
             DrawMapNode(mapNode); // Draw node highlights
             DrawMapName(mapNode); // Draw node names
-            DrawConnections(WorldMap, mapNode); // Draw hidden node connections
+             // Draw hidden node connections
             
         }
         
+        if (Settings.Features.DrawVisibleNodeConnections || Settings.Features.DrawHiddenNodeConnections) {
+            
+            var connectionNodes = mapNodes
+            .Where(x => (Settings.Features.DrawVisibleNodeConnections && x.Element.IsVisible) || (Settings.Features.DrawHiddenNodeConnections && !x.Element.IsVisible))
+            .Where(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.UseAtlasRange ? Settings.Features.AtlasRange : 1000));
+
+            foreach (var mapNode in connectionNodes)
+            {
+                DrawConnections(WorldMap, mapNode);
+            }
+
+        }
+
         // if (Settings.Features.DrawTowerRange) {
         //     var towerNodes = WorldMap.Descriptions            
         //     .FindAll(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000))
@@ -113,9 +126,6 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// 
     private void DrawConnections(AtlasPanel WorldMap, AtlasNodeDescription mapNode)
     {
-        if (!Settings.Features.DrawHiddenNodeConnections || mapNode.Element.IsVisible)
-            return;
-
         var mapConnections = WorldMap.Points.FirstOrDefault(x => x.Item1 == mapNode.Coordinate);
 
         if (mapConnections.Equals(default((Vector2i, Vector2i, Vector2i, Vector2i, Vector2i))))
@@ -163,7 +173,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// for the given map node. If the map settings are found and the line drawing is enabled for that map, it proceeds to draw the line.
     /// Additionally, if the feature to draw line labels is enabled, it draws the node name and the distance to the node.
     /// </remarks>
-    private void DrawLineToMapNode(AtlasNodeDescription mapNode)
+    private void DrawWaypointLine(AtlasNodeDescription mapNode)
     {
         if (!Settings.Features.DrawLines)
             return;
