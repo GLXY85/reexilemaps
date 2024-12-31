@@ -277,6 +277,4 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         Graphics.DrawText(text, position, color);
     }
-
-
 }

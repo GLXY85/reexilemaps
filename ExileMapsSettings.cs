@@ -23,6 +23,9 @@ public class ExileMapsSettings : ISettings
     [Menu("Toggle Features")]
     public FeatureSettings Features { get; set; } = new FeatureSettings();
 
+    [Menu("Map and Waypoint Settings")]
+    public MapHighlightSettings MapHighlightSettings { get; set; } = new MapHighlightSettings();
+
     [Menu("Map Node Labelling")]
     public LabelSettings Labels { get; set; } = new LabelSettings();
 
@@ -32,8 +35,7 @@ public class ExileMapsSettings : ISettings
     [Menu("Graphics, Colors, and Performance Settings")]    
     public GraphicSettings Graphics { get; set; } = new GraphicSettings();
     
-    [Menu("Map Highlighting Settings")]
-    public MapHighlightSettings MapHighlightSettings { get; set; } = new MapHighlightSettings();
+
 }
 
 [Submenu(CollapsedByDefault = false)]
@@ -186,7 +188,7 @@ public class GraphicSettings
 
 }
 
-[Submenu(CollapsedByDefault = true)]
+[Submenu(CollapsedByDefault = false)]
 public class MapHighlightSettings
 {
     public Dictionary<string, Map> Maps { get; set; } = new Dictionary<string, Map>();
@@ -199,15 +201,22 @@ public class MapHighlightSettings
         {
             DrawDelegate = () =>
             {
-                if (ImGui.BeginTable("maps_table", 7, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+                if (Maps.Count == 0)   
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.2f, 0.2f, 1)); // Red text
+                    ImGui.TextWrapped("No maps found. Please open your Atlas and click 'Update Maps' under the 'Map and Waypoint Settings' menu.");
+                    ImGui.PopStyleColor();
+                }
+                if (ImGui.BeginTable("maps_table", 8, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
                 {
                     ImGui.TableSetupColumn("Enable", ImGuiTableColumnFlags.WidthFixed, 25f);
                     ImGui.TableSetupColumn("Map Name", ImGuiTableColumnFlags.WidthFixed|ImGuiTableColumnFlags.PreferSortAscending, 150f);                                                              
                     ImGui.TableSetupColumn("Node", ImGuiTableColumnFlags.WidthFixed, 45f);     
                     ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 45f);               
                     ImGui.TableSetupColumn("Background", ImGuiTableColumnFlags.WidthFixed, 45f);
-                    ImGui.TableSetupColumn("Line", ImGuiTableColumnFlags.WidthFixed, 35f);          
+                    ImGui.TableSetupColumn("Line", ImGuiTableColumnFlags.WidthFixed, 35f);                              
                     ImGui.TableSetupColumn("Biomes", ImGuiTableColumnFlags.WidthStretch, 200f);      
+                    ImGui.TableSetupColumn("Count", ImGuiTableColumnFlags.WidthStretch, 70f);    
                     ImGui.TableHeadersRow();
 
                     // Sort Maps alphabetically by Name
@@ -264,9 +273,14 @@ public class MapHighlightSettings
                             map.Value.DrawLine = drawLine;
                         }
 
+
                         // Map Biomes
                         ImGui.TableNextColumn();
                         ImGui.Text("");
+
+                                                // Map Counter
+                        ImGui.TableNextColumn();
+                        ImGui.Text(map.Value.Count.ToString());
 
                     }                
                 }
@@ -288,9 +302,7 @@ public class MapHighlightSettings
 
                             // Get map nodes with unique Element.Area.Name
 
-                            var mapNodes = WorldMap.Descriptions
-                                .Where(x => Vector2.Distance(screenCenter, x.Element.GetClientRect().Center) <= Main.Settings.Features.AtlasRange)
-                                .Where(x => !Maps.ContainsKey(x.Element.Area.Name.ToString().Replace(" ", "")))
+                            var mapNodes = WorldMap.Descriptions                                
                                 .GroupBy(x => x.Element.Area.Name)
                                 .Select(g => g.First())
                                 .ToList();
@@ -298,24 +310,35 @@ public class MapHighlightSettings
                             // Add the maps to the Maps dictionary if they don't already exist
                             foreach (var mapNode in mapNodes)
                             {
+
                                 // check if the mapnode name exists in the maps dictionary
+
+
+
                                 var mapName = mapNode.Element.Area.Name;
                                 // We use this "Fake" ID because there are multiple maps with the same name but different IDs
                                 // e.g. a map with a boss and without may have a different ID and layout
                                 var mapId = mapNode.Element.Area.Name.ToString().Replace(" ", "");
                                 
-                                var map = new Map
-                                {
-                                    Name = mapName,
-                                    ID = mapName.Replace(" ", ""),
-                                    RealID = mapNode.Element.Area.Id,
-                                    NameColor = Color.White,
-                                    BackgroundColor = Color.FromArgb(100, 0, 0, 0),
-                                    NodeColor = Color.White,
-                                    DrawLine = false,
-                                    Highlight = false
-                                };
-                                Maps.Add(mapId, map);
+                                if (Maps.ContainsKey(mapId)) {
+                                    // Update the map properties                                    
+                                    Maps[mapId].RealID = mapNode.Element.Area.Id;                                    
+                                    Maps[mapId].Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name == mapName);
+                                } else {
+                                    var map = new Map
+                                    {
+                                        Name = mapName,
+                                        ID = mapName.Replace(" ", ""),
+                                        RealID = mapNode.Element.Area.Id,
+                                        NameColor = Color.White,
+                                        BackgroundColor = Color.FromArgb(100, 0, 0, 0),
+                                        NodeColor = Color.White,
+                                        DrawLine = false,
+                                        Highlight = false,
+                                        Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name == mapName)
+                                    };
+                                    Maps.Add(mapId, map);
+                                }
                                 
                                 Main.LogMessage($"Added {mapName} to map settings");
                             

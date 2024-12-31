@@ -31,6 +31,8 @@ public class Map
     public bool DrawLine { get; set; } = false;
 
     public bool Highlight { get; set; } = false;
+
+    public int Count { get; set; } = 0;
 }
 
 public class JsonColorConverter : JsonConverter<Color>
