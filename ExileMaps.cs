@@ -11,343 +11,81 @@ using ExileCore2.Shared.Nodes;
 
 namespace ExileMaps;
 
-public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
+public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 {
     private int tickCount { get; set; }
-
-    private IngameState State => GameController.IngameState;
+    public static ExileMapsCore Main;
+    
+    public GameController Game => GameController;
+    public IngameState State => Game.IngameState;
 
     public override bool Initialise()
     {
-        //Perform one-time initialization here
-
-        //Maybe load you custom config (only do so if builtin settings are inadequate for the job)
-        //var configPath = Path.Join(ConfigDirectory, "custom_config.txt");
-        //if (File.Exists(configPath))
-        //{
-        //    var data = File.ReadAllText(configPath);
-        //}
-        // if Maps is empty, populate with default
-        if (Settings.MapHighlightSettings.Maps.Count == 0) {
-            var defaultMaps = "Abyss,Augury,Backwash,Bloodwood,Blooming Field,Burial Bog,Canal Hideout,Cenotes,Creek,Crimson Shores,Crypt,Decay,Deserted,Felled Hideout,Forge,Fortress,Gothic City,Hidden Grotto,Hive,Limestone Hideout,Lofty Summit,Lost Towers,Mire,Moment of Zen,Necropolis,Oasis,Penitentiary,Ravine,Riverside,Rustbowl,Savannah,Sandspit,Seepage,Slick,Spider Woods,Steaming Springs,Sulphuric Caverns,Steppe,Sump,The Copper Citadel ,The Iron Citadel,The Stone Citadel,Untainted Paradise,Vaal Foundry ,Vaal Factory ,Willow,Woodland"
-                .Split(',');
-
-            foreach (var map in defaultMaps)
-            {
-                Settings.MapHighlightSettings.Maps.Add(map.Replace(" ",""), 
-                new Map { 
-                    Name = map, 
-                    ID = map.Replace(" ",""),
-                    Highlight = false,
-                    NodeColor = Color.FromArgb(180, 25, 200, 25),
-                    NameColor = Color.FromArgb(255, 255, 255, 255),
-                    BackgroundColor = Color.FromArgb(100, 0, 0, 0)
-                });
-                // Log
-                LogMessage($"Added {map} to MapHighlightSettings");
-            }
-
-            
-
-        }
-                
-        
-        
+        Main = this;        
         return true;
     }
 
     public override void AreaChange(AreaInstance area)
     {
-        //Perform once-per-zone processing here
-        //For example, Radar builds the zone map texture here
+
     }
 
     public override void Tick()
     {
-        //Perform non-render-related work here, e.g. position calculation.
-        //This method is still called on every frame, so to really gain
-        //an advantage over just throwing everything in the Render method
-        //you have to return a custom job, but this is a bit of an advanced technique
-        //here's how, just in case:
-        //return new Job($"{nameof(ExileMaps)}MainJob", () =>
-        //{
-        //    var a = Math.Sqrt(7);
-        //});
-
-        //otherwise, just run your code here
-        //var a = Math.Sqrt(7);
         return;
     }
 
     public override void Render()
     {
-        var WorldMap = State.IngameUi.WorldMap.AtlasPanel;
-
-
-        if (!WorldMap.IsVisible)
-            return;
-
-        
+        // Only render every n ticks
         tickCount++;
         if (Settings.Graphics.RenderNTicks.Value % tickCount != 0) 
             return;  
 
-        var screenCenter = State.IngameUi.GetClientRect().Center;
-
         tickCount = 0;
 
-        var mapNodes = WorldMap.Descriptions.FindAll(x => Vector2.Distance(screenCenter, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000));//
+        var WorldMap = State.IngameUi.WorldMap.AtlasPanel;
 
-        var zigguratNode = mapNodes.Find(x => x.Element.Area.Name.Contains("Ziggurat"));
-        // Visible Nodes
-        var visibleNodes = mapNodes.FindAll(x => x.Element.IsVisible);
+        // If the world map is not visible, return.
+        if (!WorldMap.IsVisible)
+            return;
 
-        // Visited Nodes - not used yet
-        // var visitedNodes = visibleNodes.FindAll(x => x.Element.IsVisited);
+        // Get all map nodes within the specified range.
+        var mapNodes = WorldMap.Descriptions.FindAll(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000));//
 
-        // Locked Nodes
-        var lockedNodes = visibleNodes.FindAll(x => !x.Element.IsUnlocked);
+        // Filter out nodes based on settings.
+        var selectedNodes = mapNodes
+            .Where(x => ((Settings.Features.ProcessUnlockedNodes && x.Element.IsUnlocked && !x.Element.IsVisited) ||
+                        (Settings.Features.ProcessLockedNodes && !x.Element.IsUnlocked) ||
+                        (Settings.Features.ProcessHiddenNodes && !x.Element.IsVisible)) &&
+                        !(!x.Element.IsUnlocked && x.Element.IsVisited));
+        
+        foreach (var mapNode in selectedNodes)
+        {
+            var ringCount = 0;           
 
-        // Unlocked Nodes
-        var unlockedNodes = visibleNodes.FindAll(x => x.Element.IsUnlocked && !x.Element.IsVisited);
-
-        // Invisible Nodes
-        var invisibleNodes = mapNodes.FindAll(x => !x.Element.IsVisible);
-
-        // Draw Unlocked nodes
-        if (Settings.Features.UnlockedNodes) {
-            foreach (var mapNode in unlockedNodes)
-            {
-                var nodeContent = mapNode.Element.Content;
-                bool hasBreach =  Settings.Highlights.HighlightBreaches && nodeContent.Any(x => x.Name.Contains("Breach"));
-                bool hasDelirium = Settings.Highlights.HighlightDelirium && nodeContent.Any(x => x.Name.Contains("Delirium"));
-                bool hasExpedition = Settings.Highlights.HighlightExpedition && nodeContent.Any(x => x.Name.Contains("Expedition"));
-                bool hasRitual = Settings.Highlights.HighlightRitual && nodeContent.Any(x => x.Name.Contains("Ritual"));
-                bool hasBoss = Settings.Highlights.HighlightBosses && nodeContent.Any(x => x.Name.Contains("Boss"));
-                bool isUntaintedParadise = Settings.Highlights.HighlightUntaintedParadise && mapNode.Element.Area.Id.Contains("UntaintedParadise");
-                bool isTrader = Settings.Highlights.HighlightTrader && mapNode.Element.Area.Id.Contains("Merchant");
-                bool isCitadel = Settings.Highlights.HighlightTrader && mapNode.Element.Area.Name.Contains("Citadel");
-
-                var ringCount = 0;
+            // Draw content rings
+            ringCount += HighlightMapNode(mapNode, ringCount, "Breach", Settings.Highlights.HighlightBreaches, Settings.Highlights.breachColor);
+            ringCount += HighlightMapNode(mapNode, ringCount, "Delirium", Settings.Highlights.HighlightDelirium, Settings.Highlights.deliriumColor);
+            ringCount += HighlightMapNode(mapNode, ringCount, "Expedition", Settings.Highlights.HighlightExpedition, Settings.Highlights.expeditionColor);
+            ringCount += HighlightMapNode(mapNode, ringCount, "Ritual", Settings.Highlights.HighlightRitual, Settings.Highlights.ritualColor);
+            ringCount += HighlightMapNode(mapNode, ringCount, "Boss", Settings.Highlights.HighlightBosses, Settings.Highlights.bossColor);
                 
-                if (hasBreach)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.breachColor);
-                    ringCount++;
-                }
-                if (hasDelirium)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.deliriumColor);
-                    ringCount++;
-                }
-                if (hasExpedition)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.expeditionColor);
-                    ringCount++;
-                }
-                if (hasRitual)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.ritualColor);
-                    ringCount++;
-                }
-                if (hasBoss)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.bossColor);
-                    ringCount++;
-                }
-                if (isUntaintedParadise)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.untaintedParadiseColor);
-
-                    if (Settings.Highlights.LineToParadise)
-                        DrawLineToMapNode(mapNode, zigguratNode, Settings.Graphics.untaintedParadiseColor);
-                    
-                    ringCount++;
-                }
-                if (isTrader)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.traderColor);
-
-                    if (Settings.Highlights.LineToTrader)
-                        DrawLineToMapNode(mapNode, zigguratNode, Settings.Graphics.traderColor);
-
-                    ringCount++;
-                }
-                if (isCitadel)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.citadelColor);
-
-                    if (Settings.Highlights.LineToCitadel)
-                        DrawLineToMapNode(mapNode, zigguratNode, Settings.Graphics.citadelColor);
-
-                    ringCount++;
-                }
-
-                
-                if (Settings.Features.NodeHighlighting)
-                    DrawMapNode(mapNode);
-
-                if (Settings.Features.UnlockedNames)                
-                    DrawMapName(mapNode);
-                
-
-            }
-        }
-        if (Settings.Features.LockedNodes) {
-            foreach (var mapNode in lockedNodes)
-            {
-                var nodeContent = mapNode.Element.Content;
-                bool hasBreach =  Settings.Highlights.HighlightBreaches && nodeContent.Any(x => x.Name.Contains("Breach"));
-                bool hasDelirium = Settings.Highlights.HighlightDelirium && nodeContent.Any(x => x.Name.Contains("Delirium"));
-                bool hasExpedition = Settings.Highlights.HighlightExpedition && nodeContent.Any(x => x.Name.Contains("Expedition"));
-                bool hasRitual = Settings.Highlights.HighlightRitual && nodeContent.Any(x => x.Name.Contains("Ritual"));
-                bool hasBoss = Settings.Highlights.HighlightBosses && nodeContent.Any(x => x.Name.Contains("Boss"));
-                bool isUntaintedParadise = Settings.Highlights.HighlightUntaintedParadise && mapNode.Element.Area.Id.Contains("UntaintedParadise");
-                bool isTrader = Settings.Highlights.HighlightTrader && mapNode.Element.Area.Id.Contains("Trader");
-                bool isCitadel = Settings.Highlights.HighlightTrader && mapNode.Element.Area.Name.Contains("Citadel");
-
-                var ringCount = 0;
-                
-                if (hasBreach)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.breachColor);
-                    ringCount++;
-                }
-                if (hasDelirium)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.deliriumColor);
-                    ringCount++;
-                }
-                if (hasExpedition)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.expeditionColor);
-                    ringCount++;
-                }
-                if (hasRitual)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.ritualColor);
-                    ringCount++;
-                }
-                if (hasBoss)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.bossColor);
-                    ringCount++;
-                }
-                if (isUntaintedParadise)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.untaintedParadiseColor);
-
-                    if (Settings.Highlights.LineToParadise)
-                        DrawLineToMapNode(mapNode, zigguratNode, Settings.Graphics.untaintedParadiseColor);
-                    
-                    ringCount++;
-                }
-                if (isTrader)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.traderColor);
-
-                    if (Settings.Highlights.LineToTrader)
-                        DrawLineToMapNode(mapNode, zigguratNode, Settings.Graphics.traderColor);
-
-                    ringCount++;
-                }
-                if (isCitadel)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.citadelColor);
-
-                    if (Settings.Highlights.LineToCitadel)
-                        DrawLineToMapNode(mapNode, zigguratNode, Settings.Graphics.citadelColor);
-
-                    ringCount++;
-                }
-
-                if (Settings.Features.NodeHighlighting)
-                    DrawMapNode(mapNode);
-
-                if (Settings.Features.LockedNames)                
-                    DrawMapName(mapNode);
-                
-
-
-            }
+            DrawLineToMapNode(mapNode); // Draw waypoint lines
+            DrawMapNode(mapNode); // Draw node highlights
+            DrawMapName(mapNode); // Draw node names
+            
         }
         
-        if (Settings.Features.UnrevealedNodes) {
-            foreach (var mapNode in invisibleNodes)
-            {
-                var nodeContent = mapNode.Element.Content;
-                bool hasBreach =  Settings.Highlights.HighlightBreaches && nodeContent.Any(x => x.Name.Contains("Breach"));
-                bool hasDelirium = Settings.Highlights.HighlightDelirium && nodeContent.Any(x => x.Name.Contains("Delirium"));
-                bool hasExpedition = Settings.Highlights.HighlightExpedition && nodeContent.Any(x => x.Name.Contains("Expedition"));
-                bool hasRitual = Settings.Highlights.HighlightRitual && nodeContent.Any(x => x.Name.Contains("Ritual"));
-                bool hasBoss = Settings.Highlights.HighlightBosses && nodeContent.Any(x => x.Name.Contains("Boss"));
-                bool isUntaintedParadise = Settings.Highlights.HighlightUntaintedParadise && mapNode.Element.Area.Id.Contains("UntaintedParadise");
-                bool isTrader = Settings.Highlights.HighlightTrader && mapNode.Element.Area.Id.Contains("Merchant");
-                bool isCitadel = Settings.Highlights.HighlightTrader && mapNode.Element.Area.Name.Contains("Citadel");
+        // if (Settings.Features.DrawTowerRange) {
+        //     var towerNodes = WorldMap.Descriptions            
+        //     .FindAll(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000))
+        //     .Where(x => x.Element.Area.Name.Contains("Lost Tower"));
 
-                var ringCount = 0;
-                
-                if (hasBreach)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.breachColor);
-                    ringCount++;
-                }
-                if (hasDelirium)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.deliriumColor);
-                    ringCount++;
-                }
-                if (hasExpedition)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.expeditionColor);
-                    ringCount++;
-                }
-                if (hasRitual)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.ritualColor);
-                    ringCount++;
-                }
-                if (hasBoss)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.bossColor);
-                    ringCount++;
-                }
-                if (isUntaintedParadise)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.untaintedParadiseColor);
-
-                    if (Settings.Highlights.LineToParadise)
-                        DrawLineToMapNode(mapNode, zigguratNode, Settings.Graphics.untaintedParadiseColor);
-                    
-                    ringCount++;
-                }
-                if (isTrader)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.traderColor);
-
-                    if (Settings.Highlights.LineToTrader)
-                        DrawLineToMapNode(mapNode, zigguratNode, Settings.Graphics.traderColor);
-
-                    ringCount++;
-                }
-                if (isCitadel)
-                {
-                    HighlightMapNode(mapNode, ringCount, Settings.Graphics.citadelColor);
-
-                    if (Settings.Highlights.LineToCitadel)
-                        DrawLineToMapNode(mapNode, zigguratNode, Settings.Graphics.citadelColor);
-
-                    ringCount++;
-                }
-
-                if (Settings.Features.NodeHighlighting)
-                    DrawMapNode(mapNode);
-
-                if (Settings.Features.UnrevealedNames)                
-                    DrawMapName(mapNode);
-
-            }
-        }
+        //     foreach (var mapNode in towerNodes) {
+        //         DrawTowerRange(mapNode);
+        //     }
+        // }
 
         if (Settings.Features.DebugMode)
         {
@@ -359,29 +97,69 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
         }
     }
 
-    
-
-    private void HighlightMapNode(AtlasNodeDescription mapNode, int Count, Color color)
+    /// <summary>
+    /// Highlights a map node by drawing a circle around it if certain conditions are met.
+    /// </summary>
+    /// <param name="mapNode">The map node to be highlighted.</param>
+    /// <param name="Count">The count used to calculate the radius of the circle.</param>
+    /// <param name="Content">The content string to check within the map node's elements.</param>
+    /// <param name="Draw">A boolean indicating whether to draw the circle or not.</param>
+    /// <param name="color">The color of the circle to be drawn.</param>
+    /// <returns>Returns 1 if the circle is drawn, otherwise returns 0.</returns>
+    private int HighlightMapNode(AtlasNodeDescription mapNode, int Count, string Content, bool Draw, Color color)
     {
+        if (!Settings.Features.DrawContentRings || !Draw || !mapNode.Element.Content.Any(x => x.Name.Contains(Content)))
+            return 0;
+
         var radius = (Count * 5) + (mapNode.Element.GetClientRect().Right - mapNode.Element.GetClientRect().Left) / 2;
         Graphics.DrawCircle(mapNode.Element.GetClientRect().Center, radius, color, 4, 16);
-    }
 
-    private void DrawLineToMapNode(AtlasNodeDescription mapNode, AtlasNodeDescription fromNode, Color color)
+        return 1;
+    }
+    
+    /// Draws a line from the center of the screen to the specified map node on the atlas.
+    /// </summary>
+    /// <param name="mapNode">The atlas node to which the line will be drawn.</param>
+    /// <remarks>
+    /// This method checks if the feature to draw lines is enabled in the settings. If enabled, it finds the corresponding map settings
+    /// for the given map node. If the map settings are found and the line drawing is enabled for that map, it proceeds to draw the line.
+    /// Additionally, if the feature to draw line labels is enabled, it draws the node name and the distance to the node.
+    /// </remarks>
+    private void DrawLineToMapNode(AtlasNodeDescription mapNode)
     {
-        Vector2 position = Vector2.Lerp(State.IngameUi.GetClientRect().Center, mapNode.Element.GetClientRect().Center, Settings.Highlights.DrawDistanceOnLineScale);
-        if (Settings.Highlights.DrawDistanceOnLine) {
+        if (!Settings.Features.DrawLines)
+            return;
+
+        var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name == mapNode.Element.Area.Name && x.Value.DrawLine == true).Value;
+        
+        if (map == null)
+            return;
+
+        var color = map.NodeColor;
+
+        // Position for label and start of line.
+        Vector2 position = Vector2.Lerp(Game.Window.GetWindowRectangle().Center, mapNode.Element.GetClientRect().Center, Settings.Graphics.LabelInterpolationScale);
+        
+        // If labels are enabled, draw the node name and the distance to the node.
+        if (Settings.Features.DrawLineLabels) {
             string text = mapNode.Element.Area.Name;
-            text += $" ({Vector2.Distance(State.IngameUi.GetClientRect().Center, mapNode.Element.GetClientRect().Center).ToString("0")})";
+            text += $" ({Vector2.Distance(Game.Window.GetWindowRectangle().Center, mapNode.Element.GetClientRect().Center).ToString("0")})";
             
             DrawTextWithBackground(text, position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
         }
 
-        Graphics.DrawLine(position, mapNode.Element.GetClientRect().Center, Settings.Highlights.MapLineWidth, color);
+        // Draw the line from the center(ish) of the screen to the center of the map node.
+        Graphics.DrawLine(position, mapNode.Element.GetClientRect().Center, Settings.Graphics.MapLineWidth, color);
     }
-
+    
+    /// Draws a highlighted circle around a map node on the atlas if the node is configured to be highlighted.
+    /// </summary>
+    /// <param name="mapNode">The atlas node description containing information about the map node to be drawn.</param>    private void DrawMapNode(AtlasNodeDescription mapNode)
     private void DrawMapNode(AtlasNodeDescription mapNode)
     {
+        if (!Settings.Features.DrawNodeHighlights)
+            return;
+
         var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name == mapNode.Element.Area.Name && x.Value.Highlight == true).Value;
 
         if (map == null)
@@ -391,20 +169,60 @@ public class ExileMaps : BaseSettingsPlugin<ExileMapsSettings>
         Graphics.DrawCircleFilled(mapNode.Element.GetClientRect().Center, radius, map.NodeColor, 8);
     }
 
+    /// <summary>
+    /// Draws the name of the map on the atlas.
+    /// </summary>
+    /// <param name="mapNode">The atlas node description containing information about the map.</param>
     private void DrawMapName(AtlasNodeDescription mapNode)
     {
+        // If names are disabled, return.
+        if (!Settings.Features.DrawNodeLabels)
+            return;
+
+        // If element is invisible and unrevealed names are disabled, return.
+        if (!mapNode.Element.IsVisible && !Settings.Labels.LabelHiddenNodes)
+            return; 
+
+        // If element is locked and locked names are disabled, return.
+        if (mapNode.Element.IsUnlocked && !Settings.Labels.LabelUnlockedNodes)
+            return; 
+
+        // If element is unlocked and unlocked names are disabled,
+        if (!mapNode.Element.IsUnlocked && !Settings.Labels.LabelLockedNodes)
+            return; 
+
+        var fontColor = Settings.Graphics.FontColor;
+        var backgroundColor = Settings.Graphics.BackgroundColor;
+
         if (Settings.Features.NameHighlighting) {            
             var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name == mapNode.Element.Area.Name && x.Value.Highlight == true).Value;
 
             if (map != null) {
-                DrawTextWithBackground(map.Name.ToUpper(), mapNode.Element.GetClientRect().Center, map.NameColor, map.BackgroundColor, true, 10, 3);
-                return;
+                fontColor = map.NameColor;
+                backgroundColor = map.BackgroundColor;
             }
         }
 
-        DrawTextWithBackground(mapNode.Element.Area.Name.ToUpper(), mapNode.Element.GetClientRect().Center, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 3);
-        
+        DrawTextWithBackground(mapNode.Element.Area.Name.ToUpper(), mapNode.Element.GetClientRect().Center, fontColor, backgroundColor, true, 10, 3);
     }
+    
+    // private void DrawTowerRange(AtlasNodeDescription towerNode)
+    // {
+    //     if (!Settings.Features.DrawTowerRange || (!towerNode.Element.IsVisited && !Settings.Features.DrawInactiveTowers))
+    //         return;
+
+    //     var towerPosition = towerNode.Element.GetClientRect().Center;
+    //     var towerRadius = towerNode.Element.Scale * Settings.Features.TowerEffectRange;
+
+    //     _atlasGraphics.DrawEllipse(towerPosition, towerRadius, Settings.Features.TowerColor, 3.0f, Settings.Features.TowerRingWidth, 64);
+    // }
+    /// <summary>
+    /// Draws text with a background color at the specified position.
+    /// </summary>
+    /// <param name="text">The text to draw.</param>
+    /// <param name="position">The position to draw the text at.</param>
+    /// <param name="textColor">The color of the text.</param>
+    /// <param name="backgroundColor">The color of the background.</param>
     private void DrawTextWithBackground(string text, Vector2 position, Color color, Color backgroundColor, bool center = false, int xPadding = 0, int yPadding = 0)
     {
         var boxSize = Graphics.MeasureText(text);

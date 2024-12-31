@@ -16,6 +16,7 @@ public class Map
 {
     public string Name { get; set; }
     public string ID { get; set; }
+    public string RealID { get; set; }
     public string[] BiomeList { get; set; }
     
     [JsonConverter(typeof(JsonColorConverter))]
@@ -27,7 +28,7 @@ public class Map
     [JsonConverter(typeof(JsonColorConverter))]
     public Color NodeColor { get; set; }
 
-    
+    public bool DrawLine { get; set; } = false;
 
     public bool Highlight { get; set; } = false;
 }
