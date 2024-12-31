@@ -75,28 +75,28 @@ public class FeatureSettings
     [Menu("Draw Labels on Waypoint Lines", "Draw the name and distance to the node on the indicator lines, if enabled")]
     public ToggleNode DrawLineLabels { get; set; } = new ToggleNode(true);
 
-    [Menu("[NYI] Draw Tower Range", "Draw a ring around towers to indicate their range.")]
-    public ToggleNode DrawTowerRange { get; set; } = new ToggleNode(true);
+    // [Menu("[NYI] Draw Tower Range", "Draw a ring around towers to indicate their range.")]
+    // public ToggleNode DrawTowerRange { get; set; } = new ToggleNode(true);
     
-    [ConditionalDisplay(nameof(DrawTowerRange), true)]
-    [Menu("Draw Solid Circles for Tower Range")]
-    public ToggleNode DrawSolidTowerCircles { get; set; } = new ToggleNode(false);
+    // [ConditionalDisplay(nameof(DrawTowerRange), true)]
+    // [Menu("Draw Solid Circles for Tower Range")]
+    // public ToggleNode DrawSolidTowerCircles { get; set; } = new ToggleNode(false);
 
-    [ConditionalDisplay(nameof(DrawTowerRange), true)]
-    [Menu("Draw Inactive Towers")]
-    public ToggleNode DrawInactiveTowers { get; set; } = new ToggleNode(true);
+    // [ConditionalDisplay(nameof(DrawTowerRange), true)]
+    // [Menu("Draw Inactive Towers")]
+    // public ToggleNode DrawInactiveTowers { get; set; } = new ToggleNode(true);
 
-    [ConditionalDisplay(nameof(DrawTowerRange), true)]
-    [Menu("Tower Range", "Tower effect range (shouldn't need to change this.)")]
-    public RangeNode<int> TowerEffectRange { get; set; } = new(500, 50, 2000);
+    // [ConditionalDisplay(nameof(DrawTowerRange), true)]
+    // [Menu("Tower Range", "Tower effect range (shouldn't need to change this.)")]
+    // public RangeNode<int> TowerEffectRange { get; set; } = new(500, 50, 2000);
 
-    [ConditionalDisplay(nameof(DrawTowerRange), true)]
-    [Menu("Tower Range Color", "Color of the tower range ring or circle on the Atlas")]
-    public ColorNode TowerColor { get; set; } = new ColorNode(Color.Orange);
+    // [ConditionalDisplay(nameof(DrawTowerRange), true)]
+    // [Menu("Tower Range Color", "Color of the tower range ring or circle on the Atlas")]
+    // public ColorNode TowerColor { get; set; } = new ColorNode(Color.Orange);
 
-    [ConditionalDisplay(nameof(DrawTowerRange), true)]
-    [Menu("Tower Ring Width", "Tower ring width (if not using filled circle)")]
-    public RangeNode<int> TowerRingWidth { get; set; } = new(12, 1, 48);
+    // [ConditionalDisplay(nameof(DrawTowerRange), true)]
+    // [Menu("Tower Ring Width", "Tower ring width (if not using filled circle)")]
+    // public RangeNode<int> TowerRingWidth { get; set; } = new(12, 1, 48);
 
     [Menu("Debug Mode", "Show node addresses on Atlas map")]
     public ToggleNode DebugMode { get; set; } = new ToggleNode(false);
