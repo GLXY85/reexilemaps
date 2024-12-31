@@ -153,7 +153,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             var destinationNode = WorldMap.Descriptions.FirstOrDefault(x => x.Coordinate == coordinates);
             if (destinationNode != null)
             {
-                Graphics.DrawLine(mapNode.Element.GetClientRect().Center, destinationNode.Element.GetClientRect().Center, Settings.Graphics.MapLineWidth, Settings.Graphics.LineColor);
+                var color = (destinationNode.Element.IsUnlocked || mapNode.Element.IsUnlocked) ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
+                Graphics.DrawLine(mapNode.Element.GetClientRect().Center, destinationNode.Element.GetClientRect().Center, Settings.Graphics.MapLineWidth, color);
             }
         }
     }

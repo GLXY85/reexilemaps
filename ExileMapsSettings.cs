@@ -194,6 +194,12 @@ public class GraphicSettings
     [Menu("Line Width", "Width of the map connection lines and waypoint lines")]
     public RangeNode<float> MapLineWidth { get; set; } = new RangeNode<float>(4.0f, 0, 10);
 
+    [Menu("Unlocked Line Color", "Color of the map connection lines when an adjacent node is unlocked.")]
+    public ColorNode UnlockedLineColor { get; set; } = new ColorNode(Color.FromArgb(170, 90, 255, 90));
+
+    [Menu("Locked Line Color", "Color of the map connection lines when no adjacent nodes are unlocked.")]
+    public ColorNode LockedLineColor { get; set; } = new ColorNode(Color.FromArgb(170, 255, 90, 90));
+
 }
 
 [Submenu(CollapsedByDefault = false)]
