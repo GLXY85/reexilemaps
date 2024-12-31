@@ -1,13 +1,18 @@
 ﻿using ExileCore2;
+using ExileCore2.Shared.Nodes;
+using ExileCore2.PoEMemory;
 using ExileCore2.PoEMemory.MemoryObjects;
 using ExileCore2.PoEMemory.Elements.AtlasElements;
-using System.Linq;
+using GameOffsets2.Native;
+
 using ImGuiNET;
-using System.Numerics;
+
+using System;
+using System.Linq;
 using System.Drawing;
+using System.Numerics;
 using System.Text.Json;
-using ExileCore2.PoEMemory;
-using ExileCore2.Shared.Nodes;
+using System.Collections.Generic;
 
 namespace ExileMaps;
 
@@ -74,6 +79,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             DrawLineToMapNode(mapNode); // Draw waypoint lines
             DrawMapNode(mapNode); // Draw node highlights
             DrawMapName(mapNode); // Draw node names
+            DrawConnections(WorldMap, mapNode); // Draw hidden node connections
             
         }
         
@@ -87,6 +93,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         //     }
         // }
 
+
         if (Settings.Features.DebugMode)
         {
             foreach (var mapNode in mapNodes)
@@ -94,9 +101,40 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                 var text = mapNode.Address.ToString("X");
                 Graphics.DrawText(text, mapNode.Element.GetClientRect().TopLeft, Color.Red);
             }
+
         }
     }
 
+    /// <summary>
+    /// Draws lines between a map node and its connected nodes on the atlas.
+    /// </summary>
+    /// <param name="WorldMap">The atlas panel containing the map nodes and their connections.</param>
+    /// <param name="mapNode">The map node for which connections are to be drawn.</param>
+    /// 
+    private void DrawConnections(AtlasPanel WorldMap, AtlasNodeDescription mapNode)
+    {
+        if (!Settings.Features.DrawHiddenNodeConnections || mapNode.Element.IsVisible)
+            return;
+
+        var mapConnections = WorldMap.Points.FirstOrDefault(x => x.Item1 == mapNode.Coordinate);
+
+        if (mapConnections.Equals(default((Vector2i, Vector2i, Vector2i, Vector2i, Vector2i))))
+            return;
+
+        var connectionArray = new[] { mapConnections.Item2, mapConnections.Item3, mapConnections.Item4, mapConnections.Item5 };
+
+        foreach (var coordinates in connectionArray)
+        {
+            if (coordinates == default)
+                continue;
+
+            var destinationNode = WorldMap.Descriptions.FirstOrDefault(x => x.Coordinate == coordinates);
+            if (destinationNode != null)
+            {
+                Graphics.DrawLine(mapNode.Element.GetClientRect().Center, destinationNode.Element.GetClientRect().Center, Settings.Graphics.MapLineWidth, Settings.Graphics.LineColor);
+            }
+        }
+    }
     /// <summary>
     /// Highlights a map node by drawing a circle around it if certain conditions are met.
     /// </summary>

@@ -51,6 +51,10 @@ public class FeatureSettings
     [Menu("Process Hidden Map Nodes")]
     public ToggleNode ProcessHiddenNodes { get; set; } = new ToggleNode(true);
 
+    [ConditionalDisplay(nameof(ProcessHiddenNodes), true)]
+    [Menu("Draw Connections for Hidden Map Nodes")]
+    public ToggleNode DrawHiddenNodeConnections { get; set; } = new ToggleNode(true);
+
     [Menu("[NYI] Map Node Highlighting", "Draw colored circles for selected map types.")]
     public ToggleNode DrawNodeHighlights { get; set; } = new ToggleNode(true);
 
@@ -174,10 +178,10 @@ public class GraphicSettings
     [Menu("Distance Marker Scale", "Interpolation factor for distance markers on lines")]
     public RangeNode<float> LabelInterpolationScale { get; set; } = new RangeNode<float>(0.2f, 0, 1);
 
-    [Menu("Line Color", "Color of the waypoint lines when no map specific color is set")]
+    [Menu("Line Color", "Color of the map connection lines and waypoint lines when no map specific color is set")]
     public ColorNode LineColor { get; set; } = new ColorNode(Color.FromArgb(200, 255, 222, 222));
 
-    [Menu("Line Width")]
+    [Menu("Line Width", "Width of the map connection lines and waypoint lines")]
     public RangeNode<float> MapLineWidth { get; set; } = new RangeNode<float>(4.0f, 0, 10);
 
 }
