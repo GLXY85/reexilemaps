@@ -329,7 +329,7 @@ public class MapHighlightSettings
 
 
 
-                                var mapName = mapNode.Element.Area.Name;
+                                var mapName = mapNode.Element.Area.Name.Trim();
                                 // We use this "Fake" ID because there are multiple maps with the same name but different IDs
                                 // e.g. a map with a boss and without may have a different ID and layout
                                 var mapId = mapNode.Element.Area.Name.ToString().Replace(" ", "");
@@ -337,12 +337,12 @@ public class MapHighlightSettings
                                 if (Maps.ContainsKey(mapId)) {
                                     // Update the map properties                                    
                                     Maps[mapId].RealID = mapNode.Element.Area.Id;                                    
-                                    Maps[mapId].Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name == mapName);
+                                    Maps[mapId].Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name.Trim() == mapName.Trim());
                                 } else {
                                     var map = new Map
                                     {
-                                        Name = mapName,
-                                        ID = mapName.Replace(" ", ""),
+                                        Name = mapName.Trim(),
+                                        ID = mapName.Replace(" ", "").Trim(),
                                         RealID = mapNode.Element.Area.Id,
                                         NameColor = Color.White,
                                         BackgroundColor = Color.FromArgb(100, 0, 0, 0),

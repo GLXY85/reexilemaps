@@ -97,9 +97,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         }
 
 
-        string[] waypointNames = Settings.MapHighlightSettings.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.Name).ToArray();
+        string[] waypointNames = Settings.MapHighlightSettings.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.Name.Trim()).ToArray();
         var waypointNodes = WorldMap.Descriptions
-            .Where(x => waypointNames.Contains(x.Element.Area.Name))
+            .Where(x => waypointNames.Contains(x.Element.Area.Name.Trim()))
             .Where(x => !x.Element.IsVisited || !(!x.Element.IsUnlocked && x.Element.IsVisited))
             .Where(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000) || !Settings.Features.WaypointsUseAtlasRange);
         
@@ -191,7 +191,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (!Settings.Features.DrawLines)
             return;
 
-        var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name == mapNode.Element.Area.Name && x.Value.DrawLine == true).Value;
+        var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name.Trim() == mapNode.Element.Area.Name.Trim() && x.Value.DrawLine == true).Value;
         
         if (map == null)
             return;
@@ -203,7 +203,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         
         // If labels are enabled, draw the node name and the distance to the node.
         if (Settings.Features.DrawLineLabels) {
-            string text = mapNode.Element.Area.Name;
+            string text = mapNode.Element.Area.Name.Trim();
             text += $" ({Vector2.Distance(Game.Window.GetWindowRectangle().Center, mapNode.Element.GetClientRect().Center).ToString("0")})";
             
             DrawTextWithBackground(text, position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
@@ -221,7 +221,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (!Settings.Features.DrawNodeHighlights)
             return;
 
-        var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name == mapNode.Element.Area.Name && x.Value.Highlight == true).Value;
+        var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name.Trim() == mapNode.Element.Area.Name.Trim() && x.Value.Highlight == true).Value;
 
         if (map == null)
             return;
@@ -256,7 +256,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         var backgroundColor = Settings.Graphics.BackgroundColor;
 
         if (Settings.Features.NameHighlighting) {            
-            var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name == mapNode.Element.Area.Name && x.Value.Highlight == true).Value;
+            var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name.Trim() == mapNode.Element.Area.Name.Trim() && x.Value.Highlight == true).Value;
 
             if (map != null) {
                 fontColor = map.NameColor;
@@ -264,7 +264,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             }
         }
 
-        DrawTextWithBackground(mapNode.Element.Area.Name.ToUpper(), mapNode.Element.GetClientRect().Center, fontColor, backgroundColor, true, 10, 3);
+        DrawTextWithBackground(mapNode.Element.Area.Name.Trim().ToUpper(), mapNode.Element.GetClientRect().Center, fontColor, backgroundColor, true, 10, 3);
     }
     
     // private void DrawTowerRange(AtlasNodeDescription towerNode)
