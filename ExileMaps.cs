@@ -76,7 +76,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             ringCount += HighlightMapNode(mapNode, ringCount, "Ritual", Settings.Highlights.HighlightRitual, Settings.Highlights.ritualColor);
             ringCount += HighlightMapNode(mapNode, ringCount, "Boss", Settings.Highlights.HighlightBosses, Settings.Highlights.bossColor);
                 
-            DrawWaypointLine(mapNode); // Draw waypoint lines
+            
             DrawMapNode(mapNode); // Draw node highlights
             DrawMapName(mapNode); // Draw node names
              // Draw hidden node connections
@@ -94,6 +94,18 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                 DrawConnections(WorldMap, mapNode);
             }
 
+        }
+
+
+        string[] waypointNames = Settings.MapHighlightSettings.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.Name).ToArray();
+        var waypointNodes = WorldMap.Descriptions
+            .Where(x => waypointNames.Contains(x.Element.Area.Name))
+            .Where(x => !x.Element.IsVisited || !(!x.Element.IsUnlocked && x.Element.IsVisited))
+            .Where(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000) || !Settings.Features.WaypointsUseAtlasRange);
+        
+        foreach (var mapNode in waypointNodes)
+        {
+            DrawWaypointLine(mapNode);
         }
 
         // if (Settings.Features.DrawTowerRange) {

@@ -78,6 +78,10 @@ public class FeatureSettings
     public ToggleNode DrawLines { get; set; } = new ToggleNode(true);
     
     [ConditionalDisplay(nameof(DrawLines), true)]
+    [Menu("Limit Waypoints to Atlas range", "If enabled, Waypoints will only be drawn if they are within your Atlas range, otherwise all waypoints will be drawn. Disabling this may cause performance issues.")]
+    public ToggleNode WaypointsUseAtlasRange { get; set; } = new ToggleNode(true);
+
+    [ConditionalDisplay(nameof(DrawLines), true)]
     [Menu("Draw Labels on Waypoint Lines", "Draw the name and distance to the node on the indicator lines, if enabled")]
     public ToggleNode DrawLineLabels { get; set; } = new ToggleNode(true);
 
