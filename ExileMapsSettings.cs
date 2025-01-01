@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Windows.Forms;
 using ExileCore2;
 using ExileCore2.PoEMemory.MemoryObjects;
 using ExileCore2.PoEMemory.Elements.AtlasElements;
@@ -12,6 +13,8 @@ using System.Collections.Generic;
 using ImGuiNET;
 using System.Numerics;
 using System.Drawing;
+using ExileMaps.Classes;
+
 using static ExileMaps.ExileMapsCore;
 
 namespace ExileMaps;
@@ -22,6 +25,9 @@ public class ExileMapsSettings : ISettings
 
     [Menu("Toggle Features")]
     public FeatureSettings Features { get; set; } = new FeatureSettings();
+    
+    // [Menu("Pathfinding")]
+    // public PathfindingSettings Pathfinding { get; set; } = new PathfindingSettings();
 
     [Menu("Map Node Labelling")]
     public LabelSettings Labels { get; set; } = new LabelSettings();
@@ -31,10 +37,15 @@ public class ExileMapsSettings : ISettings
 
     [Menu("Graphics, Colors, and Performance Settings")]    
     public GraphicSettings Graphics { get; set; } = new GraphicSettings();
-    
-    [Menu("Map and Waypoint Settings")]
-    public MapHighlightSettings MapHighlightSettings { get; set; } = new MapHighlightSettings();
 
+    [Menu("Map Settings")]
+    public MapSettings Maps { get; set; } = new MapSettings();
+
+    [Menu("Biome Settings")]
+    public BiomeSettings Biomes { get; set; } = new BiomeSettings();
+
+    [Menu("Content Settings")]
+    public ContentSettings MapContent { get; set; } = new ContentSettings();
 }
 
 [Submenu(CollapsedByDefault = false)]
@@ -111,7 +122,14 @@ public class FeatureSettings
     [Menu("Debug Mode", "Show node addresses on Atlas map")]
     public ToggleNode DebugMode { get; set; } = new ToggleNode(false);
 }
+[Submenu(CollapsedByDefault = false)]
+public class PathfindingSettings
+{
+    public HotkeyNode RefreshNodeCacheHotkey { get; set; } = new HotkeyNode(Keys.F13);
+    public HotkeyNode SetCurrentLocationHotkey { get; set; } = new HotkeyNode(Keys.F13);
+    public HotkeyNode AddWaypointHotkey { get; set; } = new HotkeyNode(Keys.F13);
 
+}
 
 [Submenu(CollapsedByDefault = false)]
 public class LabelSettings
@@ -171,6 +189,7 @@ public class HighlightSettings
     [ConditionalDisplay(nameof(HighlightBosses), true)]
     [Menu("Boss Color", "Color of the ring around bosses on the Atlas")]
     public ColorNode bossColor { get; set; } = new ColorNode(Color.FromArgb(200, 195, 156, 105));
+
 }
 
 [Submenu(CollapsedByDefault = false)]
@@ -202,35 +221,115 @@ public class GraphicSettings
 
 }
 
-[Submenu(CollapsedByDefault = false)]
-public class MapHighlightSettings
+[Submenu(CollapsedByDefault = true)]
+public class MapSettings
 {
-    public Dictionary<string, Map> Maps { get; set; } = new Dictionary<string, Map>();
-
     [JsonIgnore]
-    public CustomNode MapSettings { get; set; }
+    public CustomNode CustomMapSettings { get; set; }
 
-    public MapHighlightSettings() {    
-        MapSettings = new CustomNode
+    public Dictionary<string, Map> Maps { get; set; }
+    public MapSettings() {    
+
+        CustomMapSettings = new CustomNode
         {
             DrawDelegate = () =>
             {
+                
+                var updatingMaps = false;
+
+                if (ImGui.Button("Update Maps") && !updatingMaps) {
+                    var WorldMap = Main.Game.IngameState.IngameUi.WorldMap.AtlasPanel;
+                    var screenCenter = Main.Game.Window.GetWindowRectangle().Center;
+                    // if WorldMap isn't open, return
+                    if (WorldMap == null) return;
+                    
+                    updatingMaps = true;
+                    try
+                    {
+                        // Get unique map nodes within range
+
+                        // Get map nodes with unique Element.Area.Name
+
+                        var mapNodes = WorldMap.Descriptions                                
+                            .GroupBy(x => x.Element.Area.Name)
+                            .Select(g => g.First())
+                            .ToList();
+
+                        // Add the maps to the Maps dictionary if they don't already exist
+                        foreach (var mapNode in mapNodes)
+                        {
+
+                            // check if the mapnode name exists in the maps dictionary
+
+
+
+                            var mapName = mapNode.Element.Area.Name.Trim();
+                            // We use this "Fake" ID because there are multiple maps with the same name but different IDs
+                            // e.g. a map with a boss and without may have a different ID and layout
+                            var mapId = mapNode.Element.Area.Name.ToString().Replace(" ", "");
+                            
+                            if (Maps.ContainsKey(mapId)) {
+                                // Update the map properties                                    
+                                Maps[mapId].Name = mapName;
+                                Maps[mapId].RealID = mapNode.Element.Area.Id;                                    
+                                Maps[mapId].Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name.Trim() == mapName);
+                            } else {
+                                var map = new Map
+                                {
+                                    Name = mapName,
+                                    ID = mapName.Replace(" ", ""),
+                                    RealID = mapNode.Element.Area.Id,
+                                    NameColor = Color.White,
+                                    BackgroundColor = Color.FromArgb(100, 0, 0, 0),
+                                    NodeColor = Color.White,
+                                    DrawLine = false,
+                                    Highlight = false,
+                                    Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name == mapName)
+                                };
+                                Maps.Add(mapId, map);
+                            }
+                            
+                            Main.LogMessage($"Added {mapName} to map settings");
+                        
+                        }
+
+                        
+                    }
+                    catch (Exception ex)
+                    {
+                        Main.LogMessage($"Failed to refresh Atlas: Error finding GameState - Reloading the plugin should fix this.");
+                    }
+                    finally
+                    {
+                        updatingMaps = false;
+                    }
+                } else if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip("Add any/all new maps to the map list. Atlas map must be open.");
+                }
+                
                 if (Maps.Count == 0)   
                 {
                     ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.2f, 0.2f, 1)); // Red text
-                    ImGui.TextWrapped("No maps found. Please open your Atlas and click 'Update Maps' under the 'Map and Waypoint Settings' menu.");
+                    ImGui.TextWrapped("No maps found. Please open your Atlas and click 'Update Maps'.");
                     ImGui.PopStyleColor();
                 }
-                if (ImGui.BeginTable("maps_table", 8, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+
+                ImGui.Spacing();
+                ImGui.TextWrapped("CTRL+Click on a slider to manually enter a value.");
+                ImGui.Spacing();
+
+                if (ImGui.BeginTable("maps_table", 8, ImGuiTableFlags.SizingFixedFit|ImGuiTableFlags.Borders|ImGuiTableFlags.PadOuterX))
                 {
-                    ImGui.TableSetupColumn("Enable", ImGuiTableColumnFlags.WidthFixed, 25f);
-                    ImGui.TableSetupColumn("Map Name", ImGuiTableColumnFlags.WidthFixed|ImGuiTableColumnFlags.PreferSortAscending, 150f);                                                              
-                    ImGui.TableSetupColumn("Node", ImGuiTableColumnFlags.WidthFixed, 45f);     
-                    ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 45f);               
-                    ImGui.TableSetupColumn("Background", ImGuiTableColumnFlags.WidthFixed, 45f);
-                    ImGui.TableSetupColumn("Line", ImGuiTableColumnFlags.WidthFixed, 35f);                              
-                    ImGui.TableSetupColumn("Biomes", ImGuiTableColumnFlags.WidthStretch, 200f);      
-                    ImGui.TableSetupColumn("Count", ImGuiTableColumnFlags.WidthStretch, 70f);    
+  
+                    ImGui.TableSetupColumn("Map", ImGuiTableColumnFlags.WidthFixed, 200);                                                              
+                    ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 100); 
+                    ImGui.TableSetupColumn("Node", ImGuiTableColumnFlags.WidthFixed, 55);     
+                    ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 55);               
+                    ImGui.TableSetupColumn("Background", ImGuiTableColumnFlags.WidthFixed, 55);
+                    ImGui.TableSetupColumn("Line", ImGuiTableColumnFlags.WidthFixed, 55);                              
+                    ImGui.TableSetupColumn("Count", ImGuiTableColumnFlags.WidthFixed, 55);
+                    ImGui.TableSetupColumn("Biomes", ImGuiTableColumnFlags.WidthStretch, 300);   
                     ImGui.TableHeadersRow();
 
                     // Sort Maps alphabetically by Name
@@ -238,179 +337,260 @@ public class MapHighlightSettings
 
                     foreach (var map in Maps)
                     {
+                        ImGui.PushID($"Map_{map.Key}");
                         ImGui.TableNextRow();
-
-                        // Enable
                         ImGui.TableNextColumn();
                         bool isMapHighlighted = map.Value.Highlight;
-                        if(ImGui.Checkbox($"##{map}_highlight", ref isMapHighlighted))
-                        {
-                            map.Value.Highlight = isMapHighlighted;
-                        }
 
-                        // Map Name
-                        ImGui.TableNextColumn();
+                        if(ImGui.Checkbox($"##{map}_highlight", ref isMapHighlighted))
+                            map.Value.Highlight = isMapHighlighted;
+
+                        ImGui.SameLine();
                         ImGui.Text(map.Value.Name);
 
-                        // Map Node Colour
                         ImGui.TableNextColumn();
+                        float weight = map.Value.Weight;
+                        ImGui.SetNextItemWidth(100);
+                        if(ImGui.SliderFloat($"##{map}_weight", ref weight, 0.1f, 5.0f))                        
+                            map.Value.Weight = weight;
+
+                        ImGui.TableNextColumn();
+
+                        float controlWidth = 30.0f;
+                        float availableWidth = ImGui.GetContentRegionAvail().X;
+                        float cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                        ImGui.SetCursorPosX(cursorPosX);
                         Color nodeColor = map.Value.NodeColor;
                         Vector4 colorVector = new Vector4(nodeColor.R / 255.0f, nodeColor.G / 255.0f, nodeColor.B / 255.0f, nodeColor.A / 255.0f);
-                        if(ImGui.ColorEdit4($"##{map}_nodecolor", ref colorVector, ImGuiColorEditFlags.AlphaBar))
-                        {
+                        if(ImGui.ColorEdit4($"##{map}_nodecolor", ref colorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
                             map.Value.NodeColor = Color.FromArgb((int)(colorVector.W * 255), (int)(colorVector.X * 255), (int)(colorVector.Y * 255), (int)(colorVector.Z * 255));
-                        }
-
-                        // Map Name Text Colour
+                        
                         ImGui.TableNextColumn();
+                        availableWidth = ImGui.GetContentRegionAvail().X;
+                        cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                        ImGui.SetCursorPosX(cursorPosX);
                         Color nameColor = map.Value.NameColor;
                         Vector4 nameColorVector = new Vector4(nameColor.R / 255.0f, nameColor.G / 255.0f, nameColor.B / 255.0f, nameColor.A / 255.0f);
-                        if(ImGui.ColorEdit4($"##{map}_namecolor", ref nameColorVector, ImGuiColorEditFlags.AlphaBar))
-                        {
+                        if(ImGui.ColorEdit4($"##{map}_namecolor", ref nameColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
                             map.Value.NameColor = Color.FromArgb((int)(nameColorVector.W * 255), (int)(nameColorVector.X * 255), (int)(nameColorVector.Y * 255), (int)(nameColorVector.Z * 255));
-                        }
-
-                        // Map Name Background Colour
+                        
                         ImGui.TableNextColumn();
+                        availableWidth = ImGui.GetContentRegionAvail().X;
+                        cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                        ImGui.SetCursorPosX(cursorPosX);
                         Color bgColor = map.Value.BackgroundColor;
                         Vector4 bgColorVector = new Vector4(bgColor.R / 255.0f, bgColor.G / 255.0f, bgColor.B / 255.0f, bgColor.A / 255.0f);
-                        if(ImGui.ColorEdit4($"##{map}_bgcolor", ref bgColorVector, ImGuiColorEditFlags.AlphaBar))
-                        {
+                        if(ImGui.ColorEdit4($"##{map}_bgcolor", ref bgColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
                             map.Value.BackgroundColor = Color.FromArgb((int)(bgColorVector.W * 255), (int)(bgColorVector.X * 255), (int)(bgColorVector.Y * 255), (int)(bgColorVector.Z * 255));
-                        }
-
-                        // Waypoint lines
+                        
                         ImGui.TableNextColumn();
+                        availableWidth = ImGui.GetContentRegionAvail().X;
+                        cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                        ImGui.SetCursorPosX(cursorPosX);
                         bool drawLine = map.Value.DrawLine;
                         if(ImGui.Checkbox($"##{map}_line", ref drawLine))
-                        {
-                            map.Value.DrawLine = drawLine;
-                        }
+                            map.Value.DrawLine = drawLine;    
 
-
-                        // Map Biomes
-                        ImGui.TableNextColumn();
-                        ImGui.Text("");
-
-                                                // Map Counter
-                        ImGui.TableNextColumn();
+                        ImGui.TableNextColumn();                        
                         ImGui.Text(map.Value.Count.ToString());
+                            
+                        ImGui.TableNextColumn();
+                        ImGui.Text(map.Value.Biomes.Length > 0 ? string.Join(", ", map.Value.Biomes.Where(x => x != "")) : "None");
 
+                        ImGui.PopID();
                     }                
                 }
                 ImGui.EndTable();
-                ImGui.Spacing();
-
-                var updatingMaps = false;
-
-                    if (ImGui.Button("Update Maps") && !updatingMaps) {
-                        var WorldMap = Main.Game.IngameState.IngameUi.WorldMap.AtlasPanel;
-                        var screenCenter = Main.Game.Window.GetWindowRectangle().Center;
-                        // if WorldMap isn't open, return
-                        if (WorldMap == null) return;
-                        
-                        updatingMaps = true;
-                        try
-                        {
-                            // Get unique map nodes within range
-
-                            // Get map nodes with unique Element.Area.Name
-
-                            var mapNodes = WorldMap.Descriptions                                
-                                .GroupBy(x => x.Element.Area.Name)
-                                .Select(g => g.First())
-                                .ToList();
-
-                            // Add the maps to the Maps dictionary if they don't already exist
-                            foreach (var mapNode in mapNodes)
-                            {
-
-                                // check if the mapnode name exists in the maps dictionary
-
-
-
-                                var mapName = mapNode.Element.Area.Name.Trim();
-                                // We use this "Fake" ID because there are multiple maps with the same name but different IDs
-                                // e.g. a map with a boss and without may have a different ID and layout
-                                var mapId = mapNode.Element.Area.Name.ToString().Replace(" ", "");
-                                
-                                if (Maps.ContainsKey(mapId)) {
-                                    // Update the map properties                                    
-                                    Maps[mapId].Name = mapName;
-                                    Maps[mapId].RealID = mapNode.Element.Area.Id;                                    
-                                    Maps[mapId].Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name.Trim() == mapName);
-                                } else {
-                                    var map = new Map
-                                    {
-                                        Name = mapName,
-                                        ID = mapName.Replace(" ", ""),
-                                        RealID = mapNode.Element.Area.Id,
-                                        NameColor = Color.White,
-                                        BackgroundColor = Color.FromArgb(100, 0, 0, 0),
-                                        NodeColor = Color.White,
-                                        DrawLine = false,
-                                        Highlight = false,
-                                        Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name == mapName)
-                                    };
-                                    Maps.Add(mapId, map);
-                                }
-                                
-                                Main.LogMessage($"Added {mapName} to map settings");
-                            
-                            }
-
-                            
-                        }
-                        catch (Exception ex)
-                        {
-                            Main.LogMessage($"Failed to refresh Atlas: Error finding GameState - Reloading the plugin should fix this.");
-                        }
-                        finally
-                        {
-                            updatingMaps = false;
-                        }
-                    } else if (ImGui.IsItemHovered())
-                    {
-                        ImGui.SetTooltip("Add any/all new maps to the map list. Atlas map must be open.");
-                    }
                 
-                ImGui.SameLine();
-                ImGui.Spacing();
-                ImGui.SameLine();
-                if (ImGui.Button("Clear Maps") && !updatingMaps)
-                {
-                    ImGui.OpenPopup("Confirm Clear Maps");
-                } else if (ImGui.IsItemHovered())
-                {
-                    ImGui.SetTooltip("Clears the map list. This will erase all map specific settings and you will need to open your Atlas and update the maps again.");
-                }
-                bool open = true;
-                if (ImGui.BeginPopupModal("Confirm Clear Maps", ref open, ImGuiWindowFlags.AlwaysAutoResize))
-                {
-                    ImGui.Text("Are you sure you want to clear all maps? This will erase all map specific settings.");
-                    ImGui.Separator();
-
-                    if (ImGui.Button("Yes", new Vector2(120, 0)))
-                    {
-                        updatingMaps = true;
-                        Maps.Clear();
-                        Main.LogMessage("Cleared Maps");
-                        updatingMaps = false;
-                        ImGui.CloseCurrentPopup();
-                        
-                    }
-
-                    ImGui.SameLine();
-
-                    if (ImGui.Button("No", new Vector2(120, 0)))
-                        ImGui.CloseCurrentPopup();
-
-                    ImGui.EndPopup();
-                    open = false;
-                }
             }
         };
     }
 }
 
+[Submenu(CollapsedByDefault = true)]
+public class BiomeSettings
+{
+    [JsonIgnore]
+    public CustomNode CustomBiomeSettings { get; set; }
+    public Dictionary<string, Biome> Biomes { get; set; }
+    public BiomeSettings() {    
+
+        CustomBiomeSettings = new CustomNode
+        {
+            DrawDelegate = () =>
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.2f, 0.2f, 1));
+                ImGui.TextWrapped("These settings are not yet implemented.");
+                ImGui.PopStyleColor();
+
+                ImGui.Spacing();
+                ImGui.TextWrapped("CTRL+Click on a slider to manually enter a value.");
+                ImGui.Spacing();
+
+                if (ImGui.BeginTable("biomes_table", 5, ImGuiTableFlags.Borders|ImGuiTableFlags.PadOuterX))
+                {
+                    ImGui.TableSetupColumn("Biome", ImGuiTableColumnFlags.WidthFixed, 200);                                                               
+                    ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 100);     
+                    ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthFixed, 50);
+                    ImGui.TableSetupColumn("Highlight", ImGuiTableColumnFlags.WidthFixed, 70); 
+                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch, 50);
+                    ImGui.TableHeadersRow();
+
+                    foreach (var biome in Biomes)
+                    {
+                        ImGui.PushID($"Biome_{biome.Key}");
+
+                        ImGui.TableNextRow();
+
+                        ImGui.TableNextColumn();
+                        ImGui.Text(biome.Key);
+
+                        ImGui.TableNextColumn();
+                        float weight = biome.Value.Weight;                        
+                        ImGui.SetNextItemWidth(100);
+                        if(ImGui.SliderFloat($"##{biome}_weight", ref weight, 0.1f, 0.5f))                        
+                            biome.Value.Weight = weight;
+                        
+                        ImGui.TableNextColumn();
+                        float controlWidth = 30.0f;
+                        float availableWidth = ImGui.GetContentRegionAvail().X;
+                        float cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                        ImGui.SetCursorPosX(cursorPosX);
+                        Color biomeColor = biome.Value.Color;
+                        Vector4 biomeColorVector = new Vector4(biomeColor.R / 255.0f, biomeColor.G / 255.0f, biomeColor.B / 255.0f, biomeColor.A / 255.0f);
+                        if(ImGui.ColorEdit4($"##{biome}_color", ref biomeColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
+                            biome.Value.Color = Color.FromArgb((int)(biomeColorVector.W * 255), (int)(biomeColorVector.X * 255), (int)(biomeColorVector.Y * 255), (int)(biomeColorVector.Z * 255));
+                        
+                        ImGui.TableNextColumn();
+                        availableWidth = ImGui.GetContentRegionAvail().X;
+                        cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                        ImGui.SetCursorPosX(cursorPosX);
+                        bool highlight = biome.Value.Highlight;
+                        if(ImGui.Checkbox($"##{biome}_highlight", ref highlight))                        
+                            biome.Value.Highlight = highlight;
+                        
+                        ImGui.PopID();
+                    }
+                }
+                ImGui.EndTable();
+            }
+        };
+    }
+}
+
+[Submenu(CollapsedByDefault = true)]
+public class ContentSettings
+{
+    [JsonIgnore]
+    public CustomNode CustomContentSettings { get; set; }
+    public Dictionary<string, Content> ContentTypes { get; set; }
+
+    public bool HighlightUnlockedNodes { get; set; } = true;
+    public bool HighlightLockedNodes { get; set; } = true;
+    public bool HighlightHiddenNodes { get; set; } = true;
+
+
+    public ContentSettings() {    
+
+        CustomContentSettings = new CustomNode
+        {
+            DrawDelegate = () =>
+            {
+  
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.2f, 0.2f, 1));
+                ImGui.TextWrapped("These settings are not yet implemented.");
+                ImGui.PopStyleColor();
+
+                if (ImGui.BeginTable("content_options_table", 2, ImGuiTableFlags.NoBordersInBody|ImGuiTableFlags.PadOuterX))
+                {
+                    ImGui.TableSetupColumn("Check", ImGuiTableColumnFlags.WidthFixed, 40);                                                               
+                    ImGui.TableSetupColumn("Option", ImGuiTableColumnFlags.WidthStretch, 300);                     
+        
+                    ImGui.TableNextRow();
+
+
+                    ImGui.TableNextColumn();
+                    bool highlightUnlocked = HighlightUnlockedNodes;
+                    if(ImGui.Checkbox($"##unlocked_nodes_highlight", ref highlightUnlocked))                        
+                        HighlightUnlockedNodes = highlightUnlocked;
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Highlight Content in Unlocked Map Nodes");
+
+                    ImGui.TableNextRow();
+
+                    ImGui.TableNextColumn();
+                    bool highlightLocked = HighlightLockedNodes;
+                    if(ImGui.Checkbox($"##locked_nodes_highlight", ref highlightLocked))                        
+                        HighlightLockedNodes = highlightLocked;
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Highlight Content in Locked Map Nodes");
+
+                    ImGui.TableNextRow();
+
+                    ImGui.TableNextColumn();
+                    bool highlightHidden = HighlightHiddenNodes;
+                    if(ImGui.Checkbox($"##hidden_nodes_highlight", ref highlightHidden))                        
+                        HighlightHiddenNodes = highlightHidden;
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Highlight Content in Hidden Map Nodes");                    
+                }
+
+                ImGui.EndTable();
+
+                ImGui.Spacing();
+                ImGui.TextWrapped("CTRL+Click on a slider to manually enter a value.");
+                ImGui.Spacing();
+
+                if (ImGui.BeginTable("content_table", 5, ImGuiTableFlags.Borders))
+                {
+                    ImGui.TableSetupColumn("Content Type", ImGuiTableColumnFlags.WidthFixed, 200);                                                               
+                    ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 100);     
+                    ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthFixed, 50);
+                    ImGui.TableSetupColumn("Highlight", ImGuiTableColumnFlags.WidthFixed, 70); 
+                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch, 50);
+                    ImGui.TableHeadersRow();
+
+                    foreach (var content in ContentTypes)
+                    {
+                        ImGui.PushID($"Content_{content.Key}");
+                        ImGui.TableNextRow();
+
+                        ImGui.TableNextColumn();
+                        ImGui.Text(content.Key);
+
+                        ImGui.TableNextColumn();
+                        float weight = content.Value.Weight;                        
+                        ImGui.SetNextItemWidth(100);
+                        if(ImGui.SliderFloat($"##{content}_weight", ref weight, 0.1f, 0.5f)) 
+                            content.Value.Weight = weight;
+                        
+                        ImGui.TableNextColumn();
+                        float controlWidth = 30.0f;
+                        float availableWidth = ImGui.GetContentRegionAvail().X;
+                        float cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                        ImGui.SetCursorPosX(cursorPosX);
+                        Color contentColor = content.Value.Color;
+                        Vector4 contentColorVector = new Vector4(contentColor.R / 255.0f, contentColor.G / 255.0f, contentColor.B / 255.0f, contentColor.A / 255.0f);
+                        if(ImGui.ColorEdit4($"##{content}_color", ref contentColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
+                            content.Value.Color = Color.FromArgb((int)(contentColorVector.W * 255), (int)(contentColorVector.X * 255), (int)(contentColorVector.Y * 255), (int)(contentColorVector.Z * 255));
+                        
+                        ImGui.TableNextColumn();
+                        availableWidth = ImGui.GetContentRegionAvail().X;
+                        cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                        ImGui.SetCursorPosX(cursorPosX);
+                        bool highlight = content.Value.Highlight;
+                        if(ImGui.Checkbox($"##{content}_highlight", ref highlight))                        
+                            content.Value.Highlight = highlight;
+                        
+                        ImGui.PopID();
+                    }
+                }
+                ImGui.EndTable();
+            }
+        };
+    }
+}
         

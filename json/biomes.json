@@ -1,0 +1,26 @@
+{
+    "Grass": {
+        "Name": "Grass",
+        "Weight": 1.0
+    },
+    "Desert": {
+        "Name": "Desert",
+        "Weight": 1.0
+    },
+    "Mountain": {
+        "Name": "Mountain",
+        "Weight": 1.0
+    },
+    "Swamp": {
+        "Name": "Swamp",
+        "Weight": 1.0
+    },
+    "Water": {
+        "Name": "Water",
+        "Weight": 1.0
+    },
+    "Forest": {
+        "Name": "Forest",
+        "Weight": 1.0
+    }
+}

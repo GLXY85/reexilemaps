@@ -1,0 +1,62 @@
+[
+    {
+        "ModID": 1324,
+        "Description": "Increased Breach Monsters",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 20519,
+        "Description": "Increased Chance for Rare Monsters to have Additional Modifiers",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 20047,
+        "Description": "Increased Gold",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 20988,
+        "Description": "Slaying Rare Monsters Pauses Delirium for 2 seconds",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 1202,
+        "Description": "Increased Rarity",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 8285,
+        "Description": "Increased Waystones",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 991,
+        "Description": "Increased Number of Rare Monsters",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 1004,
+        "Description": "Increased Quantity",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 13813,
+        "Description": "Increased Waystones",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 1324,
+        "Description": "Increased Experience",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 13009,
+        "Description": "Increased Gold and Waystones",
+        "Weight": 0.01
+    },
+    {
+        "ModID": 990,
+        "Description": "Increased Magic Monsters",
+        "Weight": 0.01
+    }
+]

@@ -8,11 +8,14 @@ using GameOffsets2.Native;
 using ImGuiNET;
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Drawing;
 using System.Numerics;
 using System.Text.Json;
 using System.Collections.Generic;
+
+using ExileMaps.Classes;
 
 namespace ExileMaps;
 
@@ -20,19 +23,95 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 {
     private int tickCount { get; set; }
     public static ExileMapsCore Main;
-    
+
+    private const string defaultMapsPath = "json\\maps.json";
+    private const string defaultModsPath = "json\\mods.json";
+    private const string defaultBiomesPath = "json\\biomes.json";
+    private const string defaultContentPath = "json\\content.json";
+
     public GameController Game => GameController;
     public IngameState State => Game.IngameState;
+
+    private bool refreshCache = false;
+
 
     public override bool Initialise()
     {
         Main = this;        
+
+        // RegisterHotkey(Settings.Pathfinding.RefreshNodeCacheHotkey);
+        // RegisterHotkey(Settings.Pathfinding.SetCurrentLocationHotkey);
+        // RegisterHotkey(Settings.Pathfinding.AddWaypointHotkey);
+
+        LoadDefaultBiomes();
+        LoadDefaultContentTypes();
+        LoadDefaultMaps();
+  
         return true;
+    }
+
+    private void LoadDefaultBiomes() {
+        try {
+        if (Settings.Biomes.Biomes == null)
+            Settings.Biomes.Biomes = new Dictionary<string, Biome>();
+
+        var jsonFile = File.ReadAllText(Path.Combine(DirectoryFullName, defaultBiomesPath));
+        var biomes = JsonSerializer.Deserialize<Dictionary<string, Biome>>(jsonFile);
+
+        foreach (var biome in biomes)
+            if (!Settings.Biomes.Biomes.ContainsKey(biome.Key)) 
+                Settings.Biomes.Biomes.Add(biome.Key, biome.Value);  
+        } catch (Exception e) {
+            LogError("Error loading default biomes: " + e.Message);
+        }
+            
+    }
+
+    private void LoadDefaultContentTypes() {
+        try {
+            if (Settings.MapContent.ContentTypes == null)
+                Settings.MapContent.ContentTypes = new Dictionary<string, Content>();
+
+            var jsonFile = File.ReadAllText(Path.Combine(DirectoryFullName, defaultContentPath));
+            var contentTypes = JsonSerializer.Deserialize<Dictionary<string, Content>>(jsonFile);
+
+            foreach (var content in contentTypes)
+                if (!Settings.MapContent.ContentTypes.ContainsKey(content.Key)) 
+                    Settings.MapContent.ContentTypes.Add(content.Key, content.Value);   
+        } catch (Exception e) {
+            LogError("Error loading default content types: " + e.Message);
+        }
+
+    }
+    
+    private void LoadDefaultMaps()
+    {
+        try {
+            if (Settings.Maps.Maps == null)
+                Settings.Maps.Maps = new Dictionary<string, Map>();
+
+            var jsonFile = File.ReadAllText(Path.Combine(DirectoryFullName, defaultMapsPath));
+            var maps = JsonSerializer.Deserialize<Dictionary<string, Map>>(jsonFile);
+
+            foreach (var map in maps) {
+                if (!Settings.Maps.Maps.ContainsKey(map.Key)) 
+                    Settings.Maps.Maps.Add(map.Key, map.Value);                       
+                else if (Settings.Maps.Maps[map.Key].Biomes == null) 
+                    Settings.Maps.Maps[map.Key].Biomes = map.Value.Biomes;
+            }
+        } catch (Exception e) {
+            LogError("Error loading default maps: " + e.Message);
+        }
+    }
+    private static void RegisterHotkey(HotkeyNode hotkey)
+    {
+        Input.RegisterKey(hotkey);
+        hotkey.OnValueChanged += () => { Input.RegisterKey(hotkey); };
     }
 
     public override void AreaChange(AreaInstance area)
     {
-
+        refreshCache = true;        
     }
 
     public override void Tick()
@@ -42,6 +121,20 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     public override void Render()
     {
+
+
+        // if (Settings.Pathfinding.RefreshNodeCacheHotkey.PressedOnce())
+        // {
+        //     LogMessage("Node Cache Refreshed: ");
+        // }
+        // if (Settings.Pathfinding.SetCurrentLocationHotkey.PressedOnce())
+        // {
+        //     LogMessage("Current Location: ");
+        // }
+        // if (Settings.Pathfinding.AddWaypointHotkey.PressedOnce())
+        // {
+        //     LogMessage("Waypoint Added: ");
+        // }
         // Only render every n ticks
         tickCount++;
         if (Settings.Graphics.RenderNTicks.Value % tickCount != 0) 
@@ -49,14 +142,20 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         tickCount = 0;
 
-        var WorldMap = State.IngameUi.WorldMap.AtlasPanel;
-
-        // If the world map is not visible, return.
-        if (!WorldMap.IsVisible)
+        if (State.IngameUi.WorldMap.AtlasPanel == null || !State.IngameUi.WorldMap.AtlasPanel.IsVisible)
             return;
 
+        var WorldMap = State.IngameUi.WorldMap.AtlasPanel;
+
+        List<AtlasNodeDescription> mapNodes;
+
         // Get all map nodes within the specified range.
-        var mapNodes = WorldMap.Descriptions.FindAll(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000));//
+        try {
+            mapNodes = WorldMap.Descriptions.FindAll(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000));//
+        } catch (Exception e) {
+            LogError("Error getting map nodes: " + e.Message);
+            return;
+        }
 
         // Filter out nodes based on settings.
         var selectedNodes = mapNodes
@@ -69,54 +168,54 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         {
             var ringCount = 0;           
 
-            // Draw content rings
-            ringCount += HighlightMapNode(mapNode, ringCount, "Breach", Settings.Highlights.HighlightBreaches, Settings.Highlights.breachColor);
-            ringCount += HighlightMapNode(mapNode, ringCount, "Delirium", Settings.Highlights.HighlightDelirium, Settings.Highlights.deliriumColor);
-            ringCount += HighlightMapNode(mapNode, ringCount, "Expedition", Settings.Highlights.HighlightExpedition, Settings.Highlights.expeditionColor);
-            ringCount += HighlightMapNode(mapNode, ringCount, "Ritual", Settings.Highlights.HighlightRitual, Settings.Highlights.ritualColor);
-            ringCount += HighlightMapNode(mapNode, ringCount, "Boss", Settings.Highlights.HighlightBosses, Settings.Highlights.bossColor);
-                
-            
-            DrawMapNode(mapNode); // Draw node highlights
-            DrawMapName(mapNode); // Draw node names
-             // Draw hidden node connections
-            
-        }
-        
-        if (Settings.Features.DrawVisibleNodeConnections || Settings.Features.DrawHiddenNodeConnections) {
-            
-            var connectionNodes = mapNodes
-            .Where(x => (Settings.Features.DrawVisibleNodeConnections && x.Element.IsVisible) || (Settings.Features.DrawHiddenNodeConnections && !x.Element.IsVisible))
-            .Where(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.UseAtlasRange ? Settings.Features.AtlasRange : 1000));
-
-            foreach (var mapNode in connectionNodes)
-            {
-                DrawConnections(WorldMap, mapNode);
+            try {
+                ringCount += HighlightMapNode(mapNode, ringCount, "Breach", Settings.Highlights.HighlightBreaches, Settings.Highlights.breachColor);
+                ringCount += HighlightMapNode(mapNode, ringCount, "Delirium", Settings.Highlights.HighlightDelirium, Settings.Highlights.deliriumColor);
+                ringCount += HighlightMapNode(mapNode, ringCount, "Expedition", Settings.Highlights.HighlightExpedition, Settings.Highlights.expeditionColor);
+                ringCount += HighlightMapNode(mapNode, ringCount, "Ritual", Settings.Highlights.HighlightRitual, Settings.Highlights.ritualColor);
+                ringCount += HighlightMapNode(mapNode, ringCount, "Boss", Settings.Highlights.HighlightBosses, Settings.Highlights.bossColor);
+                DrawMapNode(mapNode);
+                DrawMapName(mapNode);
+            } catch (Exception e) {
+                // doin a crime
             }
+            
 
+            
+        }
+        
+        try {
+            if (Settings.Features.DrawVisibleNodeConnections || Settings.Features.DrawHiddenNodeConnections) {
+                
+                var connectionNodes = mapNodes
+                .Where(x => (Settings.Features.DrawVisibleNodeConnections && x.Element.IsVisible) || (Settings.Features.DrawHiddenNodeConnections && !x.Element.IsVisible))
+                .Where(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.UseAtlasRange ? Settings.Features.AtlasRange : 1000));
+
+                foreach (var mapNode in connectionNodes)
+                {
+                    DrawConnections(WorldMap, mapNode);
+                }
+
+            }
+        } catch (Exception e) {
+            // oops i did it again
         }
 
+        string[] waypointNames = Settings.Maps.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.Name.Trim()).ToArray();
 
-        string[] waypointNames = Settings.MapHighlightSettings.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.Name.Trim()).ToArray();
         var waypointNodes = WorldMap.Descriptions
-            .Where(x => waypointNames.Contains(x.Element.Area.Name.Trim()))
-            .Where(x => !x.Element.IsVisited || !(!x.Element.IsUnlocked && x.Element.IsVisited))
-            .Where(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000) || !Settings.Features.WaypointsUseAtlasRange);
-        
+                .Where(x => waypointNames.Contains(x.Element.Area.Name.Trim()))
+                .Where(x => !x.Element.IsVisited && !(!x.Element.IsUnlocked && x.Element.IsVisited))
+                .Where(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000) || !Settings.Features.WaypointsUseAtlasRange);
+
         foreach (var mapNode in waypointNodes)
         {
-            DrawWaypointLine(mapNode);
+            try {
+                DrawWaypointLine(mapNode);
+            } catch (Exception e) {
+                LogError($"Error drawing waypoint line to map node: {mapNode.Element.Area.Name.Trim()}: {e.Message}");
+            }
         }
-
-        // if (Settings.Features.DrawTowerRange) {
-        //     var towerNodes = WorldMap.Descriptions            
-        //     .FindAll(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000))
-        //     .Where(x => x.Element.Area.Name.Contains("Lost Tower"));
-
-        //     foreach (var mapNode in towerNodes) {
-        //         DrawTowerRange(mapNode);
-        //     }
-        // }
 
 
         if (Settings.Features.DebugMode)
@@ -124,11 +223,16 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             foreach (var mapNode in mapNodes)
             {
                 var text = mapNode.Address.ToString("X");
-                Graphics.DrawText(text, mapNode.Element.GetClientRect().TopLeft, Color.Red);
+                var position = mapNode.Element.GetClientRect().Center + new Vector2(0, 35);
+                DrawCenteredTextWithBackground(mapNode.Address.ToString("X"), position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+                position += new Vector2(0, 27);
+                DrawCenteredTextWithBackground(mapNode.Coordinate.ToString(), position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
             }
 
         }
     }
+
+    
 
     /// <summary>
     /// Draws lines between a map node and its connected nodes on the atlas.
@@ -191,7 +295,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (!Settings.Features.DrawLines)
             return;
 
-        var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name.Trim() == mapNode.Element.Area.Name.Trim() && x.Value.DrawLine == true).Value;
+        var map = Settings.Maps.Maps.FirstOrDefault(x => x.Value.Name.Trim() == mapNode.Element.Area.Name.Trim() && x.Value.DrawLine == true).Value;
         
         if (map == null)
             return;
@@ -199,18 +303,18 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         var color = map.NodeColor;
 
         // Position for label and start of line.
-        Vector2 position = Vector2.Lerp(Game.Window.GetWindowRectangle().Center, mapNode.Element.GetClientRect().Center, Settings.Graphics.LabelInterpolationScale);
-        
+        Vector2 position = Vector2.Lerp(Game.Window.GetWindowRectangle().Center - Game.Window.GetWindowRectangle().Location, mapNode.Element.GetClientRect().Center, Settings.Graphics.LabelInterpolationScale);
+        // Draw the line from the center(ish) of the screen to the center of the map node.
+        Graphics.DrawLine(position, mapNode.Element.GetClientRect().Center, Settings.Graphics.MapLineWidth, color);
+
         // If labels are enabled, draw the node name and the distance to the node.
         if (Settings.Features.DrawLineLabels) {
             string text = mapNode.Element.Area.Name.Trim();
             text += $" ({Vector2.Distance(Game.Window.GetWindowRectangle().Center, mapNode.Element.GetClientRect().Center).ToString("0")})";
             
-            DrawTextWithBackground(text, position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+            DrawCenteredTextWithBackground(text, position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
         }
-
-        // Draw the line from the center(ish) of the screen to the center of the map node.
-        Graphics.DrawLine(position, mapNode.Element.GetClientRect().Center, Settings.Graphics.MapLineWidth, color);
+        
     }
     
     /// Draws a highlighted circle around a map node on the atlas if the node is configured to be highlighted.
@@ -221,13 +325,13 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (!Settings.Features.DrawNodeHighlights)
             return;
 
-        var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name.Trim() == mapNode.Element.Area.Name.Trim() && x.Value.Highlight == true).Value;
+        var map = Settings.Maps.Maps.FirstOrDefault(x => x.Value.Name.Trim() == mapNode.Element.Area.Name.Trim() && x.Value.Highlight == true).Value;
 
         if (map == null)
             return;
 
         var radius = 5 - (mapNode.Element.GetClientRect().Right - mapNode.Element.GetClientRect().Left) / 2;
-        Graphics.DrawCircleFilled(mapNode.Element.GetClientRect().Center, radius, map.NodeColor, 8);
+        Graphics.DrawCircleFilled(mapNode.Element.GetClientRect().Center, radius, map.NodeColor, 16);
     }
 
     /// <summary>
@@ -236,27 +340,17 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// <param name="mapNode">The atlas node description containing information about the map.</param>
     private void DrawMapName(AtlasNodeDescription mapNode)
     {
-        // If names are disabled, return.
-        if (!Settings.Features.DrawNodeLabels)
+        if (!Settings.Features.DrawNodeLabels ||
+            (!mapNode.Element.IsVisible && !Settings.Labels.LabelHiddenNodes) ||
+            (mapNode.Element.IsUnlocked && !Settings.Labels.LabelUnlockedNodes) ||
+            (!mapNode.Element.IsUnlocked && !Settings.Labels.LabelLockedNodes))
             return;
-
-        // If element is invisible and unrevealed names are disabled, return.
-        if (!mapNode.Element.IsVisible && !Settings.Labels.LabelHiddenNodes)
-            return; 
-
-        // If element is locked and locked names are disabled, return.
-        if (mapNode.Element.IsUnlocked && !Settings.Labels.LabelUnlockedNodes)
-            return; 
-
-        // If element is unlocked and unlocked names are disabled,
-        if (!mapNode.Element.IsUnlocked && !Settings.Labels.LabelLockedNodes)
-            return; 
 
         var fontColor = Settings.Graphics.FontColor;
         var backgroundColor = Settings.Graphics.BackgroundColor;
 
         if (Settings.Features.NameHighlighting) {            
-            var map = Settings.MapHighlightSettings.Maps.FirstOrDefault(x => x.Value.Name.Trim() == mapNode.Element.Area.Name.Trim() && x.Value.Highlight == true).Value;
+            var map = Settings.Maps.Maps.FirstOrDefault(x => x.Value.Name.Trim() == mapNode.Element.Area.Name.Trim() && x.Value.Highlight == true).Value;
 
             if (map != null) {
                 fontColor = map.NameColor;
@@ -264,19 +358,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             }
         }
 
-        DrawTextWithBackground(mapNode.Element.Area.Name.Trim().ToUpper(), mapNode.Element.GetClientRect().Center, fontColor, backgroundColor, true, 10, 3);
+        DrawCenteredTextWithBackground(mapNode.Element.Area.Name.Trim().ToUpper(), mapNode.Element.GetClientRect().Center, fontColor, backgroundColor, true, 10, 3);
     }
     
-    // private void DrawTowerRange(AtlasNodeDescription towerNode)
-    // {
-    //     if (!Settings.Features.DrawTowerRange || (!towerNode.Element.IsVisited && !Settings.Features.DrawInactiveTowers))
-    //         return;
-
-    //     var towerPosition = towerNode.Element.GetClientRect().Center;
-    //     var towerRadius = towerNode.Element.Scale * Settings.Features.TowerEffectRange;
-
-    //     _atlasGraphics.DrawEllipse(towerPosition, towerRadius, Settings.Features.TowerColor, 3.0f, Settings.Features.TowerRingWidth, 64);
-    // }
     /// <summary>
     /// Draws text with a background color at the specified position.
     /// </summary>
@@ -284,7 +368,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// <param name="position">The position to draw the text at.</param>
     /// <param name="textColor">The color of the text.</param>
     /// <param name="backgroundColor">The color of the background.</param>
-    private void DrawTextWithBackground(string text, Vector2 position, Color color, Color backgroundColor, bool center = false, int xPadding = 0, int yPadding = 0)
+    private void DrawCenteredTextWithBackground(string text, Vector2 position, Color color, Color backgroundColor, bool center = false, int xPadding = 0, int yPadding = 0)
     {
         var boxSize = Graphics.MeasureText(text);
 
@@ -293,11 +377,11 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (center)
             position = position - new Vector2(boxSize.X / 2, boxSize.Y / 2);
 
-        Graphics.DrawBox(position, boxSize + position, backgroundColor, 5.0f);        
+        Graphics.DrawBox(position, boxSize + position, backgroundColor, 5.0f);       
 
-        // Pad text position
         position += new Vector2(xPadding / 2, yPadding / 2);
 
         Graphics.DrawText(text, position, color);
     }
+
 }

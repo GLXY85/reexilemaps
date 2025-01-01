@@ -1,0 +1,31 @@
+{
+    
+    "Breach": {
+        "Name": "Breach",
+        "Weight": 1.0
+    },
+    "Delirium": {
+        "Name": "Delirium",
+        "Weight": 1.0
+    },
+    "Expedition": {
+        "Name": "Expedition",
+        "Weight": 1.0
+    },
+    "Ritual": {
+        "Name": "Ritual",
+        "Weight": 1.0
+    },
+    "Boss": {
+        "Name": "Boss",
+        "Weight": 1.0
+    },
+    "Irradiated": {
+        "Name": "Irradiated",
+        "Weight": 1.0
+    },
+    "Corruption": {
+        "Name": "Corruption",
+        "Weight": 1.0
+    }
+}

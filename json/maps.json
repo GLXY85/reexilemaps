@@ -1,0 +1,596 @@
+{
+    "DerelictMansion": {
+        "Name": "Derelict Mansion",
+        "Biomes": [
+            "Grass",
+            "Forest",
+            "Desert"
+        ],
+        "ID": "DerelictMansion"
+    },
+    "Crypt": {
+        "Name": "Crypt",
+        "Biomes": [
+            "Mountain",
+            "Grass",
+            "Desert"
+        ],
+        "ID": "Crypt"
+    },
+    "Bastille": {
+        "Name": "Bastille",
+        "Biomes": [
+            "Mountain",
+            "Grass",
+            "Desert"
+        ],
+        "ID": "Bastille"
+    },
+    "SulphuricCaverns": {
+        "Name": "Sulphuric Caverns",
+        "Biomes": [
+            "Mountain",
+            "Swamp",
+            "Desert"
+        ],
+        "ID": "SulphuricCaverns"
+    },
+    "SteamingSprings": {
+        "Name": "Steaming Springs",
+        "Biomes": [
+            "Mountain",
+            "Grass",
+            "Forest"
+        ],
+        "ID": "SteamingSprings"
+    },
+    "Savannah": {
+        "Name": "Savannah",
+        "Biomes": [
+            "Grass",
+            "Desert",
+            ""
+        ],
+        "ID": "Savannah"
+    },
+    "Forge": {
+        "Name": "Forge",
+        "Biomes": [
+            "Mountain",
+            "Desert",
+            ""
+        ],
+        "ID": "Forge"
+    },
+    "Mineshaft": {
+        "Name": "Mineshaft",
+        "Biomes": [
+            "Mountain",
+            "Desert",
+            ""
+        ],
+        "ID": "Mineshaft"
+    },
+    "Slick": {
+        "Name": "Slick",
+        "Biomes": [
+            "Mountain",
+            "Desert",
+            ""
+        ],
+        "ID": "Slick"
+    },
+    "Mire": {
+        "Name": "Mire",
+        "Biomes": [
+            "Swamp",
+            "Forest",
+            ""
+        ],
+        "ID": "Mire"
+    },
+    "BloomingField": {
+        "Name": "Blooming Field",
+        "Biomes": [
+            "Forest",
+            "Grass",
+            ""
+        ],
+        "ID": "BloomingField"
+    },
+    "Abyss": {
+        "Name": "Abyss",
+        "Biomes": [
+            "Desert",
+            "Mountain",
+            ""
+        ],
+        "ID": "Abyss"
+    },
+    "Deserted": {
+        "Name": "Deserted",
+        "Biomes": [
+            "Desert",
+            "",
+            ""
+        ],
+        "ID": "Deserted"
+    },
+    "Rustbowl": {
+        "Name": "Rustbowl",
+        "Biomes": [
+            "Desert",
+            "",
+            ""
+        ],
+        "ID": "Rustbowl"
+    },
+    "Oasis": {
+        "Name": "Oasis",
+        "Biomes": [
+            "Desert",
+            "",
+            ""
+        ],
+        "ID": "Oasis"
+    },
+    "Bloodbowl": {
+        "Name": "Bloodbowl",
+        "Biomes": [
+            "Desert",
+            "",
+            ""
+        ],
+        "ID": "Bloodbowl"
+    },
+    "Channel": {
+        "Name": "Channel",
+        "Biomes": [
+            "Desert",
+            "",
+            ""
+        ],
+        "ID": "Channel"
+    },
+    "Fortress": {
+        "Name": "Fortress",
+        "Biomes": [
+            "Desert",
+            "",
+            ""
+        ],
+        "ID": "Fortress"
+    },
+    "Hive": {
+        "Name": "Hive",
+        "Biomes": [
+            "Desert",
+            "",
+            ""
+        ],
+        "ID": "Hive"
+    },
+    "Outlands": {
+        "Name": "Outlands",
+        "Biomes": [
+            "Desert",
+            "",
+            ""
+        ],
+        "ID": "Outlands"
+    },
+    "ShrineHideout": {
+        "Name": "Shrine Hideout",
+        "Biomes": [
+            "Desert",
+            "",
+            ""
+        ],
+        "ID": "ShrineHideout"
+    },
+    "Riverside": {
+        "Name": "Riverside",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "Riverside"
+    },
+    "Woodland": {
+        "Name": "Woodland",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "Woodland"
+    },
+    "Steppe": {
+        "Name": "Steppe",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "Steppe"
+    },
+    "Creek": {
+        "Name": "Creek",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "Creek"
+    },
+    "SpiderWoods": {
+        "Name": "Spider Woods",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "SpiderWoods"
+    },
+    "Bloodwood": {
+        "Name": "Bloodwood",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "Bloodwood"
+    },
+    "Willow": {
+        "Name": "Willow",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "Willow"
+    },
+    "FelledHideout": {
+        "Name": "Felled Hideout",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "FelledHideout"
+    },
+    "Inferno": {
+        "Name": "Inferno",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "Inferno"
+    },
+    "Necropolis": {
+        "Name": "Necropolis",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "Necropolis"
+    },
+    "UntaintedParadise": {
+        "Name": "Untainted Paradise",
+        "Biomes": [
+            "Forest",
+            "",
+            ""
+        ],
+        "ID": "UntaintedParadise"
+    },
+    "GothicCity": {
+        "Name": "Gothic City",
+        "Biomes": [
+            "Grass",
+            "",
+            ""
+        ],
+        "ID": "GothicCity"
+    },
+    "CanalHideout": {
+        "Name": "Canal Hideout",
+        "Biomes": [
+            "Grass",
+            "",
+            ""
+        ],
+        "ID": "CanalHideout"
+    },
+    "Penitentiary": {
+        "Name": "Penitentiary",
+        "Biomes": [
+            "Grass",
+            "",
+            ""
+        ],
+        "ID": "Penitentiary"
+    },
+    "Headland": {
+        "Name": "Headland",
+        "Biomes": [
+            "Mountain",
+            "",
+            ""
+        ],
+        "ID": "Headland"
+    },
+    "AlpineRidge": {
+        "Name": "Alpine Ridge",
+        "Biomes": [
+            "Mountain",
+            "",
+            ""
+        ],
+        "ID": "AlpineRidge"
+    },
+    "Cenotes": {
+        "Name": "Cenotes",
+        "Biomes": [
+            "Mountain",
+            "",
+            ""
+        ],
+        "ID": "Cenotes"
+    },
+    "LoftySummit": {
+        "Name": "Lofty Summit",
+        "Biomes": [
+            "Mountain",
+            "",
+            ""
+        ],
+        "ID": "LoftySummit"
+    },
+    "Ravine": {
+        "Name": "Ravine",
+        "Biomes": [
+            "Mountain",
+            "",
+            ""
+        ],
+        "ID": "Ravine"
+    },
+    "VaalFoundry": {
+        "Name": "Vaal Foundry",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "VaalFoundry"
+    },
+    "LostTowers": {
+        "Name": "Lost Towers",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "LostTowers"
+    },
+    "VaalFactory": {
+        "Name": "Vaal Factory",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "VaalFactory"
+    },
+    "SunTemple": {
+        "Name": "Sun Temple",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "SunTemple"
+    },
+    "VaultsofKamasa": {
+        "Name": "Vaults of Kamasa",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "VaultsofKamasa"
+    },
+    "Castaway": {
+        "Name": "Castaway",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "Castaway"
+    },
+    "MerchantsCampsite": {
+        "Name": "Merchant's Campsite",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "MerchantsCampsite"
+    },
+    "MomentofZen": {
+        "Name": "Moment of Zen",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "MomentofZen"
+    },
+    "TheCopperCitadel": {
+        "Name": "The Copper Citadel",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "TheCopperCitadel"
+    },
+    "TheIronCitadel": {
+        "Name": "The Iron Citadel",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "TheIronCitadel"
+    },
+    "TheStoneCitadel": {
+        "Name": "The Stone Citadel",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "TheStoneCitadel"
+    },
+    "Sump": {
+        "Name": "Sump",
+        "Biomes": [
+            "Swamp",
+            "",
+            ""
+        ],
+        "ID": "Sump"
+    },
+    "BurialBog": {
+        "Name": "Burial Bog",
+        "Biomes": [
+            "Swamp",
+            "",
+            ""
+        ],
+        "ID": "BurialBog"
+    },
+    "SwampTower": {
+        "Name": "Swamp Tower",
+        "Biomes": [
+            "Swamp",
+            "",
+            ""
+        ],
+        "ID": "SwampTower"
+    },
+    "VaalCity": {
+        "Name": "Vaal City",
+        "Biomes": [
+            "Swamp",
+            "",
+            ""
+        ],
+        "ID": "VaalCity"
+    },
+    "VaalVillage": {
+        "Name": "Vaal Village",
+        "Biomes": [
+            "Swamp",
+            "",
+            ""
+        ],
+        "ID": "VaalVillage"
+    },
+    "Wetlands": {
+        "Name": "Wetlands",
+        "Biomes": [
+            "Swamp",
+            "",
+            ""
+        ],
+        "ID": "Wetlands"
+    },
+    "CrimsonShores": {
+        "Name": "Crimson Shores",
+        "Biomes": [
+            "Water",
+            "",
+            ""
+        ],
+        "ID": "CrimsonShores"
+    },
+    "LimestoneHideout": {
+        "Name": "Limestone Hideout",
+        "Biomes": [
+            "Water",
+            "",
+            ""
+        ],
+        "ID": "LimestoneHideout"
+    },
+    "Sandspit": {
+        "Name": "Sandspit",
+        "Biomes": [
+            "",
+            "",
+            ""
+        ],
+        "ID": "Sandspit"
+    },
+    "Backwash": {
+        "Name": "Backwash",
+        "Biomes": [
+            "Swamp",
+            "",
+            ""
+        ],
+        "ID": "Backwash"
+    },
+    "Rockpools": {
+        "Name": "Rockpools",
+        "Biomes": [
+            "Swamp",
+            "Swamp",
+            ""
+        ],
+        "ID": "Rockpools"
+    },
+    "HiddenGrotto": {
+        "Name": "Hidden Grotto",
+        "Biomes": [
+            "Forest",
+            "Swamp",
+            "Swamp"
+        ],
+        "ID": "HiddenGrotto"
+    },
+    "Decay": {
+        "Name": "Decay",
+        "Biomes": [
+            "Forest",
+            "Forest",
+            "Swamp"
+        ],
+        "ID": "Decay"
+    },
+    "Seepage": {
+        "Name": "Seepage",
+        "Biomes": [
+            "Forest",
+            "Forest",
+            "Swamp"
+        ],
+        "ID": "Seepage"
+    },
+    "Augury": {
+        "Name": "Augury",
+        "Biomes": [
+            "Forest",
+            "Forest",
+            "Swamp"
+        ],
+        "ID": "Augury"
+    }
+}
