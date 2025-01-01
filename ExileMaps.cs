@@ -31,7 +31,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     public GameController Game => GameController;
     public IngameState State => Game.IngameState;
-
+    private Vector2 screenCenter;
     private bool refreshCache = false;
 
 
@@ -84,7 +84,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     }
     
-    private void LoadDefaultMaps()
+    public void LoadDefaultMaps()
     {
         try {
             if (Settings.Maps.Maps == null)
@@ -116,6 +116,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     public override void Tick()
     {
+        screenCenter = Game.Window.GetWindowRectangle().Center - Game.Window.GetWindowRectangle().Location;
         return;
     }
 
@@ -151,7 +152,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         // Get all map nodes within the specified range.
         try {
-            mapNodes = WorldMap.Descriptions.FindAll(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000));//
+            mapNodes = WorldMap.Descriptions.FindAll(x => Vector2.Distance(screenCenter, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000));//
         } catch (Exception e) {
             LogError("Error getting map nodes: " + e.Message);
             return;
@@ -189,7 +190,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                 
                 var connectionNodes = mapNodes
                 .Where(x => (Settings.Features.DrawVisibleNodeConnections && x.Element.IsVisible) || (Settings.Features.DrawHiddenNodeConnections && !x.Element.IsVisible))
-                .Where(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.UseAtlasRange ? Settings.Features.AtlasRange : 1000));
+                .Where(x => Vector2.Distance(screenCenter, x.Element.GetClientRect().Center) <= (Settings.Features.UseAtlasRange ? Settings.Features.AtlasRange : 1000));
 
                 foreach (var mapNode in connectionNodes)
                 {
@@ -203,17 +204,23 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         string[] waypointNames = Settings.Maps.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.Name.Trim()).ToArray();
 
-        var waypointNodes = WorldMap.Descriptions
-                .Where(x => waypointNames.Contains(x.Element.Area.Name.Trim()))
-                .Where(x => !x.Element.IsVisited && !(!x.Element.IsUnlocked && x.Element.IsVisited))
-                .Where(x => Vector2.Distance(Game.Window.GetWindowRectangle().Center, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000) || !Settings.Features.WaypointsUseAtlasRange);
+        if (waypointNames.Length > 0) {
+            var waypointNodes = WorldMap.Descriptions
+                    .Where(x => waypointNames.Contains(x.Element.Area.Name.Trim()))
+                    .Where(x => !x.Element.IsVisited && !(!x.Element.IsUnlocked && x.Element.IsVisited))
+                    .Where(x => Vector2.Distance(screenCenter, x.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000) || !Settings.Features.WaypointsUseAtlasRange);
 
-        foreach (var mapNode in waypointNodes)
-        {
             try {
-                DrawWaypointLine(mapNode);
-            } catch (Exception e) {
-                LogError($"Error drawing waypoint line to map node: {mapNode.Element.Area.Name.Trim()}: {e.Message}");
+                foreach (var mapNode in waypointNodes)
+                {
+                    try {
+                        DrawWaypointLine(mapNode);
+                    } catch (Exception e) {
+                        LogError($"Error drawing waypoint line to map node: {mapNode.Element.Area.Name.Trim()}: {e.Message}");
+                    }
+                }
+            }   catch (Exception e) {
+                LogError("Error drawing waypoint lines: " + e.Message);
             }
         }
 
@@ -301,16 +308,17 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             return;
 
         var color = map.NodeColor;
-
+        var distance = Vector2.Distance(screenCenter, mapNode.Element.GetClientRect().Center);
         // Position for label and start of line.
-        Vector2 position = Vector2.Lerp(Game.Window.GetWindowRectangle().Center - Game.Window.GetWindowRectangle().Location, mapNode.Element.GetClientRect().Center, Settings.Graphics.LabelInterpolationScale);
+        Vector2 position = Vector2.Lerp(screenCenter, mapNode.Element.GetClientRect().Center, Settings.Graphics.LabelInterpolationScale);
         // Draw the line from the center(ish) of the screen to the center of the map node.
+
         Graphics.DrawLine(position, mapNode.Element.GetClientRect().Center, Settings.Graphics.MapLineWidth, color);
 
         // If labels are enabled, draw the node name and the distance to the node.
         if (Settings.Features.DrawLineLabels) {
             string text = mapNode.Element.Area.Name.Trim();
-            text += $" ({Vector2.Distance(Game.Window.GetWindowRectangle().Center, mapNode.Element.GetClientRect().Center).ToString("0")})";
+            text += $" ({Vector2.Distance(screenCenter, mapNode.Element.GetClientRect().Center).ToString("0")})";
             
             DrawCenteredTextWithBackground(text, position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
         }

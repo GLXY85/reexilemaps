@@ -246,30 +246,21 @@ public class MapSettings
                     updatingMaps = true;
                     try
                     {
-                        // Get unique map nodes within range
-
-                        // Get map nodes with unique Element.Area.Name
+                        Main.LoadDefaultMaps();
 
                         var mapNodes = WorldMap.Descriptions                                
                             .GroupBy(x => x.Element.Area.Name)
                             .Select(g => g.First())
                             .ToList();
 
-                        // Add the maps to the Maps dictionary if they don't already exist
                         foreach (var mapNode in mapNodes)
                         {
 
-                            // check if the mapnode name exists in the maps dictionary
-
-
-
                             var mapName = mapNode.Element.Area.Name.Trim();
-                            // We use this "Fake" ID because there are multiple maps with the same name but different IDs
-                            // e.g. a map with a boss and without may have a different ID and layout
+
                             var mapId = mapNode.Element.Area.Name.ToString().Replace(" ", "");
                             
-                            if (Maps.ContainsKey(mapId)) {
-                                // Update the map properties                                    
+                            if (Maps.ContainsKey(mapId)) {                              
                                 Maps[mapId].Name = mapName;
                                 Maps[mapId].RealID = mapNode.Element.Area.Id;                                    
                                 Maps[mapId].Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name.Trim() == mapName);
@@ -283,7 +274,7 @@ public class MapSettings
                                     BackgroundColor = Color.FromArgb(100, 0, 0, 0),
                                     NodeColor = Color.White,
                                     DrawLine = false,
-                                    Highlight = false,
+                                    Highlight = false,                                    
                                     Count = WorldMap.Descriptions.Count(x => x.Element.Area.Name == mapName)
                                 };
                                 Maps.Add(mapId, map);
@@ -305,15 +296,11 @@ public class MapSettings
                     }
                 } else if (ImGui.IsItemHovered())
                 {
-                    ImGui.SetTooltip("Add any/all new maps to the map list. Atlas map must be open.");
+                    ImGui.SetTooltip("Add any/all new maps to the map list and update map counts. Atlas map must be open.");
                 }
                 
                 if (Maps.Count == 0)   
-                {
-                    ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.2f, 0.2f, 1)); // Red text
-                    ImGui.TextWrapped("No maps found. Please open your Atlas and click 'Update Maps'.");
-                    ImGui.PopStyleColor();
-                }
+                    Main.LoadDefaultMaps();
 
                 ImGui.Spacing();
                 ImGui.TextWrapped("CTRL+Click on a slider to manually enter a value.");
@@ -395,7 +382,11 @@ public class MapSettings
                         ImGui.Text(map.Value.Count.ToString());
                             
                         ImGui.TableNextColumn();
-                        ImGui.Text(map.Value.Biomes.Length > 0 ? string.Join(", ", map.Value.Biomes.Where(x => x != "")) : "None");
+                        if (map.Value.Biomes == null)
+                            continue;
+                            
+                        string[] biomes = map.Value.Biomes.Where(x => x != "").ToArray();
+                        ImGui.Text(biomes.Length > 0 ? string.Join(", ", biomes) : "None");
 
                         ImGui.PopID();
                     }                
