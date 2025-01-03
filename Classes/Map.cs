@@ -19,6 +19,8 @@ namespace ExileMaps.Classes
         private bool drawLine = false;
         private bool highlight = false;
         private int count = 0;
+        private int lockedCount = 0;
+        private int fogCount = 0;
         private float weight = 1.0f;
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -117,6 +119,32 @@ namespace ExileMaps.Classes
                 {
                     count = value;
                     OnPropertyChanged(nameof(Count));
+                }
+            }
+        }
+
+        public int LockedCount
+        {
+            get => lockedCount;
+            set
+            {
+                if (lockedCount != value)
+                {
+                    lockedCount = value;
+                    OnPropertyChanged(nameof(LockedCount));
+                }
+            }
+        } 
+
+        public int FogCount
+        {
+            get => fogCount;
+            set
+            {
+                if (fogCount != value)
+                {
+                    fogCount = value;
+                    OnPropertyChanged(nameof(FogCount));
                 }
             }
         }

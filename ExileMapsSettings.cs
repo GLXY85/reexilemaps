@@ -244,6 +244,7 @@ public class MapSettings
                 
                 ImGui.Spacing();
                 if (ImGui.Button("Update Map Counts") && !updatingMaps) {
+                    if (Main.GameController.Game.IngameState.IngameUi.WorldMap == null) return;
                     var WorldMap = Main.GameController.Game.IngameState.IngameUi.WorldMap.AtlasPanel;
                     var screenCenter = Main.Game.Window.GetWindowRectangle().Center;
                     // if WorldMap isn't open, return
@@ -269,7 +270,9 @@ public class MapSettings
                         if (Maps.ContainsKey(mapId)) {                              
                             Maps[mapId].Name = mapName;
                             Maps[mapId].RealID = mapNode.Id;                                    
-                            Maps[mapId].Count = Main.mapCache.Count(x => x.Value.Name.Trim() == mapName);
+                            Maps[mapId].Count = Main.mapCache.Count(x => x.Value.Name.Trim() == mapName && !x.Value.IsVisited && x.Value.IsUnlocked);
+                            Maps[mapId].LockedCount = Main.mapCache.Count(x => x.Value.Name.Trim() == mapName && !x.Value.IsVisited && !x.Value.IsUnlocked && x.Value.IsVisible);
+                            Maps[mapId].FogCount = Main.mapCache.Count(x => x.Value.Name.Trim() == mapName && !x.Value.IsVisited && !x.Value.IsVisible);
                         } else {
                             var map = new Map
                             {
@@ -281,7 +284,9 @@ public class MapSettings
                                 NodeColor = Color.White,
                                 DrawLine = false,
                                 Highlight = false,                                    
-                                Count = Main.mapCache.Count(x => x.Value.Name.Trim() == mapName)
+                                Count = Main.mapCache.Count(x => x.Value.Name.Trim() == mapName && !x.Value.IsVisited && x.Value.IsUnlocked),
+                                LockedCount = Main.mapCache.Count(x => x.Value.Name.Trim() == mapName && !x.Value.IsVisited && !x.Value.IsUnlocked && x.Value.IsVisible),
+                                FogCount = Main.mapCache.Count(x => x.Value.Name.Trim() == mapName && !x.Value.IsVisited && !x.Value.IsVisible),
                             };
                             Maps.Add(mapId, map);
                         }                        
@@ -301,17 +306,19 @@ public class MapSettings
                 ImGui.TextWrapped("CTRL+Click on a slider to manually enter a value.");
                 ImGui.Spacing();
 
-                if (ImGui.BeginTable("maps_table", 8, ImGuiTableFlags.SizingFixedFit|ImGuiTableFlags.Borders|ImGuiTableFlags.PadOuterX))
+                if (ImGui.BeginTable("maps_table", 10, ImGuiTableFlags.SizingFixedFit|ImGuiTableFlags.Borders|ImGuiTableFlags.PadOuterX))
                 {
   
                     ImGui.TableSetupColumn("Map", ImGuiTableColumnFlags.WidthFixed, 250);                                                              
                     ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 100); 
-                    ImGui.TableSetupColumn("Node", ImGuiTableColumnFlags.WidthFixed, 55);     
-                    ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 55);               
-                    ImGui.TableSetupColumn("Background", ImGuiTableColumnFlags.WidthFixed, 55);
-                    ImGui.TableSetupColumn("Line", ImGuiTableColumnFlags.WidthFixed, 55);                              
-                    ImGui.TableSetupColumn("Count", ImGuiTableColumnFlags.WidthFixed, 55);
-                    ImGui.TableSetupColumn("Biomes", ImGuiTableColumnFlags.WidthStretch, 300);   
+                    ImGui.TableSetupColumn("Node", ImGuiTableColumnFlags.WidthFixed, 30);     
+                    ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 30);               
+                    ImGui.TableSetupColumn("BG", ImGuiTableColumnFlags.WidthFixed, 30);
+                    ImGui.TableSetupColumn("Line", ImGuiTableColumnFlags.WidthFixed, 30);                              
+                    ImGui.TableSetupColumn("Unlocked", ImGuiTableColumnFlags.WidthFixed, 45);
+                    ImGui.TableSetupColumn("Locked", ImGuiTableColumnFlags.WidthFixed, 45);
+                    ImGui.TableSetupColumn("Hidden", ImGuiTableColumnFlags.WidthFixed, 45);
+                    ImGui.TableSetupColumn("Biomes", ImGuiTableColumnFlags.WidthStretch, 200);   
                     ImGui.TableHeadersRow();
 
                     // Sort Maps alphabetically by Name
@@ -375,6 +382,12 @@ public class MapSettings
 
                         ImGui.TableNextColumn();                        
                         ImGui.Text(map.Value.Count.ToString());
+
+                        ImGui.TableNextColumn();                        
+                        ImGui.Text(map.Value.LockedCount.ToString());
+
+                        ImGui.TableNextColumn();                        
+                        ImGui.Text(map.Value.FogCount.ToString());
                             
                         ImGui.TableNextColumn();
                         if (map.Value.Biomes == null)
