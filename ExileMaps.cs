@@ -15,10 +15,12 @@ using ExileCore2.PoEMemory.MemoryObjects;
 using ExileCore2.Shared.Helpers;
 using ExileCore2.Shared.Nodes;
 
+
 using GameOffsets2.Native;
 
 using ImGuiNET;
 
+using RectangleF = ExileCore2.Shared.RectangleF;
 using ExileMaps.Classes;
 
 namespace ExileMaps;
@@ -163,21 +165,24 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             }
         }   
 
-        string[] waypointNames = Settings.Maps.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.Name.Trim()).ToArray();
-
-        if (waypointNames.Length > 0 && Settings.Features.DrawLines) {
-            List<AtlasPanelNode> waypointNodes = AtlasPanel.Descriptions.Select(x => x.Element)
-                    .Where(x => waypointNames.Contains(x.Area.Name.Trim()))
-                    .Where(x => !x.IsVisited && !(!x.IsUnlocked && x.IsVisited))
-                    .Where(x => Vector2.Distance(screenCenter, x.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000) || !Settings.Features.WaypointsUseAtlasRange).ToList();
-            
-            foreach(var waypointNode in waypointNodes) {
-                try {
-                    DrawWaypointLine(waypointNode);
-                } catch (Exception e) {
-                    LogError("Error drawing waypoint line: " + e.Message + "\n" + e.StackTrace);
+        try {
+            string[] waypointNames = Settings.Maps.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.Name.Trim()).ToArray();
+            if (waypointNames.Length > 0 && Settings.Features.DrawLines) {
+                List<AtlasPanelNode> waypointNodes = AtlasPanel.Descriptions.Select(x => x.Element)
+                        .Where(x => waypointNames.Contains(x.Area.Name.Trim()))
+                        .Where(x => !x.IsVisited && !(!x.IsUnlocked && x.IsVisited))
+                        .Where(x => Vector2.Distance(screenCenter, x.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000) || !Settings.Features.WaypointsUseAtlasRange).ToList();
+                
+                foreach(var waypointNode in waypointNodes) {
+                    try {
+                        DrawWaypointLine(waypointNode);
+                    } catch (Exception e) {
+                        LogError($"Error drawing waypoint line for map {waypointNode.Area.Name.Trim()}: " + e.Message + "\n" + e.StackTrace);
+                    }
                 }
             }
+        } catch (Exception e) {
+            LogError("Error drawing waypoint lines: " + e.Message + "\n" + e.StackTrace);
         }
 
 
@@ -187,7 +192,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             {
                 if (!mapCache.ContainsKey(mapNode.Address))
                     continue;
-                    
+
                 Node cachedNode = mapCache[mapNode.Address];
                 var position = mapNode.GetClientRect().Center + new Vector2(0, 35);
                 DrawCenteredTextWithBackground(cachedNode.ParentAddress.ToString("X"), position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
@@ -875,9 +880,6 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     private void DrawMapModText(Dictionary<string, Color> mods, Vector2 position)
     {      
-        if (!IsOnScreen(position))
-            return;
-
         using (Graphics.SetTextScale(Settings.MapMods.MapModScale)) {
             string fullText = string.Join("\n", mods.Select(x => $"{x.Key}"));
             var boxSize = Graphics.MeasureText(fullText) + new Vector2(10, 10);
@@ -886,6 +888,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
             // offset the box below the node
             position += new Vector2(0, (boxSize.Y / 2) + Settings.MapMods.MapModOffset);
+            
+            if (!IsOnScreen(boxSize + position))
+                return;
 
             Graphics.DrawBox(position, boxSize + position, Settings.Graphics.BackgroundColor, 5.0f);
 
@@ -917,6 +922,16 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
             if (State.IngameUi.OpenLeftPanel.IsVisible)
                 left += State.IngameUi.OpenLeftPanel.GetClientRect().Width;
+
+            if (State.IngameUi.WorldMap.GetChildAtIndex(9).IsVisible) {
+                
+                RectangleF mapTooltip = (RectangleF)State.IngameUi.WorldMap.GetChildAtIndex(9).GetClientRect();                
+                mapTooltip.Inflate(mapTooltip.Width * 0.1f, mapTooltip.Height * 0.1f);
+
+                // if position is within mapTooltip
+                if (position.X > mapTooltip.Left && position.X < mapTooltip.Right && position.Y > mapTooltip.Top && position.Y < mapTooltip.Bottom)
+                    return false;
+            }
             
             return !(position.X < left || position.X > right || position.Y < screen.Top || position.Y > screen.Bottom);
         }
