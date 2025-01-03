@@ -620,9 +620,11 @@ public class MapModSettings
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     bool onlyApplicable = OnlyDrawApplicableMods;
+
                     if(ImGui.Checkbox($"##draw_applicable", ref onlyApplicable)) {                        
                         OnlyDrawApplicableMods = onlyApplicable;
-                        Main.RefreshMapCache();
+                        if (Main != null)
+                            Main.refreshCache = true;
                     }
 
                     ImGui.TableNextColumn();

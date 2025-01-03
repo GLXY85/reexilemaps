@@ -40,7 +40,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     public AtlasPanel AtlasPanel => State.IngameUi.WorldMap.AtlasPanel;
     private Vector2 screenCenter;
     public Dictionary<long, Node> mapCache = new Dictionary<long, Node>();
-    private bool refreshCache = false;
+    public bool refreshCache = false;
     private bool refreshingCache = false;
     private float maxMapWeight = 20.0f;
     private float minMapWeight = -20.0f;
@@ -426,10 +426,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             try {
                 if (node.Element.Content != null) {
                     var mapContent = node.Element.Content.ToList();
-
-
-                    var iconList = node.Element.GetChildAtIndex(0);
-                    
+                    var iconList = node.Element.GetChildAtIndex(0);                    
                     bool hasCorruption = iconList.Children.Any(x => x.TextureName.Contains("Corrupt"));
                     
                     if (hasCorruption) {
@@ -470,36 +467,36 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
             foreach(var source in nearbyEffects) {
                 foreach(var effect in source.Effects.Where(x => Settings.MapMods.MapModTypes.ContainsKey(x.ModId.ToString()) && x.Value != 0)) {
-                    var requiredContent = Settings.MapMods.MapModTypes[effect.ModId.ToString()].RequiredContent;
-
-                    if (!newNode.Effects.ContainsKey(effect.ModId.ToString())) {
+                    var effectKey = effect.ModId.ToString();
+                    var requiredContent = Settings.MapMods.MapModTypes[effectKey].RequiredContent;
+                    
+                    if (!newNode.Effects.ContainsKey(effectKey)) {
                         Effect newEffect = new Effect() {
-                            Name = Settings.MapMods.MapModTypes[effect.ModId.ToString()].Name,
-                            Description = Settings.MapMods.MapModTypes[effect.ModId.ToString()].Description.Replace("$",$"{effect.Value.ToString()}"),
+                            Name = Settings.MapMods.MapModTypes[effectKey].Name,
+                            Description = Settings.MapMods.MapModTypes[effectKey].Description,
                             Value1 = effect.Value,
                             ID = effect.ModId,
-                            ShowOnMap = (Settings.MapMods.MapModTypes[effect.ModId.ToString()].ShowOnMap && 
+                            ShowOnMap = (Settings.MapMods.MapModTypes[effectKey].ShowOnMap && 
                                         !(Settings.MapMods.OnlyDrawApplicableMods && 
                                         !String.IsNullOrEmpty(requiredContent) && 
                                         (newNode.MapContent == null || !newNode.MapContent.Any(x => x.Name.Contains(requiredContent))))),
                             Sources = new List<Vector2i> { source.Coordinate }
                         };
                         
-                        newNode.Effects.Add(effect.ModId.ToString(), newEffect);
+                        newNode.Effects.Add(effectKey, newEffect);
                     } else {
-                        
-                        newNode.Effects[effect.ModId.ToString()].Value1 += effect.Value;
-                        newNode.Effects[effect.ModId.ToString()].Sources.Add(source.Coordinate);
-                        
+                        if (newNode.Name != "Lost Towers" || !newNode.IsVisited)
+                            newNode.Effects[effectKey].Value1 += effect.Value;
+
+                        newNode.Effects[effectKey].Sources.Add(source.Coordinate);
                     }                                       
 
-                    lock (mapCacheLock)   
-                        newNode.Effects[effect.ModId.ToString()].Weight = Settings.MapMods.MapModTypes[effect.ModId.ToString()].Weight * newNode.Effects[effect.ModId.ToString()].Value1;
+                    newNode.Effects[effectKey].Weight = Settings.MapMods.MapModTypes[effectKey].Weight * newNode.Effects[effect.ModId.ToString()].Value1;
 
                     if (!String.IsNullOrEmpty(requiredContent) && (newNode.MapContent == null || !newNode.MapContent.Any(x => x.Name.Contains(requiredContent))))
                         continue;
 
-                    weight += !newNode.IsVisited ? newNode.Effects[effect.ModId.ToString()].Weight : 0;
+                    weight += !newNode.IsVisited ? newNode.Effects[effectKey].Weight : 0;
                 }
             }
         } catch (Exception e) {
@@ -564,26 +561,26 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             var nearbyEffects = AtlasPanel.EffectSources.Where(x => Vector2.Distance(x.Coordinate, node.Coordinate) <= 11);
             foreach(var source in nearbyEffects) {
                 foreach(var effect in source.Effects.Where(x => Settings.MapMods.MapModTypes.ContainsKey(x.ModId.ToString()) && x.Value != 0)) {
-                    if (!cachedNode.Effects.ContainsKey(effect.ModId.ToString())) {
+                    var effectKey = effect.ModId.ToString();
+                    if (!cachedNode.Effects.ContainsKey(effectKey)) {
                         Effect newEffect = new Effect() {
-                            Name = Settings.MapMods.MapModTypes[effect.ModId.ToString()].Name,
-                            Description = Settings.MapMods.MapModTypes[effect.ModId.ToString()].Description.Replace("$",$"{effect.Value.ToString()}"),
+                            Name = Settings.MapMods.MapModTypes[effectKey].Name,
+                            Description = Settings.MapMods.MapModTypes[effectKey].Description,
                             Value1 = effect.Value,
                             ID = effect.ModId,
-                            ShowOnMap = Settings.MapMods.MapModTypes[effect.ModId.ToString()].ShowOnMap,
+                            ShowOnMap = Settings.MapMods.MapModTypes[effectKey].ShowOnMap,
                             Sources = new List<Vector2i> { source.Coordinate }
                         };
                         
-                        cachedNode.Effects.Add(effect.ModId.ToString(), newEffect);
-                    } else {                            
-                        cachedNode.Effects[effect.ModId.ToString()].Value1 += effect.Value;
-                        cachedNode.Effects[effect.ModId.ToString()].Sources.Add(source.Coordinate);
+                        cachedNode.Effects.Add(effectKey, newEffect);
+                    } else { 
+                        if (cachedNode.Name != "Lost Towers" || !cachedNode.IsVisited)
+                            cachedNode.Effects[effectKey].Value1 += effect.Value;
+                        cachedNode.Effects[effectKey].Sources.Add(source.Coordinate);
                     }                                       
 
-                    
-                    cachedNode.Effects[effect.ModId.ToString()].Weight = Settings.MapMods.MapModTypes[effect.ModId.ToString()].Weight * cachedNode.Effects[effect.ModId.ToString()].Value1;
-
-                    weight += !cachedNode.IsVisited ? cachedNode.Effects[effect.ModId.ToString()].Weight : 0;
+                    cachedNode.Effects[effectKey].Weight = Settings.MapMods.MapModTypes[effectKey].Weight * cachedNode.Effects[effect.ModId.ToString()].Value1;
+                    weight += !cachedNode.IsVisited ? cachedNode.Effects[effectKey].Weight : 0;
                 }
             }
         } catch (Exception e) {
@@ -839,8 +836,6 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                 effects = cachedNode.Effects.Where(x => x.Value.ShowOnMap).Select(x => x.Value).ToList();
             }
         }
-
-
 
         if (effects.Count == 0)
             return;
