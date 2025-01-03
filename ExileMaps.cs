@@ -185,6 +185,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         {
             foreach (var mapNode in mapNodes)
             {
+                if (!mapCache.ContainsKey(mapNode.Address))
+                    continue;
+                    
                 Node cachedNode = mapCache[mapNode.Address];
                 var position = mapNode.GetClientRect().Center + new Vector2(0, 35);
                 DrawCenteredTextWithBackground(cachedNode.ParentAddress.ToString("X"), position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
@@ -333,6 +336,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         // get node closest to cursor
         var cursorElement = State.UIHoverElement;
         var closestNode = AtlasPanel.Descriptions.OrderBy(x => Vector2.Distance(cursorElement.GetClientRect().Center, x.Element.GetClientRect().Center)).FirstOrDefault();
+        if (!mapCache.ContainsKey(closestNode.Element.Address))
+            return;
         Node cachedNode = mapCache[closestNode.Element.Address];
         LogMessage(cachedNode.ToString());
 
@@ -508,6 +513,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     private void RefreshCachedMapNode(AtlasNodeDescription node)
     {
+        if (!mapCache.ContainsKey(node.Element.Address))
+            return;
+
         Node cachedNode = mapCache[node.Element.Address];
 
         cachedNode.IsUnlocked = node.Element.IsUnlocked;
@@ -750,10 +758,10 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             mapNode.IsVisited)
             return;
 
-        Node cachedNode = mapCache[mapNode.Address];       
-
-        if (cachedNode == null)
+        if (!mapCache.ContainsKey(mapNode.Address))
             return;
+
+        Node cachedNode = mapCache[mapNode.Address];       
 
         Color backgroundColor = Settings.Graphics.BackgroundColor;
         float weight = (cachedNode.Weight - minMapWeight) / (maxMapWeight - minMapWeight);        
@@ -803,7 +811,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         var currentPosition = mapNode.GetClientRect();
         if (!IsOnScreen(currentPosition.Center) || !mapCache.ContainsKey(mapNode.Address))
             return;
-        
+
         Node cachedNode = mapCache[mapNode.Address];
         string mapName = mapNode.Area.Name.Trim();
         if (cachedNode == null || (mapName == "Lost Towers" && !Settings.MapMods.ShowOnTowers) || (mapName != "Lost Towers" && !Settings.MapMods.ShowOnMaps) || cachedNode.Effects.Count == 0)    
