@@ -7,17 +7,80 @@ using ExileCore2.Shared.Attributes;
 using ExileCore2.Shared.Nodes;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.ComponentModel;
 
-namespace ExileMaps.Classes;
-public class Content
+namespace ExileMaps.Classes
 {
-    public string Name { get; set; }
-    public float Weight { get; set; } = 1.0f;
+    public class Content : INotifyPropertyChanged
+    {
+        private string name;
+        private float weight = 1.0f;
+        private Color color = Color.FromArgb(255, 255, 255, 255);
+        private bool highlight = true;
 
-    [JsonConverter(typeof(JsonColorConverter))]
-    public Color Color { get; set; } = Color.FromArgb(255, 255, 255, 255);
+        public event PropertyChangedEventHandler PropertyChanged;
 
-    public bool Highlight { get; set; } = true;
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
+        public override string ToString()
+        {
+            return Name;
+        }
+        
+        public string Name
+        {
+            get => name;
+            set
+            {
+                if (name != value)
+                {
+                    name = value;
+                    OnPropertyChanged(nameof(Name));
+                }
+            }
+        }
 
+        public float Weight
+        {
+            get => weight;
+            set
+            {
+                if (weight != value)
+                {
+                    weight = value;
+                    OnPropertyChanged(nameof(Weight));
+                }
+            }
+        }
+
+        [JsonConverter(typeof(JsonColorConverter))]
+        public Color Color
+        {
+            get => color;
+            set
+            {
+                if (color != value)
+                {
+                    color = value;
+                    OnPropertyChanged(nameof(Color));
+                }
+            }
+        }
+
+        public bool Highlight
+        {
+            get => highlight;
+            set
+            {
+                if (highlight != value)
+                {
+                    highlight = value;
+                    OnPropertyChanged(nameof(Highlight));
+                }
+            }
+        }
+    }
 }

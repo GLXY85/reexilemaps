@@ -7,34 +7,131 @@ using ExileCore2.Shared.Attributes;
 using ExileCore2.Shared.Nodes;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.ComponentModel;
 
-namespace ExileMaps.Classes;
-
-
-
-public class Map
+namespace ExileMaps.Classes
 {
-    public string Name { get; set; }
-    public string ID { get; set; }
-    public string RealID { get; set; }
-    public string[] Biomes { get; set; }
+    public class Map : INotifyPropertyChanged
+    {
+        private Color nameColor = Color.FromArgb(255, 255, 255, 255);
+        private Color backgroundColor = Color.FromArgb(200, 0, 0, 0);
+        private Color nodeColor = Color.FromArgb(200, 155, 155, 155);
+        private bool drawLine = false;
+        private bool highlight = false;
+        private int count = 0;
+        private float weight = 1.0f;
 
-    public string[] Content { get; set; }
+        public event PropertyChangedEventHandler PropertyChanged;
 
-    [JsonConverter(typeof(JsonColorConverter))]
-    public Color NameColor { get; set; } = Color.FromArgb(255, 255, 255, 255);
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
-    [JsonConverter(typeof(JsonColorConverter))]
-    public Color BackgroundColor { get; set; } = Color.FromArgb(200, 0, 0, 0);
+        public string Name { get; set; } = "";
+        public string ID { get; set; } = "";
+        public string RealID { get; set; } = "";
+        public string[] Biomes { get; set; } = new string[0];
 
-    [JsonConverter(typeof(JsonColorConverter))]
-    public Color NodeColor { get; set; } = Color.FromArgb(200, 155, 155, 155);
+        public string[] Content { get; set; } = new string[0];
 
-    public bool DrawLine { get; set; } = false;
+        public override string ToString()
+        {
+            return Name;
+        }
+        
+        [JsonConverter(typeof(JsonColorConverter))]
+        public Color NameColor
+        {
+            get => nameColor;
+            set
+            {
+                if (nameColor != value)
+                {
+                    nameColor = value;
+                    OnPropertyChanged(nameof(NameColor));
+                }
+            }
+        }
 
-    public bool Highlight { get; set; } = false;
+        [JsonConverter(typeof(JsonColorConverter))]
+        public Color BackgroundColor
+        {
+            get => backgroundColor;
+            set
+            {
+                if (backgroundColor != value)
+                {
+                    backgroundColor = value;
+                    OnPropertyChanged(nameof(BackgroundColor));
+                }
+            }
+        }
 
-    public int Count { get; set; } = 0;
+        [JsonConverter(typeof(JsonColorConverter))]
+        public Color NodeColor
+        {
+            get => nodeColor;
+            set
+            {
+                if (nodeColor != value)
+                {
+                    nodeColor = value;
+                    OnPropertyChanged(nameof(NodeColor));
+                }
+            }
+        }
 
-    public float Weight { get; set; } = 1.0f;
+        public bool DrawLine
+        {
+            get => drawLine;
+            set
+            {
+                if (drawLine != value)
+                {
+                    drawLine = value;
+                    OnPropertyChanged(nameof(DrawLine));
+                }
+            }
+        }
+
+        public bool Highlight
+        {
+            get => highlight;
+            set
+            {
+                if (highlight != value)
+                {
+                    highlight = value;
+                    OnPropertyChanged(nameof(Highlight));
+                }
+            }
+        }
+
+        public int Count
+        {
+            get => count;
+            set
+            {
+                if (count != value)
+                {
+                    count = value;
+                    OnPropertyChanged(nameof(Count));
+                }
+            }
+        }
+
+        public float Weight
+        {
+            get => weight;
+            set
+            {
+                if (weight != value)
+                {
+                    weight = value;
+                    OnPropertyChanged(nameof(Weight));
+                }
+            }
+        }
+    }
 }
