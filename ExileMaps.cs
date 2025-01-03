@@ -602,7 +602,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// 
     private void DrawConnections(AtlasPanelNode mapNode)
     {
-        if (!mapCache.ContainsKey(mapNode.Address))
+        if (!mapCache.ContainsKey(mapNode.Address) ||
+        (mapNode.IsVisible && !Settings.Features.DrawVisibleNodeConnections) ||
+        (!mapNode.IsVisible && !Settings.Features.DrawHiddenNodeConnections))
             return;
 
         var mapConnections = mapCache[mapNode.Address].Point;
@@ -624,7 +626,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                 var sourcePos = mapNode.GetClientRect();
                 if (!IsOnScreen(destinationPos.Center) || !IsOnScreen(sourcePos.Center))
                     return;
-
+                
                 var color = (destinationNode.Element.IsUnlocked || mapNode.IsUnlocked) ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
                 Graphics.DrawLine(sourcePos.Center, destinationPos.Center, Settings.Graphics.MapLineWidth, color);
             }
