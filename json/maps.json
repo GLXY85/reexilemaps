@@ -62,8 +62,8 @@
         ],
         "ID": "Bloodbowl",
         "Name": "Bloodbowl",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Bloodwood": {
@@ -74,8 +74,8 @@
         ],
         "ID": "Bloodwood",
         "Name": "Bloodwood",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "BloomingField": {
@@ -98,8 +98,8 @@
         ],
         "ID": "BurialBog",
         "Name": "Burial Bog",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "CanalHideout": {
@@ -128,8 +128,8 @@
         ],
         "ID": "Cenotes",
         "Name": "Cenotes",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Channel": {
@@ -164,8 +164,8 @@
         ],
         "ID": "CrimsonShores",
         "Name": "Crimson Shores",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Crypt": {
@@ -176,8 +176,8 @@
         ],
         "ID": "Crypt",
         "Name": "Crypt",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Decay": {
@@ -230,8 +230,8 @@
         ],
         "ID": "Forge",
         "Name": "Forge",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Fortress": {
@@ -242,8 +242,8 @@
         ],
         "ID": "Fortress",
         "Name": "Fortress",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "GothicCity": {
@@ -254,8 +254,8 @@
         ],
         "ID": "GothicCity",
         "Name": "Gothic City",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Headland": {
@@ -266,8 +266,8 @@
         ],
         "ID": "Headland",
         "Name": "Headland",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "HiddenGrotto": {
@@ -278,8 +278,8 @@
         ],
         "ID": "HiddenGrotto",
         "Name": "Hidden Grotto",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Hive": {
@@ -290,8 +290,8 @@
         ],
         "ID": "Hive",
         "Name": "Hive",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Inferno": {
@@ -320,8 +320,8 @@
         ],
         "ID": "LoftySummit",
         "Name": "Lofty Summit",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "LostTowers": {
@@ -402,8 +402,8 @@
         ],
         "ID": "Oasis",
         "Name": "Oasis",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Outlands": {
@@ -423,8 +423,8 @@
         ],
         "ID": "Penitentiary",
         "Name": "Penitentiary",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Ravine": {
@@ -435,8 +435,8 @@
         ],
         "ID": "Ravine",
         "Name": "Ravine",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Riverside": {
@@ -447,8 +447,8 @@
         ],
         "ID": "Riverside",
         "Name": "Riverside",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Rockpools": {
@@ -477,8 +477,8 @@
         ],
         "ID": "Sandspit",
         "Name": "Sandspit",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Savannah": {
@@ -570,8 +570,8 @@
         ],
         "ID": "SulphuricCaverns",
         "Name": "Sulphuric Caverns",
-        "NameColor": "200, 215, 0, 0",
-        "NodeColor": "200, 215, 0, 0",
+        "NameColor": "200, 255, 165, 0",
+        "NodeColor": "200, 255, 165, 0",
         "Weight": 10.0
     },
     "Sump": {
