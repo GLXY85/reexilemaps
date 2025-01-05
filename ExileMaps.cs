@@ -14,7 +14,7 @@ using ExileCore2.PoEMemory.Elements.AtlasElements;
 using ExileCore2.PoEMemory.MemoryObjects;
 using ExileCore2.Shared.Helpers;
 using ExileCore2.Shared.Nodes;
-
+using ExileCore2.Shared.Enums;
 
 using GameOffsets2.Native;
 
@@ -27,6 +27,7 @@ namespace ExileMaps;
 
 public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 {
+    #region Declarations
     private int tickCount { get; set; }
     public static ExileMapsCore Main;
 
@@ -34,7 +35,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     private const string defaultModsPath = "json\\mods.json";
     private const string defaultBiomesPath = "json\\biomes.json";
     private const string defaultContentPath = "json\\content.json";
-
+    private const string ArrowPath = "textures\\arrow.png";
+    private const string IconsFile = "Icons.png";
+    
     public GameController Game => GameController;
     public IngameState State => Game.IngameState;
     public AtlasPanel AtlasPanel => State.IngameUi.WorldMap.AtlasPanel;
@@ -47,12 +50,23 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     private readonly object mapCacheLock = new object();
     private DateTime lastRefresh = DateTime.Now;
     private bool mapClosed = true;
+    internal IntPtr iconsId;
+    internal IntPtr arrowId;
+    public bool WaypointPanelIsOpen = false;
 
+
+    #endregion
+
+    #region ExileCore Methods
     public override bool Initialise()
     {
         Main = this;        
         RegisterHotkey(Settings.Keybinds.RefreshMapCacheHotkey);
         RegisterHotkey(Settings.Features.DebugKey);
+        RegisterHotkey(Settings.Keybinds.ToggleWaypointPanelHotkey);
+        RegisterHotkey(Settings.Keybinds.AddWaypointHotkey);
+        RegisterHotkey(Settings.Keybinds.DeleteWaypointHotkey);
+
         // RegisterHotkey(Settings.Pathfinding.SetCurrentLocationHotkey);
         // RegisterHotkey(Settings.Pathfinding.AddWaypointHotkey);
 
@@ -69,6 +83,14 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         Settings.MapContent.ContentTypes.PropertyChanged += (_, _) => { recalculateWeights(); };
         Settings.MapMods.MapModTypes.CollectionChanged += (_, _) => { recalculateWeights(); };
         Settings.MapMods.MapModTypes.PropertyChanged += (_, _) => { recalculateWeights(); };
+
+        
+        Graphics.InitImage(IconsFile);
+        iconsId = Graphics.GetTextureId(IconsFile);
+        Graphics.InitImage("arrow.png", Path.Combine(DirectoryFullName, ArrowPath));
+        arrowId = Graphics.GetTextureId("arrow.png");
+
+        CanUseMultiThreading = true;
 
         return true;
     }
@@ -114,18 +136,11 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (AtlasPanel.IsVisible && AtlasPanel.Descriptions.Any(x => !mapCache.ContainsKey(x.Element.Address)))
             refreshCache = true;
 
-        if (Settings.Keybinds.RefreshMapCacheHotkey.PressedOnce()) {        
-            LogMessage("Refreshing Map Cache");
-            var timer = new Stopwatch();
-            timer.Start();
-            RefreshMapCache();
-            timer.Stop();
-            LogMessage($"Map cache refreshed in {timer.ElapsedMilliseconds}ms");
-        }
+        CheckKeybinds();
 
-        if (Settings.Features.DebugKey.PressedOnce())        
-            DoDebugging();
-        
+        if (WaypointPanelIsOpen)
+            DrawWaypointPanel();
+
         tickCount++;
         if (Settings.Graphics.RenderNTicks.Value % tickCount != 0) 
             return;  
@@ -159,7 +174,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         
         foreach (var mapNode in selectedNodes) {
             try {
-                RenderNode(mapNode);
+                if (!Settings.Features.DebugMode)
+                    RenderNode(mapNode);
             } catch (Exception e) {
                 LogError("Error rendering map node: " + e.Message + " - " + e.StackTrace);
             }
@@ -185,50 +201,61 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             LogError("Error drawing waypoint lines: " + e.Message + "\n" + e.StackTrace);
         }
 
-
-        if (Settings.Features.DebugMode)
-        {
-            foreach (var mapNode in mapNodes)
-            {
-                if (!mapCache.ContainsKey(mapNode.Address))
-                    continue;
-
-                Node cachedNode = mapCache[mapNode.Address];
-                var position = mapNode.GetClientRect().Center + new Vector2(0, 35);
-                DrawCenteredTextWithBackground(cachedNode.ParentAddress.ToString("X"), position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
-                position += new Vector2(0, 27);
-                DrawCenteredTextWithBackground(cachedNode.Coordinate.ToString(), position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
-                position += new Vector2(0, 27);
-                string debugText = "";
-                if (mapCache.ContainsKey(cachedNode.Address)) {                                  
-                    debugText = $"N: {cachedNode.Neighbors.Count}";                    
-                    debugText += $", W: {cachedNode.Weight.ToString("0.000")}";
-                    // get distinct effect sources
-                    var towers = cachedNode.Effects.SelectMany(x => x.Value.Sources).Distinct().Count();
-                    if (towers > 0) {
-                        debugText += $", T: {towers}";
-                        var effects = cachedNode.Effects.Distinct().Count();
-                        if (effects > 0)
-                            debugText += $", E: {effects}";
-                    }
-        
-                    DrawCenteredTextWithBackground(debugText, position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+        try {
+            foreach (var (coordinates,waypoint) in Settings.Waypoints.Waypoints) {
+                try {
+                    DrawWaypoint(waypoint);
+                } catch (Exception e) {
+                    LogError("Error drawing waypoint: " + e.Message + "\n" + e.StackTrace);
                 }
-                
             }
+        }
 
+        catch (Exception e) {
+            LogError("Error drawing waypoints: " + e.Message + "\n" + e.StackTrace);
+        }
+        if (Settings.Features.DebugMode) {
+            foreach (var mapNode in AtlasPanel.Descriptions) {
+                try {
+                    DrawDebugging(mapNode.Element);
+                } catch (Exception e) {
+                    LogError("Error drawing debug info: " + e.Message + "\n" + e.StackTrace);
+                }
+            }
         }
     }
+    #endregion
 
-    private void recalculateWeights() {
-        LogMessage("Recalculating Weights");
+    #region Keybinds
+    private void CheckKeybinds() {
+        if (Settings.Keybinds.RefreshMapCacheHotkey.PressedOnce()) {        
+            LogMessage("Refreshing Map Cache");
+            var timer = new Stopwatch();
+            timer.Start();
+            RefreshMapCache();
+            timer.Stop();
+            LogMessage($"Map cache refreshed in {timer.ElapsedMilliseconds}ms");
+        }
 
-        maxMapWeight = mapCache.Values.Where(x => !x.IsVisited).Select(x => x.Weight).OrderByDescending(x => x).Skip(15).FirstOrDefault();
-        minMapWeight = mapCache.Values.Where(x => !x.IsVisited).Select(x => x.Weight).OrderBy(x => x).Skip(5).FirstOrDefault();
-        
-        LogMessage($"Map Weights: {minMapWeight} - {maxMapWeight}");        
+        if (Settings.Features.DebugKey.PressedOnce())        
+            DoDebugging();
+
+        if (Settings.Keybinds.ToggleWaypointPanelHotkey.PressedOnce()) {        
+            LogMessage("Toggling Waypoint Panel");
+            WaypointPanelIsOpen = !WaypointPanelIsOpen;
+        }
+
+        if (Settings.Keybinds.AddWaypointHotkey.PressedOnce())        
+            AddWaypoint(GetClosestNodeToCursor());
+
+        if (Settings.Keybinds.DeleteWaypointHotkey.PressedOnce())        
+            RemoveWaypoint(GetClosestNodeToCursor());
+
+
     }
+    #endregion
 
+    #region Load Defaults
     private void LoadDefaultMods() {
         try {
             if (Settings.MapMods.MapModTypes == null)
@@ -304,6 +331,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             LogError("Error loading default maps: " + e.Message);
         }
     }
+
+    #endregion
     
     private static void RegisterHotkey(HotkeyNode hotkey)
     {
@@ -312,6 +341,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     }
 
     
+    #region Map Processing
     
     private void RenderNode(AtlasPanelNode mapNode)
     {
@@ -331,12 +361,16 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             DrawMapName(mapNode);
             DrawWeight(mapNode);
             
+            
 
         } catch (Exception e) {
             LogError("Error drawing map node: " + e.Message + " - " + e.StackTrace);
             return;
         }
     }
+    #endregion
+
+    #region Debugging
     private void DoDebugging() {
         // get node closest to cursor
         var cursorElement = State.UIHoverElement;
@@ -348,6 +382,41 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     }
 
+    private void DrawDebugging(AtlasPanelNode mapNode) {
+        if (!mapCache.ContainsKey(mapNode.Address))            
+            return;
+
+        Node cachedNode = mapCache[mapNode.Address];
+        var position = mapNode.GetClientRect().Center + new Vector2(0, 35);
+        DrawCenteredTextWithBackground(cachedNode.ParentAddress.ToString("X"), position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+        position += new Vector2(0, 27);
+        DrawCenteredTextWithBackground(cachedNode.Coordinate.ToString(), position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+        position += new Vector2(0, 27);
+        string debugText = "";
+                                    
+        debugText = $"N: {cachedNode.Neighbors.Count}";                    
+        debugText += $", W: {cachedNode.Weight.ToString("0.000")}";
+
+        // get distinct effect sources
+        var towers = cachedNode.Effects.SelectMany(x => x.Value.Sources).Distinct().Count();
+        if (towers > 0) {
+            debugText += $", T: {towers}";
+            var effects = cachedNode.Effects.Distinct().Count();
+            if (effects > 0)
+                debugText += $", E: {effects}";
+        }
+
+        DrawCenteredTextWithBackground(debugText, position, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+    
+    }
+
+    #endregion
+
+    private AtlasNodeDescription GetClosestNodeToCursor() {
+        return AtlasPanel.Descriptions.OrderBy(x => Vector2.Distance(State.UIHoverElement.GetClientRect().Center, x.Element.GetClientRect().Center)).FirstOrDefault();
+    }
+
+    #region Map Cache
     public void RefreshMapCache(bool clearCache = false)
     {
         refreshingCache = true;
@@ -372,6 +441,15 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         refreshingCache = false;
         refreshCache = false;
         lastRefresh = DateTime.Now;
+    }
+    
+    private void recalculateWeights() {
+        LogMessage("Recalculating Weights");
+
+        maxMapWeight = mapCache.Values.Where(x => !x.IsVisited).Select(x => x.Weight).OrderByDescending(x => x).Skip(15).FirstOrDefault();
+        minMapWeight = mapCache.Values.Where(x => !x.IsVisited).Select(x => x.Weight).OrderBy(x => x).Skip(5).FirstOrDefault();
+        
+        LogMessage($"Map Weights: {minMapWeight} - {maxMapWeight}");        
     }
 
     private void CacheNewMapNode(AtlasNodeDescription node)
@@ -525,6 +603,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         cachedNode.IsVisited = (node.Element.IsVisited || !node.Element.IsUnlocked && node.Element.IsVisited);
         cachedNode.IsHighlighted = node.Element.isHighlighted;
         cachedNode.IsActive = node.Element.IsActive;
+        cachedNode.ParentAddress = node.Address;
 
         // Get base weight for the map 
         float weight = 0.0f;
@@ -589,8 +668,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         cachedNode.Weight = !cachedNode.IsVisited ? weight : 500;
     } 
-    
+    #endregion
 
+    #region Map Drawing
     /// <summary>
     /// Draws lines between a map node and its connected nodes on the atlas.
     /// </summary>
@@ -600,13 +680,12 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     private void DrawConnections(AtlasPanelNode mapNode)
     {
         if (!mapCache.ContainsKey(mapNode.Address) ||
-        (mapNode.IsVisible && !Settings.Features.DrawVisibleNodeConnections) ||
         (!mapNode.IsVisible && !Settings.Features.DrawHiddenNodeConnections))
             return;
 
         var mapConnections = mapCache[mapNode.Address].Point;
 
-        if (mapConnections.Equals(default((Vector2i, Vector2i, Vector2i, Vector2i, Vector2i))))
+        if (mapConnections.Equals(default))
             return;
 
         var connectionArray = new[] { mapConnections.Item2, mapConnections.Item3, mapConnections.Item4, mapConnections.Item5 };
@@ -619,12 +698,16 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             AtlasNodeDescription destinationNode = AtlasPanel.Descriptions.FirstOrDefault(x => x.Coordinate == coordinates);
             if (destinationNode != null)
             {
+                if ((destinationNode.Element.IsVisited || mapNode.IsVisited) && !Settings.Features.DrawVisitedNodeConnections)
+                    continue;
+                
                 var destinationPos = destinationNode.Element.GetClientRect();
+
                 var sourcePos = mapNode.GetClientRect();
                 if (!IsOnScreen(destinationPos.Center) || !IsOnScreen(sourcePos.Center))
-                    return;
+                    continue;
                 
-                var color = (destinationNode.Element.IsUnlocked || mapNode.IsUnlocked) ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
+                var color = (destinationNode.Element.IsVisited || mapNode.IsVisited) ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
                 Graphics.DrawLine(sourcePos.Center, destinationPos.Center, Settings.Graphics.MapLineWidth, color);
             }
         }
@@ -697,8 +780,6 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         // Position for label and start of line.
         Vector2 position = Vector2.Lerp(screenCenter, currentPosition.Center, Settings.Graphics.LabelInterpolationScale);
         // Draw the line from the center(ish) of the screen to the center of the map node.
-
-
 
         Graphics.DrawLine(position, currentPosition.Center, Settings.Graphics.MapLineWidth, color);
 
@@ -846,7 +927,85 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         DrawMapModText(mods, currentPosition.Center);
     }
-    
+    private void DrawMapModText(Dictionary<string, Color> mods, Vector2 position)
+    {      
+        using (Graphics.SetTextScale(Settings.MapMods.MapModScale)) {
+            string fullText = string.Join("\n", mods.Select(x => $"{x.Key}"));
+            var boxSize = Graphics.MeasureText(fullText) + new Vector2(10, 10);
+            var lineHeight = Graphics.MeasureText("A").Y;
+            position = position - new Vector2(boxSize.X / 2, boxSize.Y / 2);
+
+            // offset the box below the node
+            position += new Vector2(0, (boxSize.Y / 2) + Settings.MapMods.MapModOffset);
+            
+            if (!IsOnScreen(boxSize + position))
+                return;
+
+            Graphics.DrawBox(position, boxSize + position, Settings.Graphics.BackgroundColor, 5.0f);
+
+            position += new Vector2(5, 5);
+
+            foreach (var mod in mods)
+            {
+                Graphics.DrawText(mod.Key, position, mod.Value);
+                position += new Vector2(0, lineHeight);
+            }
+        }
+    }
+
+    // private void DrawBiomes(AtlasPanelNode mapNode)
+    // {
+    //     var currentPosition = mapNode.GetClientRect();
+    //     if (!IsOnScreen(currentPosition.Center) || !mapCache.ContainsKey(mapNode.Address))
+    //         return;
+
+    //     Node cachedNode = mapCache[mapNode.Address];
+    //     string mapName = mapNode.Area.Name.Trim();
+    //     if (cachedNode == null || !Settings.Biomes.ShowBiomes || cachedNode.Biomes.Count == 0)    
+    //         return; 
+
+    //     Dictionary<string, Color> biomes = new Dictionary<string, Color>();
+
+    //     var biomeList = new List<Biome>();
+    //     if (Settings.Biomes.ShowBiomes && !mapNode.IsVisited) {
+    //         biomeList = cachedNode.Biomes;
+    //     }
+
+    //     foreach (var biome in biomeList) {
+    //         biomes.Add(biome.ToString(), Settings.Biomes.Biomes[biome.ToString()].Color);
+    //     }
+
+    //     DrawBiomeText(biomes, currentPosition.Center);
+    // }
+
+    // private void DrawBiomeText(Dictionary<string, Color> biomes, Vector2 position)
+    // {      
+    //     using (Graphics.SetTextScale(Settings.Biomes.BiomeScale)) {
+    //         string fullText = string.Join("\n", biomes.Select(x => $"{x.Key}"));
+    //         var boxSize = Graphics.MeasureText(fullText) + new Vector2(10, 10);
+    //         var lineHeight = Graphics.MeasureText("A").Y;
+    //         position = position - new Vector2(boxSize.X / 2, boxSize.Y / 2);
+
+    //         // offset the box below the node
+    //         position += new Vector2(0, (boxSize.Y / 2) + Settings.Biomes.BiomeOffset);
+            
+    //         if (!IsOnScreen(boxSize + position))
+    //             return;
+
+    //         Graphics.DrawBox(position, boxSize + position, Settings.Graphics.BackgroundColor, 5.0f);
+
+    //         position += new Vector2(5, 5);
+
+    //         foreach (var biome in biomes)
+    //         {
+    //             Graphics.DrawText(biome.Key, position, biome.Value);
+    //             position += new Vector2(0, lineHeight);
+    //         }
+    //     }
+    // }
+    #endregion
+
+    #region Misc Drawing
     /// <summary>
     /// Draws text with a background color at the specified position.
     /// </summary>
@@ -875,62 +1034,455 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         Graphics.DrawText(text, position, color);
     }
 
-    private void DrawMapModText(Dictionary<string, Color> mods, Vector2 position)
-    {      
-        using (Graphics.SetTextScale(Settings.MapMods.MapModScale)) {
-            string fullText = string.Join("\n", mods.Select(x => $"{x.Key}"));
-            var boxSize = Graphics.MeasureText(fullText) + new Vector2(10, 10);
-            var lineHeight = Graphics.MeasureText("A").Y;
-            position = position - new Vector2(boxSize.X / 2, boxSize.Y / 2);
+    private void DrawRotatedImage(IntPtr textureId, Vector2 position, Vector2 size, float angle, Color color)
+    {
+        Vector2 center = position + size / 2;
 
-            // offset the box below the node
-            position += new Vector2(0, (boxSize.Y / 2) + Settings.MapMods.MapModOffset);
-            
-            if (!IsOnScreen(boxSize + position))
-                return;
+        float cosTheta = (float)Math.Cos(angle);
+        float sinTheta = (float)Math.Sin(angle);
 
-            Graphics.DrawBox(position, boxSize + position, Settings.Graphics.BackgroundColor, 5.0f);
-
-            position += new Vector2(5, 5);
-
-            foreach (var mod in mods)
-            {
-                Graphics.DrawText(mod.Key, position, mod.Value);
-                position += new Vector2(0, lineHeight);
-            }
+        Vector2 RotatePoint(Vector2 point)
+        {
+            Vector2 translatedPoint = point - center;
+            Vector2 rotatedPoint = new Vector2(
+                translatedPoint.X * cosTheta - translatedPoint.Y * sinTheta,
+                translatedPoint.X * sinTheta + translatedPoint.Y * cosTheta
+            );
+            return rotatedPoint + center;
         }
+
+        Vector2 topLeft = RotatePoint(position);
+        Vector2 topRight = RotatePoint(position + new Vector2(size.X, 0));
+        Vector2 bottomRight = RotatePoint(position + size);
+        Vector2 bottomLeft = RotatePoint(position + new Vector2(0, size.Y));
+
+
+        Graphics.DrawQuad(textureId, topLeft, topRight, bottomRight, bottomLeft, color);
+    }
+    #endregion
+    
+    #region Helper Functions
+
+    private bool IsOnScreen(Vector2 position)
+    {
+        var screen = new RectangleF
+        {
+            X = 0,
+            Y = 0,
+            Width = GameController.Window.GetWindowRectangleTimeCache.Size.X,
+            Height = GameController.Window.GetWindowRectangleTimeCache.Size.Y
+        };
+
+        var left = screen.Left;
+        var right = screen.Right;
+
+        if (State.IngameUi.OpenRightPanel.IsVisible)
+            right -= State.IngameUi.OpenRightPanel.GetClientRect().Width;
+
+        if (State.IngameUi.OpenLeftPanel.IsVisible)
+            left += State.IngameUi.OpenLeftPanel.GetClientRect().Width;
+
+        if (State.IngameUi.WorldMap.GetChildAtIndex(9).IsVisible) {
+            
+            RectangleF mapTooltip = (RectangleF)State.IngameUi.WorldMap.GetChildAtIndex(9).GetClientRect();                
+            mapTooltip.Inflate(mapTooltip.Width * 0.1f, mapTooltip.Height * 0.1f);
+
+            // if position is within mapTooltip
+            if (position.X > mapTooltip.Left && position.X < mapTooltip.Right && position.Y > mapTooltip.Top && position.Y < mapTooltip.Bottom)
+                return false;
+        }
+        
+        return !(position.X < left || position.X > right || position.Y < screen.Top || position.Y > screen.Bottom);
     }
 
-        private bool IsOnScreen(Vector2 position)
+    public float GetDistanceToNode(AtlasNodeDescription node)
+    {
+        return Vector2.Distance(screenCenter, node.Element.GetClientRect().Center);
+    }
+    // Helper function to center text vertically
+    void CenterTextVertically(string text)
+    {
+        float cellHeight = ImGui.GetTextLineHeightWithSpacing();
+        float textHeight = ImGui.CalcTextSize(text).Y;
+        float verticalOffset = (cellHeight - textHeight) / 2.0f;
+        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + verticalOffset);
+        ImGui.TextUnformatted(text);
+    }
+
+    private static double VectorAngle(Vector2 v1, Vector2 v2)
+{
+        // Calculate the vector lengths.
+        double len1 = Math.Sqrt(v1.X * v1.X + v1.Y * v1.Y);
+        double len2 = Math.Sqrt(v2.X * v2.X + v2.Y * v2.Y);
+
+        // Use the dot product to get the cosine.
+        double dot_product = v1.X * v2.X + v1.Y * v2.Y;
+        double cos = dot_product / len1 / len2;
+
+        // Use the cross product to get the sine.
+        double cross_product = v1.X * v2.Y - v1.Y * v2.X;
+        double sin = cross_product / len1 / len2;
+
+        // Find the angle.
+        double angle = Math.Acos(cos);
+        if (sin < 0) angle = -angle;
+        return angle;
+    }
+
+    #endregion
+    #region Waypoint Panel
+    private void DrawWaypointPanel() {
+        Vector2 panelSize = new Vector2(State.IngameUi.SettingsPanel.GetClientRect().Width, State.IngameUi.SettingsPanel.GetClientRect().Height);
+        Vector2 panelPosition = State.IngameUi.SettingsPanel.GetClientRect().TopLeft;
+        ImGui.SetNextWindowPos(panelPosition, ImGuiCond.Always);
+        ImGui.SetNextWindowSize(panelSize, ImGuiCond.Always);
+        ImGui.SetNextWindowBgAlpha(0.8f);
+
+        ImGui.Begin("WaypointPanel", ref WaypointPanelIsOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove);
+
+        // Settings table
+        if (ImGui.BeginTable("waypoint_top_table", 2, ImGuiTableFlags.NoBordersInBody|ImGuiTableFlags.PadOuterX))
         {
-            var screen = new RectangleF
-            {
-                X = 0,
-                Y = 0,
-                Width = GameController.Window.GetWindowRectangleTimeCache.Size.X,
-                Height = GameController.Window.GetWindowRectangleTimeCache.Size.Y
-            };
+            ImGui.TableSetupColumn("Check", ImGuiTableColumnFlags.WidthFixed, 60);                                                               
+            ImGui.TableSetupColumn("Option", ImGuiTableColumnFlags.WidthStretch, 300); 
+                                
 
-            var left = screen.Left;
-            var right = screen.Right;
+            ImGui.TableNextRow();
 
-            if (State.IngameUi.OpenRightPanel.IsVisible)
-                right -= State.IngameUi.OpenRightPanel.GetClientRect().Width;
-
-            if (State.IngameUi.OpenLeftPanel.IsVisible)
-                left += State.IngameUi.OpenLeftPanel.GetClientRect().Width;
-
-            if (State.IngameUi.WorldMap.GetChildAtIndex(9).IsVisible) {
-                
-                RectangleF mapTooltip = (RectangleF)State.IngameUi.WorldMap.GetChildAtIndex(9).GetClientRect();                
-                mapTooltip.Inflate(mapTooltip.Width * 0.1f, mapTooltip.Height * 0.1f);
-
-                // if position is within mapTooltip
-                if (position.X > mapTooltip.Left && position.X < mapTooltip.Right && position.Y > mapTooltip.Top && position.Y < mapTooltip.Bottom)
-                    return false;
+            ImGui.TableNextColumn();
+            // Enabled
+            ImGui.TableNextColumn();
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 30.0f) / 2.0f);
+            bool _show = false;
+            if (ImGui.Checkbox($"##waypoints_enabled", ref _show)) {
+                // do something;
             }
+            ImGui.TableNextColumn();
+            ImGui.Text("Show Waypoints");
             
-            return !(position.X < left || position.X > right || position.Y < screen.Top || position.Y > screen.Bottom);
         }
+        ImGui.EndTable();
+
+        ImGui.Spacing();
+
+        // larger font size
+        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 10));
+        ImGui.Text("Waypoints");
+        ImGui.PopStyleVar();        
+        ImGui.Separator();
+
+
+        #region Waypoints Table
+        // Collapse
+        if (ImGui.CollapsingHeader("Waypoints", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            var flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH;
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0, 0, 0, 0));
+            if (ImGui.BeginTable("waypoint_list_table", 8, flags, new Vector2(-1, panelSize.Y/3)))
+            {
+                ImGui.TableSetupColumn("Enable", ImGuiTableColumnFlags.WidthFixed, 30);                                                               
+                ImGui.TableSetupColumn("Waypoint Name", ImGuiTableColumnFlags.WidthFixed, 300);     
+                ImGui.TableSetupColumn("X", ImGuiTableColumnFlags.WidthFixed, 40);                    
+                ImGui.TableSetupColumn("Y", ImGuiTableColumnFlags.WidthFixed, 40);     
+                ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthFixed, 30);     
+                ImGui.TableSetupColumn("Scale", ImGuiTableColumnFlags.WidthFixed, 100);     
+                ImGui.TableSetupColumn("Option", ImGuiTableColumnFlags.WidthFixed, 60); 
+                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch, 50);
+                ImGui.TableHeadersRow();                    
+
+                foreach (var waypoint in Settings.Waypoints.Waypoints.Values) {
+                    string id = waypoint.Address.ToString();
+                    ImGui.PushID(id);
+                    
+                    ImGui.TableNextRow();
+
+                    // Enabled
+                    ImGui.TableNextColumn();
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 30.0f) / 2.0f);
+                    bool _show = waypoint.Show;
+                    if (ImGui.Checkbox($"##{id}_enabled", ref _show)) {
+                        waypoint.Show = _show;
+                    }
+
+                    // Name
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(300);
+                    string _name = waypoint.Name;                    
+                    if (ImGui.InputText($"##{id}_name", ref _name, 32)) {
+                        waypoint.Name = _name;
+                    }
+                    // Coordinates
+                    ImGui.TableNextColumn();                    
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 40.0f) / 2.0f);
+                    ImGui.Text(waypoint.Coordinates.X.ToString());
+
+                    ImGui.TableNextColumn();                    
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 40.0f) / 2.0f);
+                    ImGui.Text(waypoint.Coordinates.Y.ToString());
+
+
+                    // Color
+                    ImGui.TableNextColumn();
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 30.0f) / 2.0f);
+                    Color _color = waypoint.Color;
+                    Vector4 _vector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
+                    if(ImGui.ColorEdit4($"##{id}_nodecolor", ref _vector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
+                        waypoint.Color = Color.FromArgb((int)(_vector.W * 255), (int)(_vector.X * 255), (int)(_vector.Y * 255), (int)(_vector.Z * 255));
+                    
+                    // Scale
+                    ImGui.TableNextColumn();
+                    float _scale = waypoint.Scale;
+                    ImGui.SetNextItemWidth(100);
+                    if(ImGui.SliderFloat($"##{id}_weight", ref _scale, 0.1f, 2.0f, "%.2f"))                        
+                        waypoint.Scale = _scale;
+
+
+                    // Buttons
+                    ImGui.TableNextColumn();
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 50.0f) / 2.0f);
+                    ImGui.SetNextItemWidth(60);
+                    if (ImGui.Button("Delete")) {
+                        RemoveWaypoint(waypoint.MapNode());
+                    }
+                    ImGui.PopID();
+                }
+                ImGui.EndTable();
+                ImGui.PopStyleColor();
+            }
+            #endregion
+            
+        }
+       
+        ImGui.Spacing();
+
+        #region Atlas Table
+        if (ImGui.CollapsingHeader("Atlas"))
+        {
+
+            ImGui.BeginGroup();
+            // Sort by Combobox
+            ImGui.SetNextItemWidth(200);
+            string sortBy = "Weight";
+            if (ImGui.BeginCombo("Sort By", sortBy))
+            {
+                if (ImGui.Selectable("Name", sortBy == "Name"))
+                    sortBy = "Name";
+                if (ImGui.Selectable("Weight", sortBy == "Weight"))
+                    sortBy = "Weight";
+                ImGui.EndCombo();
+            }
+
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
+            int maxItems = 100;
+            ImGui.SetNextItemWidth(200);
+            ImGui.InputInt("Max Items", ref maxItems);
+
+            ImGui.EndGroup();
+
+            var tempCache = mapCache.Where(x => !x.Value.IsVisited);    
+
+            switch(sortBy) {
+                case "Name":
+                    tempCache = tempCache.OrderBy(x => x.Value.Name).ToDictionary(x => x.Key, x => x.Value);
+                    break;
+                case "Weight":
+                    tempCache = tempCache.OrderByDescending(x => x.Value.Weight).ToDictionary(x => x.Key, x => x.Value);
+                    break;
+                default:
+                    tempCache = tempCache.OrderByDescending(x => x.Value.Weight).ToDictionary(x => x.Key, x => x.Value);
+                    break;
+            }
+
+            tempCache = tempCache.Take(maxItems).ToDictionary(x => x.Key, x => x.Value);
+
+            var flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.Hideable | ImGuiTableFlags.NoSavedSettings;
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2, 2)); // Adjust the padding values as needed
+            ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(2, 2)); // A
+            if (ImGui.BeginTable("atlas_list_table", 8, flags, new Vector2(-1, panelSize.Y/3)))
+            {                                                            
+                ImGui.TableSetupColumn("Map Name", ImGuiTableColumnFlags.WidthFixed, 200);   
+                ImGui.TableSetupColumn("Content", ImGuiTableColumnFlags.WidthFixed, 60);     
+                ImGui.TableSetupColumn("Modifiers", ImGuiTableColumnFlags.WidthFixed, 100); 
+                ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 80);
+                ImGui.TableSetupColumn("Unlocked", ImGuiTableColumnFlags.WidthFixed, 28);
+                ImGui.TableSetupColumn("Way", ImGuiTableColumnFlags.WidthFixed, 32);
+                ImGui.TableHeadersRow();                    
+
+                Vector4 _colorVector;
+                Color _color;
+
+                if (tempCache != null) {
+                    foreach (var (key, node) in tempCache) {
+                        string id = node.Address.ToString();
+                        ImGui.PushID(id);                        
+                        ImGui.TableNextRow();
+
+                        // Name
+                        ImGui.TableNextColumn();
+                        ImGui.TextUnformatted(node.Name);
+
+                        ImGui.SetWindowFontScale(0.7f);            
+
+                        // Content
+                        ImGui.TableNextColumn();
+                        foreach(var content in node.MapContent) {
+                            _color = Settings.MapContent.ContentTypes[content.Name].Color;
+                            _colorVector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
+                            ImGui.PushStyleColor(ImGuiCol.Text, _colorVector);
+                            ImGui.TextUnformatted(content.Name);
+                            ImGui.PopStyleColor();
+                        }
+                        
+
+                        // Modifiers
+                        ImGui.TableNextColumn();
+                        foreach(var effect in node.Effects) {       
+                            _color = Settings.MapMods.MapModTypes[effect.Key].Color;
+                            _colorVector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
+                            ImGui.PushStyleColor(ImGuiCol.Text, _colorVector);
+                            ImGui.TextUnformatted(effect.Value.ToString());
+                            ImGui.PopStyleColor();
+                        }
+                        // reset font size
+                        ImGui.SetWindowFontScale(1.0f);
+
+                        // Weight
+                        ImGui.TableNextColumn();
+                        // set color
+                        float weight = (node.Weight - minMapWeight) / (maxMapWeight - minMapWeight);        
+                        _color = ColorUtils.InterpolateColor(Settings.Maps.BadNodeColor,Settings.Maps.GoodNodeColor, weight);
+                        _colorVector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
+                        ImGui.PushStyleColor(ImGuiCol.Text, _colorVector);
+                        ImGui.TextUnformatted(node.Weight.ToString("0.0"));
+                        ImGui.PopStyleColor();
+
+                        // Unlocked
+                        ImGui.TableNextColumn();
+                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 30.0f) / 2.0f);
+                        bool _unlocked = node.IsUnlocked;
+                        ImGui.BeginDisabled();                        
+                        ImGui.Checkbox($"##{id}_enabled", ref _unlocked);
+                        ImGui.EndDisabled();
+    //
+                        // Buttons
+                        ImGui.TableNextColumn();
+                        RectangleF icon = SpriteHelper.GetUV(MapIconsIndex.Waypoint);
+                        
+                        if (node.IsWaypoint)
+                            ImGui.BeginDisabled();
+                        
+                        ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(ImGuiCol.TableRowBg));
+                        if (ImGui.ImageButton($"$${id}_wp", iconsId, new Vector2(32,32), icon.TopLeft, icon.BottomRight)) {
+                            AddWaypoint(node.MapNode());
+                        } else if (ImGui.IsItemHovered()) {
+                            ImGui.SetTooltip("Add Waypoint");
+                        }
+                        ImGui.PopStyleColor();
+                        if (node.IsWaypoint)
+                            ImGui.EndDisabled();
+                        
+
+                        // go back to first column
+                        ImGui.PopID();
+                    }
+                }
+            }
+            ImGui.EndTable();
+            ImGui.PopStyleVar(2);
+            #endregion
+            
+        }
+
+        ImGui.End();
+    }
+    #endregion
+
+    #region Waypoint Functions
+    private void DrawWaypoint(Waypoint waypoint) {
+        Vector2 waypointSize = new Vector2(32, 32);        
+        waypointSize *= waypoint.Scale;
+
+        Vector2 iconPosition = waypoint.MapNode().Element.GetClientRect().Center - new Vector2(0, (waypoint.MapNode().Element.GetClientRect().Height / 2));
+
+        if (waypoint.MapNode().Element.GetChildAtIndex(0) != null)
+            iconPosition -= new Vector2(0, waypoint.MapNode().Element.GetChildAtIndex(0).GetClientRect().Height);
+
+        iconPosition -= new Vector2(0, 20);
+        Vector2 waypointTextPosition = iconPosition - new Vector2(0, 10);
+        
+        DrawCenteredTextWithBackground(waypoint.Name, waypointTextPosition, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+        
+        // Center icon horizontally
+        iconPosition -= new Vector2(waypointSize.X / 2, 0);
+        RectangleF iconSize = new RectangleF(iconPosition.X, iconPosition.Y, waypointSize.X, waypointSize.Y);
+        Graphics.DrawImage(IconsFile, iconSize, SpriteHelper.GetUV(waypoint.Icon), waypoint.Color);
+        DrawWaypointArrow(waypoint);
+
+    }
+
+    private void AddWaypoint(AtlasNodeDescription mapNode) {
+        LogMessage($"Adding waypoint for {mapNode.Coordinate.ToString()}");
+        if (!mapCache.ContainsKey(mapNode.Element.Address))
+            CacheNewMapNode(mapNode);
+
+        Node node = mapCache[mapNode.Element.Address];
+        if (Settings.Waypoints.Waypoints.ContainsKey(node.Coordinate.ToString()))
+            return;
+
+        Waypoint newWaypoint = node.ToWaypoint();
+        newWaypoint.Icon = MapIconsIndex.LootFilterLargeWhiteUpsideDownHouse;
+        newWaypoint.Color = Color.Red;
+
+        Settings.Waypoints.Waypoints.Add(node.Coordinate.ToString(), newWaypoint);
+        node.IsWaypoint = true;
+        LogMessage($"Added waypoint for {node.Name}");
+    }
+
+    private void RemoveWaypoint(AtlasNodeDescription mapNode) {
+        LogMessage($"Removing waypoint for {mapNode.Coordinate.ToString()}");
+        if (!Settings.Waypoints.Waypoints.ContainsKey(mapNode.Coordinate.ToString()))
+            return;
+
+        LogMessage($"Removing waypoint for {mapNode.Coordinate.ToString()}");
+        Settings.Waypoints.Waypoints.Remove(mapNode.Coordinate.ToString());
+        mapCache[mapNode.Element.Address].IsWaypoint = false;
+    }
+
+    private void DrawWaypointArrow(Waypoint waypoint) {
+        Vector2 waypointPosition = waypoint.MapNode().Element.GetClientRect().Center;
+
+        // get distance
+        float distance = Vector2.Distance(screenCenter, waypointPosition);
+
+        if (distance < 400)
+            return;
+        
+        Vector2 arrowPosition = waypointPosition;
+        arrowPosition.X = Math.Clamp(arrowPosition.X, 0, GameController.Window.GetWindowRectangleTimeCache.Size.X);
+        arrowPosition.Y = Math.Clamp(arrowPosition.Y, 0, GameController.Window.GetWindowRectangleTimeCache.Size.Y);
+        arrowPosition = Vector2.Lerp(screenCenter, arrowPosition, 0.80f);
+
+        Vector2 arrowSize = new(64, 64);
+        // center the arrow
+        arrowPosition -= new Vector2(arrowSize.X / 2, arrowSize.Y / 2);
+
+        Vector2 direction = waypointPosition - screenCenter;
+
+        float phi = (float)Math.Atan2(direction.Y, direction.X) + (float)(Math.PI / 2);
+
+        DrawRotatedImage(arrowId, arrowPosition, arrowSize, phi, waypoint.Color);
+        // position the text on the center of the arrow
+        Vector2 textPosition = arrowPosition + new Vector2(arrowSize.X / 2, arrowSize.Y / 2);
+        // move the text towards screen center by 50 
+        textPosition = Vector2.Lerp(textPosition, screenCenter, 0.10f);
+
+        
+
+        DrawCenteredTextWithBackground($"{waypoint.Name} ({distance:0})", textPosition, waypoint.Color, Settings.Graphics.BackgroundColor, true, 10, 4);
+    }
+
+    #endregion
 
 }

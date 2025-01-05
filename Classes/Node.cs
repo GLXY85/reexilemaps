@@ -43,7 +43,20 @@ public class Node : INotifyPropertyChanged
     public string Name { get; set; }
     public string Id { get; set; }
 
+    public AtlasNodeDescription MapNode () {
+        return Main.AtlasPanel.Descriptions.FirstOrDefault(x => x.Coordinate == Coordinate) ?? null;
+    }
+
     public event PropertyChangedEventHandler PropertyChanged;
+
+    public Waypoint ToWaypoint() {
+        return new Waypoint {
+            Name = Name,
+            ID = Id,
+            Address = Address,
+            Coordinates = Coordinate
+        };
+    }
 
     public bool IsUnlocked
     {

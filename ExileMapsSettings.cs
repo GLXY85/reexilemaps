@@ -12,9 +12,11 @@ using ExileCore2.Shared.Attributes;
 using ExileCore2.Shared.Helpers;
 using ExileCore2.Shared.Interfaces;
 using ExileCore2.Shared.Nodes;
+using ExileCore2.Shared.Enums;
 using ExileMaps.Classes;
 using ImGuiNET;
 using Newtonsoft.Json;
+using GameOffsets2.Native;
 
 using static ExileMaps.ExileMapsCore;
 
@@ -47,6 +49,10 @@ public class ExileMapsSettings : ISettings
 
     [Menu("Atlas Mod Settings")]
     public MapModSettings MapMods { get; set; } = new MapModSettings();
+
+    [Menu("Waypoint Settings")]
+    public WaypointSettings Waypoints { get; set; } = new WaypointSettings();
+
 }
 
 [Submenu(CollapsedByDefault = false)]
@@ -63,8 +69,8 @@ public class FeatureSettings
     [Menu("Process Locked Map Nodes")]
     public ToggleNode ProcessLockedNodes { get; set; } = new ToggleNode(true);
 
-    [Menu("Draw Connections for Visible Map Nodes")]
-    public ToggleNode DrawVisibleNodeConnections { get; set; } = new ToggleNode(true);
+    [Menu("Draw Connections for Visited Map Nodes")]
+    public ToggleNode DrawVisitedNodeConnections { get; set; } = new ToggleNode(true);
     
     [Menu("Process Hidden Map Nodes")]
     public ToggleNode ProcessHiddenNodes { get; set; } = new ToggleNode(true);
@@ -92,8 +98,12 @@ public class FeatureSettings
 public class HotkeySettings
 {
     public HotkeyNode RefreshMapCacheHotkey { get; set; } = new HotkeyNode(Keys.F13);
-    // public HotkeyNode SetCurrentLocationHotkey { get; set; } = new HotkeyNode(Keys.F13);
-    // public HotkeyNode AddWaypointHotkey { get; set; } = new HotkeyNode(Keys.F13);
+    public HotkeyNode AddMarkerHotkey { get; set; } = new HotkeyNode(Keys.F13);
+    public HotkeyNode DeleteMarkerHotkey { get; set; } = new HotkeyNode(Keys.F13);
+    public HotkeyNode AddWaypointHotkey { get; set; } = new HotkeyNode(Keys.F13);
+    public HotkeyNode DeleteWaypointHotkey { get; set; } = new HotkeyNode(Keys.F13);
+    public HotkeyNode ToggleWaypointPanelHotkey { get; set; } = new HotkeyNode(Keys.F13);
+
 
 }
 
@@ -262,7 +272,6 @@ public class MapSettings
 
                     foreach (var (key,mapNode) in mapNodes)
                     {
-
                         var mapName = mapNode.Name.Trim();
 
                         var mapId = mapNode.Name.ToString().Replace(" ", "");
@@ -305,112 +314,115 @@ public class MapSettings
                 ImGui.Spacing();
                 ImGui.TextWrapped("CTRL+Click on a slider to manually enter a value.");
                 ImGui.Spacing();
-
-                if (ImGui.BeginTable("maps_table", 10, ImGuiTableFlags.SizingFixedFit|ImGuiTableFlags.Borders|ImGuiTableFlags.PadOuterX))
-                {
-  
-                    ImGui.TableSetupColumn("Map", ImGuiTableColumnFlags.WidthFixed, 250);                                                              
-                    ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 100); 
-                    ImGui.TableSetupColumn("Node", ImGuiTableColumnFlags.WidthFixed, 30);     
-                    ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 30);               
-                    ImGui.TableSetupColumn("BG", ImGuiTableColumnFlags.WidthFixed, 30);
-                    ImGui.TableSetupColumn("Line", ImGuiTableColumnFlags.WidthFixed, 30);                              
-                    ImGui.TableSetupColumn("Unlocked", ImGuiTableColumnFlags.WidthFixed, 45);
-                    ImGui.TableSetupColumn("Locked", ImGuiTableColumnFlags.WidthFixed, 45);
-                    ImGui.TableSetupColumn("Hidden", ImGuiTableColumnFlags.WidthFixed, 45);
-                    ImGui.TableSetupColumn("Biomes", ImGuiTableColumnFlags.WidthStretch, 200);   
-                    ImGui.TableHeadersRow();
-
-                    // Sort Maps alphabetically by Name
-                    Maps = Maps.OrderBy(x => x.Value.Name).ToObservableDictionary();
-
-                    foreach (var map in Maps)
+                if (ImGui.TreeNodeEx("Map Table", ImGuiTreeNodeFlags.DefaultOpen|ImGuiTreeNodeFlags.SpanFullWidth)) {
                     {
-                        ImGui.PushID($"Map_{map.Key}");
-                        ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        bool isMapHighlighted = map.Value.Highlight;
 
-                        if(ImGui.Checkbox($"##{map}_highlight", ref isMapHighlighted))
-                            map.Value.Highlight = isMapHighlighted;
+                    if (ImGui.BeginTable("maps_table", 10, ImGuiTableFlags.SizingFixedFit|ImGuiTableFlags.Borders|ImGuiTableFlags.PadOuterX))
+                    {
+    
+                        ImGui.TableSetupColumn("Map", ImGuiTableColumnFlags.WidthFixed, 250);                                                              
+                        ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 100); 
+                        ImGui.TableSetupColumn("Node", ImGuiTableColumnFlags.WidthFixed, 30);     
+                        ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 30);               
+                        ImGui.TableSetupColumn("BG", ImGuiTableColumnFlags.WidthFixed, 30);
+                        ImGui.TableSetupColumn("Line", ImGuiTableColumnFlags.WidthFixed, 30);                              
+                        ImGui.TableSetupColumn("Unlocked", ImGuiTableColumnFlags.WidthFixed, 45);
+                        ImGui.TableSetupColumn("Locked", ImGuiTableColumnFlags.WidthFixed, 45);
+                        ImGui.TableSetupColumn("Hidden", ImGuiTableColumnFlags.WidthFixed, 45);
+                        ImGui.TableSetupColumn("Biomes", ImGuiTableColumnFlags.WidthStretch, 200);   
+                        ImGui.TableHeadersRow();
 
-                        ImGui.SameLine();
-                        ImGui.Text(map.Value.Name);
+                        // Sort Maps alphabetically by Name
+                        Maps = Maps.OrderBy(x => x.Value.Name).ToObservableDictionary();
 
-                        ImGui.TableNextColumn();
-                        float weight = map.Value.Weight;
-                        ImGui.SetNextItemWidth(100);
-                        if(ImGui.SliderFloat($"##{map}_weight", ref weight, -25.0f, 25.0f, "%.1f"))                        
-                            map.Value.Weight = weight;
+                        foreach (var map in Maps)
+                        {
+                            ImGui.PushID($"Map_{map.Key}");
+                            ImGui.TableNextRow();
+                            ImGui.TableNextColumn();
+                            bool isMapHighlighted = map.Value.Highlight;
 
-                        ImGui.TableNextColumn();
+                            if(ImGui.Checkbox($"##{map}_highlight", ref isMapHighlighted))
+                                map.Value.Highlight = isMapHighlighted;
 
-                        float controlWidth = 30.0f;
-                        float availableWidth = ImGui.GetContentRegionAvail().X;
-                        float cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
-                        ImGui.SetCursorPosX(cursorPosX);
-                        Color nodeColor = map.Value.NodeColor;
-                        Vector4 colorVector = new Vector4(nodeColor.R / 255.0f, nodeColor.G / 255.0f, nodeColor.B / 255.0f, nodeColor.A / 255.0f);
-                        if(ImGui.ColorEdit4($"##{map}_nodecolor", ref colorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
-                            map.Value.NodeColor = Color.FromArgb((int)(colorVector.W * 255), (int)(colorVector.X * 255), (int)(colorVector.Y * 255), (int)(colorVector.Z * 255));
-                        
-                        ImGui.TableNextColumn();
-                        availableWidth = ImGui.GetContentRegionAvail().X;
-                        cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
-                        ImGui.SetCursorPosX(cursorPosX);
-                        Color nameColor = map.Value.NameColor;
-                        Vector4 nameColorVector = new Vector4(nameColor.R / 255.0f, nameColor.G / 255.0f, nameColor.B / 255.0f, nameColor.A / 255.0f);
-                        if(ImGui.ColorEdit4($"##{map}_namecolor", ref nameColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
-                            map.Value.NameColor = Color.FromArgb((int)(nameColorVector.W * 255), (int)(nameColorVector.X * 255), (int)(nameColorVector.Y * 255), (int)(nameColorVector.Z * 255));
-                        
-                        ImGui.TableNextColumn();
-                        availableWidth = ImGui.GetContentRegionAvail().X;
-                        cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
-                        ImGui.SetCursorPosX(cursorPosX);
-                        Color bgColor = map.Value.BackgroundColor;
-                        Vector4 bgColorVector = new Vector4(bgColor.R / 255.0f, bgColor.G / 255.0f, bgColor.B / 255.0f, bgColor.A / 255.0f);
-                        if(ImGui.ColorEdit4($"##{map}_bgcolor", ref bgColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
-                            map.Value.BackgroundColor = Color.FromArgb((int)(bgColorVector.W * 255), (int)(bgColorVector.X * 255), (int)(bgColorVector.Y * 255), (int)(bgColorVector.Z * 255));
-                        
-                        ImGui.TableNextColumn();
-                        availableWidth = ImGui.GetContentRegionAvail().X;
-                        cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
-                        ImGui.SetCursorPosX(cursorPosX);
-                        bool drawLine = map.Value.DrawLine;
-                        if(ImGui.Checkbox($"##{map}_line", ref drawLine))
-                            map.Value.DrawLine = drawLine;    
+                            ImGui.SameLine();
+                            ImGui.Text(map.Value.Name);
 
-                        ImGui.TableNextColumn();                        
-                        ImGui.Text(map.Value.Count.ToString());
+                            ImGui.TableNextColumn();
+                            float weight = map.Value.Weight;
+                            ImGui.SetNextItemWidth(100);
+                            if(ImGui.SliderFloat($"##{map}_weight", ref weight, -25.0f, 25.0f, "%.1f"))                        
+                                map.Value.Weight = weight;
 
-                        ImGui.TableNextColumn();                        
-                        ImGui.Text(map.Value.LockedCount.ToString());
+                            ImGui.TableNextColumn();
 
-                        ImGui.TableNextColumn();                        
-                        ImGui.Text(map.Value.FogCount.ToString());
+                            float controlWidth = 30.0f;
+                            float availableWidth = ImGui.GetContentRegionAvail().X;
+                            float cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                            ImGui.SetCursorPosX(cursorPosX);
+                            Color nodeColor = map.Value.NodeColor;
+                            Vector4 colorVector = new Vector4(nodeColor.R / 255.0f, nodeColor.G / 255.0f, nodeColor.B / 255.0f, nodeColor.A / 255.0f);
+                            if(ImGui.ColorEdit4($"##{map}_nodecolor", ref colorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
+                                map.Value.NodeColor = Color.FromArgb((int)(colorVector.W * 255), (int)(colorVector.X * 255), (int)(colorVector.Y * 255), (int)(colorVector.Z * 255));
                             
-                        ImGui.TableNextColumn();
-                        if (map.Value.Biomes == null)
-                            continue;
+                            ImGui.TableNextColumn();
+                            availableWidth = ImGui.GetContentRegionAvail().X;
+                            cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                            ImGui.SetCursorPosX(cursorPosX);
+                            Color nameColor = map.Value.NameColor;
+                            Vector4 nameColorVector = new Vector4(nameColor.R / 255.0f, nameColor.G / 255.0f, nameColor.B / 255.0f, nameColor.A / 255.0f);
+                            if(ImGui.ColorEdit4($"##{map}_namecolor", ref nameColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
+                                map.Value.NameColor = Color.FromArgb((int)(nameColorVector.W * 255), (int)(nameColorVector.X * 255), (int)(nameColorVector.Y * 255), (int)(nameColorVector.Z * 255));
+                            
+                            ImGui.TableNextColumn();
+                            availableWidth = ImGui.GetContentRegionAvail().X;
+                            cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                            ImGui.SetCursorPosX(cursorPosX);
+                            Color bgColor = map.Value.BackgroundColor;
+                            Vector4 bgColorVector = new Vector4(bgColor.R / 255.0f, bgColor.G / 255.0f, bgColor.B / 255.0f, bgColor.A / 255.0f);
+                            if(ImGui.ColorEdit4($"##{map}_bgcolor", ref bgColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
+                                map.Value.BackgroundColor = Color.FromArgb((int)(bgColorVector.W * 255), (int)(bgColorVector.X * 255), (int)(bgColorVector.Y * 255), (int)(bgColorVector.Z * 255));
+                            
+                            ImGui.TableNextColumn();
+                            availableWidth = ImGui.GetContentRegionAvail().X;
+                            cursorPosX = ImGui.GetCursorPosX() + (availableWidth - controlWidth) / 2.0f;
+                            ImGui.SetCursorPosX(cursorPosX);
+                            bool drawLine = map.Value.DrawLine;
+                            if(ImGui.Checkbox($"##{map}_line", ref drawLine))
+                                map.Value.DrawLine = drawLine;    
 
-                        string[] biomes = map.Value.Biomes.Where(x => x != "").ToArray();
-                        ImGui.Text(biomes.Length > 0 ? string.Join(", ", biomes) : "None");
+                            ImGui.TableNextColumn();                        
+                            ImGui.Text(map.Value.Count.ToString());
 
-                        ImGui.PopID();
-                    }                
+                            ImGui.TableNextColumn();                        
+                            ImGui.Text(map.Value.LockedCount.ToString());
+
+                            ImGui.TableNextColumn();                        
+                            ImGui.Text(map.Value.FogCount.ToString());
+                                
+                            ImGui.TableNextColumn();
+                            if (map.Value.Biomes == null)
+                                continue;
+
+                            string[] biomes = map.Value.Biomes.Where(x => x != "").ToArray();
+                            ImGui.Text(biomes.Length > 0 ? string.Join(", ", biomes) : "None");
+
+                            ImGui.PopID();
+                        }                
+                    }
+                    ImGui.EndTable();
+                    }
                 }
-                ImGui.EndTable();
-                
             }
         };
     }
 }
-
 [Submenu(CollapsedByDefault = true)]
 public class BiomeSettings
 {
     [JsonIgnore]
     public CustomNode CustomBiomeSettings { get; set; }
+    public bool ShowBiomes { get; set; } = true;
     public ObservableDictionary<string, Biome> Biomes { get; set; }
     public BiomeSettings() {    
 
@@ -535,12 +547,13 @@ public class ContentSettings
                 ImGui.TextWrapped("CTRL+Click on a slider to manually enter a value.");
                 ImGui.Spacing();
 
-                if (ImGui.BeginTable("content_table", 5, ImGuiTableFlags.Borders))
+                if (ImGui.BeginTable("content_table", 6, ImGuiTableFlags.Borders))
                 {
                     ImGui.TableSetupColumn("Content Type", ImGuiTableColumnFlags.WidthFixed, 250);                                                               
                     ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 100);     
                     ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthFixed, 50);
                     ImGui.TableSetupColumn("Highlight", ImGuiTableColumnFlags.WidthFixed, 70); 
+                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch, 50);
                     ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch, 50);
                     ImGui.TableHeadersRow();
 
@@ -576,6 +589,15 @@ public class ContentSettings
                         if(ImGui.Checkbox($"##{content}_highlight", ref highlight))                        
                             content.Value.Highlight = highlight;
                         
+                        ImGui.TableNextColumn();
+
+                        // draw the image
+                        ImGui.TableNextColumn();
+
+
+                        
+
+
                         ImGui.PopID();
                     }
                 }
@@ -737,4 +759,42 @@ public class MapModSettings
         };
     }
 }
+[Submenu(CollapsedByDefault = true)]
+public class WaypointSettings
+{
+    [JsonIgnore]
+    public CustomNode CustomWaypointSettings { get; set; }
+    public bool PanelIsOpen { get; set; } = false;
+
+    public ObservableDictionary<string, Waypoint> Waypoints { get; set; } = new ObservableDictionary<string, Waypoint>();
+    public WaypointSettings() {    
+        CustomWaypointSettings = new CustomNode
+        {
+            DrawDelegate = () =>
+            {
+
+                if (ImGui.BeginTable("mod_options_table", 2, ImGuiTableFlags.NoBordersInBody|ImGuiTableFlags.PadOuterX))
+                {
+                    ImGui.TableSetupColumn("Check", ImGuiTableColumnFlags.WidthFixed, 60);                                                               
+                    ImGui.TableSetupColumn("Option", ImGuiTableColumnFlags.WidthStretch, 300);                     
+        
+                    ImGui.TableNextRow();
+
+                    ImGui.TableNextColumn();
+                    // bool showOnTowers = ShowOnTowers;
+                    // if(ImGui.Checkbox($"##show_on_towers", ref showOnTowers))                        
+                    //     ShowOnTowers = showOnTowers;
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text("PH");
+
+                    ImGui.TableNextRow();
+
+                }
+            ImGui.EndTable();
+            }
+        };
+    }
+}
+
                 
