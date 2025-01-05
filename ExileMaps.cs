@@ -1476,11 +1476,12 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         Vector2 direction = waypointPosition - screenCenter;
         float phi = (float)Math.Atan2(direction.Y, direction.X) + (float)(Math.PI / 2);
 
-        DrawRotatedImage(arrowId, arrowPosition, arrowSize, phi, waypoint.Color);
+        Color color = Color.FromArgb(255, waypoint.Color);
+        DrawRotatedImage(arrowId, arrowPosition, arrowSize, phi, color);
 
         Vector2 textPosition = arrowPosition + new Vector2(arrowSize.X / 2, arrowSize.Y / 2);
         textPosition = Vector2.Lerp(textPosition, screenCenter, 0.10f);
-        DrawCenteredTextWithBackground($"{waypoint.Name} ({distance:0})", textPosition, waypoint.Color, Settings.Graphics.BackgroundColor, true, 10, 4);
+        DrawCenteredTextWithBackground($"{waypoint.Name} ({distance:0})", textPosition, color, Settings.Graphics.BackgroundColor, true, 10, 4);
     }
 
     #endregion
