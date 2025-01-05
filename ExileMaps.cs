@@ -1250,7 +1250,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 50.0f) / 2.0f);
                     ImGui.SetNextItemWidth(60);
                     if (ImGui.Button("Delete")) {
-                        RemoveWaypoint(waypoint.MapNode());
+                        RemoveWaypoint(waypoint);
                     }
                     ImGui.PopID();
                 }
@@ -1450,6 +1450,10 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             return;
 
         Settings.Waypoints.Waypoints.Remove(mapNode.Coordinate.ToString());
+    }
+    private void RemoveWaypoint(Waypoint waypoint) {
+
+        Settings.Waypoints.Waypoints.Remove(waypoint.Coordinates.ToString());
     }
 
     private void DrawWaypointArrow(Waypoint waypoint) {
