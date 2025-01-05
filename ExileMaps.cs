@@ -1407,7 +1407,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     #region Waypoint Functions
     private void DrawWaypoint(Waypoint waypoint) {
-        if (!waypoint.Show || !IsOnScreen(waypoint.MapNode().Element.GetClientRect().Center) || !Settings.Waypoints.ShowWaypoints)
+        if (!Settings.Waypoints.ShowWaypoints || waypoint.MapNode() == null || !waypoint.Show || !IsOnScreen(waypoint.MapNode().Element.GetClientRect().Center))
             return;
 
         Vector2 waypointSize = new Vector2(48, 48);        
@@ -1456,8 +1456,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     }
 
     private void DrawWaypointArrow(Waypoint waypoint) {
-        if (!Settings.Waypoints.ShowWaypointArrows)
+        if (!Settings.Waypoints.ShowWaypointArrows || waypoint.MapNode() == null)
             return;
+
 
         Vector2 waypointPosition = waypoint.MapNode().Element.GetClientRect().Center;
 
