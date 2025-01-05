@@ -1378,18 +1378,15 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                         ImGui.TableNextColumn();
                         RectangleF icon = SpriteHelper.GetUV(MapIconsIndex.Waypoint);
                         
-                        if (node.IsWaypoint)
-                            ImGui.BeginDisabled();
-                        
-                        ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(ImGuiCol.TableRowBg));
-                        if (ImGui.ImageButton($"$${id}_wp", iconsId, new Vector2(32,32), icon.TopLeft, icon.BottomRight)) {
-                            AddWaypoint(node.MapNode());
-                        } else if (ImGui.IsItemHovered()) {
-                            ImGui.SetTooltip("Add Waypoint");
+                        if (!node.IsWaypoint()){
+                            ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(ImGuiCol.TableRowBg));
+                            if (ImGui.ImageButton($"$${id}_wp", iconsId, new Vector2(32,32), icon.TopLeft, icon.BottomRight)) {
+                                AddWaypoint(node.MapNode());
+                            } else if (ImGui.IsItemHovered()) {
+                                ImGui.SetTooltip("Add Waypoint");
+                            }
+                            ImGui.PopStyleColor();
                         }
-                        ImGui.PopStyleColor();
-                        if (node.IsWaypoint)
-                            ImGui.EndDisabled();
 
                         ImGui.PopID();
                     }
@@ -1431,8 +1428,10 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     }
 
     private void AddWaypoint(AtlasNodeDescription mapNode) {
-        if (!mapCache.ContainsKey(mapNode.Element.Address))
-            CacheNewMapNode(mapNode);
+        if (!mapCache.ContainsKey(mapNode.Element.Address)) {
+            LogMessage("MapNode not found in cache, scroll your atlas to load it first.");
+            return;
+        }
 
         Node node = mapCache[mapNode.Element.Address];
         if (Settings.Waypoints.Waypoints.ContainsKey(node.Coordinate.ToString()))
@@ -1444,7 +1443,6 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         newWaypoint.Color = ColorUtils.InterpolateColor(Settings.Maps.BadNodeColor, Settings.Maps.GoodNodeColor, weight);
 
         Settings.Waypoints.Waypoints.Add(node.Coordinate.ToString(), newWaypoint);
-        node.IsWaypoint = true;
     }
 
     private void RemoveWaypoint(AtlasNodeDescription mapNode) {
@@ -1452,7 +1450,6 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             return;
 
         Settings.Waypoints.Waypoints.Remove(mapNode.Coordinate.ToString());
-        mapCache[mapNode.Element.Address].IsWaypoint = false;
     }
 
     private void DrawWaypointArrow(Waypoint waypoint) {

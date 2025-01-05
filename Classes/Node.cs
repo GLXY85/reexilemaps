@@ -31,7 +31,7 @@ public class Node : INotifyPropertyChanged
     private Vector2i coordinate;
     private List<Biome> biomes = new List<Biome>();
     private List<Content> mapContent = new List<Content>();
-    private bool isWaypoint;
+    
     private float weight;
     private Dictionary<string, Effect> effects = new Dictionary<string, Effect>();
     private RectangleF cachedClientRect;
@@ -189,16 +189,11 @@ public class Node : INotifyPropertyChanged
         }
     }
 
-    public bool IsWaypoint
+    public bool IsWaypoint()
     {
-        get => isWaypoint;
-        set
+        
         {
-            if (isWaypoint != value)
-            {
-                isWaypoint = value;
-                OnPropertyChanged(nameof(IsWaypoint));
-            }
+            return Main.Settings.Waypoints.Waypoints.Any(x => x.Value.Coordinates == Coordinate);
         }
     }
 
