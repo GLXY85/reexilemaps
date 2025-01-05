@@ -228,6 +228,13 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     #endregion
 
     #region Keybinds
+
+    
+    private static void RegisterHotkey(HotkeyNode hotkey)
+    {
+        Input.RegisterKey(hotkey);
+        hotkey.OnValueChanged += () => { Input.RegisterKey(hotkey); };
+    }
     private void CheckKeybinds() {
         if (!AtlasPanel.IsVisible)
             return;
@@ -337,11 +344,6 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     #endregion
     
-    private static void RegisterHotkey(HotkeyNode hotkey)
-    {
-        Input.RegisterKey(hotkey);
-        hotkey.OnValueChanged += () => { Input.RegisterKey(hotkey); };
-    }
 
     
     #region Map Processing
@@ -398,7 +400,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         string debugText = "";
                                     
         debugText = $"N: {cachedNode.Neighbors.Count}";                    
-        debugText += $", W: {cachedNode.Weight.ToString("0.000")}";
+        debugText += $", W: {cachedNode.Weight:0.000}";
 
         // get distinct effect sources
         var towers = cachedNode.Effects.SelectMany(x => x.Value.Sources).Distinct().Count();
@@ -671,7 +673,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     } 
     #endregion
 
-    #region Map Drawing
+    #region Drawing Functions
+    //MARK: DrawConnections
     /// <summary>
     /// Draws lines between a map node and its connected nodes on the atlas.
     /// </summary>
@@ -709,7 +712,6 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                     continue;
                 
 
-
                 if (Settings.Graphics.DrawGradientLines) {
                     Color sourceColor = mapNode.IsVisited ? Settings.Graphics.VisitedLineColor : mapNode.IsUnlocked ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
                     Color destinationColor = destinationNode.Element.IsVisited ? Settings.Graphics.VisitedLineColor : destinationNode.Element.IsUnlocked ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
@@ -727,6 +729,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             }
         }
     }
+
+    /// MARK: HighlightMapContent
     /// <summary>
     /// Highlights a map node by drawing a circle around it if certain conditions are met.
     /// </summary>
@@ -763,6 +767,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         return 1;
     }
     
+    /// MARK: DrawWaypointLine
     /// Draws a line from the center of the screen to the specified map node on the atlas.
     /// </summary>
     /// <param name="mapNode">The atlas node to which the line will be drawn.</param>
@@ -808,6 +813,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         
     }
     
+    /// MARK: DrawMapNode
     /// Draws a highlighted circle around a map node on the atlas if the node is configured to be highlighted.
     /// </summary>
     /// <param name="mapNode">The atlas node description containing information about the map node to be drawn.</param>   
@@ -845,6 +851,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         }
         Graphics.DrawCircleFilled(currentPosition.Center, radius, color, 16);
     }
+
+    //DrawMapNode
     private void DrawWeight(AtlasPanelNode mapNode)
     {
         var currentPosition = mapNode.GetClientRect();
@@ -1018,6 +1026,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     //         }
     //     }
     // }
+
     #endregion
 
     #region Misc Drawing
@@ -1076,6 +1085,13 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         }
         private void DrawGradientLine(Vector2 start, Vector2 end, Color startColor, Color endColor)
     {
+        // No need to draw a gradient if the colors are the same
+        if (startColor == endColor)
+        {
+            Graphics.DrawLine(start, end, Settings.Graphics.MapLineWidth, startColor);
+            return;
+        }
+
         int segments = 10; // Number of segments to create the gradient effect
         Vector2 direction = (end - start) / segments;
 
