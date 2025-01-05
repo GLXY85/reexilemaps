@@ -71,7 +71,7 @@ public class FeatureSettings
 
     [Menu("Draw Connections for Visited Map Nodes")]
     public ToggleNode DrawVisitedNodeConnections { get; set; } = new ToggleNode(true);
-    
+
     [Menu("Process Hidden Map Nodes")]
     public ToggleNode ProcessHiddenNodes { get; set; } = new ToggleNode(true);
 
@@ -98,11 +98,9 @@ public class FeatureSettings
 public class HotkeySettings
 {
     public HotkeyNode RefreshMapCacheHotkey { get; set; } = new HotkeyNode(Keys.F13);
-    public HotkeyNode AddMarkerHotkey { get; set; } = new HotkeyNode(Keys.F13);
-    public HotkeyNode DeleteMarkerHotkey { get; set; } = new HotkeyNode(Keys.F13);
-    public HotkeyNode AddWaypointHotkey { get; set; } = new HotkeyNode(Keys.F13);
-    public HotkeyNode DeleteWaypointHotkey { get; set; } = new HotkeyNode(Keys.F13);
-    public HotkeyNode ToggleWaypointPanelHotkey { get; set; } = new HotkeyNode(Keys.F13);
+    public HotkeyNode AddWaypointHotkey { get; set; } = new HotkeyNode(Keys.Oemcomma);
+    public HotkeyNode DeleteWaypointHotkey { get; set; } = new HotkeyNode(Keys.OemPeriod);
+    public HotkeyNode ToggleWaypointPanelHotkey { get; set; } = new HotkeyNode(Keys.Oem2);
 
 
 }
@@ -134,7 +132,7 @@ public class LabelSettings
 public class GraphicSettings
 {
     [Menu("Render every N ticks", "Throttle the renderer to only re-render every Nth tick - can improve performance.")]
-    public RangeNode<int> RenderNTicks { get; set; } = new RangeNode<int>(2, 1, 20);
+    public RangeNode<int> RenderNTicks { get; set; } = new RangeNode<int>(5, 1, 20);
 
     [Menu("Map Cache Refresh Rate", "Throttle the map cache refresh rate. Default is 5 seconds.")]
     public RangeNode<int> MapCacheRefreshRate { get; set; } = new RangeNode<int>(5, 1, 60);
@@ -154,11 +152,17 @@ public class GraphicSettings
     [Menu("Line Width", "Width of the map connection lines and waypoint lines")]
     public RangeNode<float> MapLineWidth { get; set; } = new RangeNode<float>(4.0f, 0, 10);
 
+    [Menu("Visited Line Color", "Color of the map connection lines when an both nodes are visited.")]
+    public ColorNode VisitedLineColor { get; set; } = new ColorNode(Color.FromArgb(80, 255, 255, 255));
+
     [Menu("Unlocked Line Color", "Color of the map connection lines when an adjacent node is unlocked.")]
     public ColorNode UnlockedLineColor { get; set; } = new ColorNode(Color.FromArgb(170, 90, 255, 90));
 
     [Menu("Locked Line Color", "Color of the map connection lines when no adjacent nodes are unlocked.")]
     public ColorNode LockedLineColor { get; set; } = new ColorNode(Color.FromArgb(170, 255, 90, 90));
+
+    [Menu("Draw Lines as Gradients", "Draws lines as a gradient between the two colors. Performance intensive.")]
+    public ToggleNode DrawGradientLines { get; set; } = new ToggleNode(false);
 
     [Menu("Content Ring Width", "Width of the rings used to indicate map content")]
     public RangeNode<float> RingWidth { get; set; } = new RangeNode<float>(7.0f, 0, 10);
@@ -765,6 +769,8 @@ public class WaypointSettings
     [JsonIgnore]
     public CustomNode CustomWaypointSettings { get; set; }
     public bool PanelIsOpen { get; set; } = false;
+    public bool ShowWaypoints { get; set; } = true;
+    public bool ShowWaypointArrows { get; set; } = true;
 
     public ObservableDictionary<string, Waypoint> Waypoints { get; set; } = new ObservableDictionary<string, Waypoint>();
     public WaypointSettings() {    
@@ -773,7 +779,7 @@ public class WaypointSettings
             DrawDelegate = () =>
             {
 
-                if (ImGui.BeginTable("mod_options_table", 2, ImGuiTableFlags.NoBordersInBody|ImGuiTableFlags.PadOuterX))
+                if (ImGui.BeginTable("waypoint_options_table", 2, ImGuiTableFlags.NoBordersInBody|ImGuiTableFlags.PadOuterX))
                 {
                     ImGui.TableSetupColumn("Check", ImGuiTableColumnFlags.WidthFixed, 60);                                                               
                     ImGui.TableSetupColumn("Option", ImGuiTableColumnFlags.WidthStretch, 300);                     
@@ -781,12 +787,21 @@ public class WaypointSettings
                     ImGui.TableNextRow();
 
                     ImGui.TableNextColumn();
-                    // bool showOnTowers = ShowOnTowers;
-                    // if(ImGui.Checkbox($"##show_on_towers", ref showOnTowers))                        
-                    //     ShowOnTowers = showOnTowers;
+                    bool _show = ShowWaypoints;
+                    if(ImGui.Checkbox($"##show_waypoints", ref _show))                        
+                        ShowWaypoints = _show;
 
                     ImGui.TableNextColumn();
-                    ImGui.Text("PH");
+                    ImGui.Text("Show Waypoints on Atlas");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    bool _showArrows = ShowWaypointArrows;
+                    if(ImGui.Checkbox($"##show_arrows", ref _showArrows))                        
+                        ShowWaypointArrows = _showArrows;
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Show Waypoint Arrows on Atlas");
 
                     ImGui.TableNextRow();
 

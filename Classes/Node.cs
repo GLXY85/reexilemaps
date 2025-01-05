@@ -54,7 +54,8 @@ public class Node : INotifyPropertyChanged
             Name = Name,
             ID = Id,
             Address = Address,
-            Coordinates = Coordinate
+            Coordinates = Coordinate,
+            Show = true
         };
     }
 

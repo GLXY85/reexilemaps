@@ -205,6 +205,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             foreach (var (coordinates,waypoint) in Settings.Waypoints.Waypoints) {
                 try {
                     DrawWaypoint(waypoint);
+                    DrawWaypointArrow(waypoint);
                 } catch (Exception e) {
                     LogError("Error drawing waypoint: " + e.Message + "\n" + e.StackTrace);
                 }
@@ -228,6 +229,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     #region Keybinds
     private void CheckKeybinds() {
+        if (!AtlasPanel.IsVisible)
+            return;
+
         if (Settings.Keybinds.RefreshMapCacheHotkey.PressedOnce()) {        
             LogMessage("Refreshing Map Cache");
             var timer = new Stopwatch();
@@ -240,8 +244,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (Settings.Features.DebugKey.PressedOnce())        
             DoDebugging();
 
-        if (Settings.Keybinds.ToggleWaypointPanelHotkey.PressedOnce()) {        
-            LogMessage("Toggling Waypoint Panel");
+        if (Settings.Keybinds.ToggleWaypointPanelHotkey.PressedOnce()) {  
             WaypointPanelIsOpen = !WaypointPanelIsOpen;
         }
 
@@ -444,12 +447,10 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     }
     
     private void recalculateWeights() {
-        LogMessage("Recalculating Weights");
 
         maxMapWeight = mapCache.Values.Where(x => !x.IsVisited).Select(x => x.Weight).OrderByDescending(x => x).Skip(15).FirstOrDefault();
         minMapWeight = mapCache.Values.Where(x => !x.IsVisited).Select(x => x.Weight).OrderBy(x => x).Skip(5).FirstOrDefault();
-        
-        LogMessage($"Map Weights: {minMapWeight} - {maxMapWeight}");        
+     
     }
 
     private void CacheNewMapNode(AtlasNodeDescription node)
@@ -458,7 +459,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         newNode.IsUnlocked = node.Element.IsUnlocked;
         newNode.IsVisible = node.Element.IsVisible;
-        newNode.IsVisited = (node.Element.IsVisited || !node.Element.IsUnlocked && node.Element.IsVisited);
+        newNode.IsVisited = node.Element.IsVisited || (!node.Element.IsUnlocked && node.Element.IsVisited);
         newNode.IsHighlighted = node.Element.isHighlighted;
         newNode.IsActive = node.Element.IsActive;
         newNode.ParentAddress = node.Address;
@@ -600,7 +601,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         cachedNode.IsUnlocked = node.Element.IsUnlocked;
         cachedNode.IsVisible = node.Element.IsVisible;
-        cachedNode.IsVisited = (node.Element.IsVisited || !node.Element.IsUnlocked && node.Element.IsVisited);
+        cachedNode.IsVisited = node.Element.IsVisited || (!node.Element.IsUnlocked && node.Element.IsVisited);
         cachedNode.IsHighlighted = node.Element.isHighlighted;
         cachedNode.IsActive = node.Element.IsActive;
         cachedNode.ParentAddress = node.Address;
@@ -698,7 +699,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             AtlasNodeDescription destinationNode = AtlasPanel.Descriptions.FirstOrDefault(x => x.Coordinate == coordinates);
             if (destinationNode != null)
             {
-                if ((destinationNode.Element.IsVisited || mapNode.IsVisited) && !Settings.Features.DrawVisitedNodeConnections)
+                if (!Settings.Features.DrawVisitedNodeConnections && (destinationNode.Element.IsVisited || mapNode.IsVisited))
                     continue;
                 
                 var destinationPos = destinationNode.Element.GetClientRect();
@@ -707,8 +708,22 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                 if (!IsOnScreen(destinationPos.Center) || !IsOnScreen(sourcePos.Center))
                     continue;
                 
-                var color = (destinationNode.Element.IsVisited || mapNode.IsVisited) ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
-                Graphics.DrawLine(sourcePos.Center, destinationPos.Center, Settings.Graphics.MapLineWidth, color);
+
+
+                if (Settings.Graphics.DrawGradientLines) {
+                    Color sourceColor = mapNode.IsVisited ? Settings.Graphics.VisitedLineColor : mapNode.IsUnlocked ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
+                    Color destinationColor = destinationNode.Element.IsVisited ? Settings.Graphics.VisitedLineColor : destinationNode.Element.IsUnlocked ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
+                    DrawGradientLine(sourcePos.Center, destinationPos.Center, sourceColor, destinationColor);
+                } else {
+                var color = Settings.Graphics.LockedLineColor;
+
+                if (destinationNode.Element.IsUnlocked || mapNode.IsUnlocked)
+                    color = Settings.Graphics.UnlockedLineColor;
+                
+                if (destinationNode.Element.IsVisited && mapNode.IsVisited)
+                    color = Settings.Graphics.VisitedLineColor;
+                    Graphics.DrawLine(sourcePos.Center, destinationPos.Center, Settings.Graphics.MapLineWidth, color);
+                }
             }
         }
     }
@@ -899,7 +914,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         Node cachedNode = mapCache[mapNode.Address];
         string mapName = mapNode.Area.Name.Trim();
-        if (cachedNode == null || (mapName == "Lost Towers" && !Settings.MapMods.ShowOnTowers) || (mapName != "Lost Towers" && !Settings.MapMods.ShowOnMaps) || cachedNode.Effects.Count == 0)    
+        if (cachedNode == null || (mapName == "Lost Towers" && !Settings.MapMods.ShowOnTowers) || (mapName != "Lost Towers" && !Settings.MapMods.ShowOnMaps))    
             return; 
 
         Dictionary<string, Color> mods = new Dictionary<string, Color>();
@@ -1058,7 +1073,24 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
 
         Graphics.DrawQuad(textureId, topLeft, topRight, bottomRight, bottomLeft, color);
+        }
+        private void DrawGradientLine(Vector2 start, Vector2 end, Color startColor, Color endColor)
+    {
+        int segments = 10; // Number of segments to create the gradient effect
+        Vector2 direction = (end - start) / segments;
+
+        for (int i = 0; i < segments; i++)
+        {
+            Vector2 segmentStart = start + direction * i;
+            Vector2 segmentEnd = start + direction * (i + 1);
+
+            float t = (float)i / segments;
+            Color segmentColor = ColorUtils.InterpolateColor(startColor, endColor, t);
+
+            Graphics.DrawLine(segmentStart, segmentEnd, Settings.Graphics.MapLineWidth, segmentColor);
+        }
     }
+
     #endregion
     
     #region Helper Functions
@@ -1079,15 +1111,14 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (State.IngameUi.OpenRightPanel.IsVisible)
             right -= State.IngameUi.OpenRightPanel.GetClientRect().Width;
 
-        if (State.IngameUi.OpenLeftPanel.IsVisible)
-            left += State.IngameUi.OpenLeftPanel.GetClientRect().Width;
+        if (State.IngameUi.OpenLeftPanel.IsVisible || WaypointPanelIsOpen)
+            left += Math.Max(State.IngameUi.OpenLeftPanel.GetClientRect().Width, State.IngameUi.SettingsPanel.GetClientRect().Width);
 
         if (State.IngameUi.WorldMap.GetChildAtIndex(9).IsVisible) {
             
-            RectangleF mapTooltip = (RectangleF)State.IngameUi.WorldMap.GetChildAtIndex(9).GetClientRect();                
+            RectangleF mapTooltip = State.IngameUi.WorldMap.GetChildAtIndex(9).GetClientRect();                
             mapTooltip.Inflate(mapTooltip.Width * 0.1f, mapTooltip.Height * 0.1f);
 
-            // if position is within mapTooltip
             if (position.X > mapTooltip.Left && position.X < mapTooltip.Right && position.Y > mapTooltip.Top && position.Y < mapTooltip.Bottom)
                 return false;
         }
@@ -1098,35 +1129,6 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     public float GetDistanceToNode(AtlasNodeDescription node)
     {
         return Vector2.Distance(screenCenter, node.Element.GetClientRect().Center);
-    }
-    // Helper function to center text vertically
-    void CenterTextVertically(string text)
-    {
-        float cellHeight = ImGui.GetTextLineHeightWithSpacing();
-        float textHeight = ImGui.CalcTextSize(text).Y;
-        float verticalOffset = (cellHeight - textHeight) / 2.0f;
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + verticalOffset);
-        ImGui.TextUnformatted(text);
-    }
-
-    private static double VectorAngle(Vector2 v1, Vector2 v2)
-{
-        // Calculate the vector lengths.
-        double len1 = Math.Sqrt(v1.X * v1.X + v1.Y * v1.Y);
-        double len2 = Math.Sqrt(v2.X * v2.X + v2.Y * v2.Y);
-
-        // Use the dot product to get the cosine.
-        double dot_product = v1.X * v2.X + v1.Y * v2.Y;
-        double cos = dot_product / len1 / len2;
-
-        // Use the cross product to get the sine.
-        double cross_product = v1.X * v2.Y - v1.Y * v2.X;
-        double sin = cross_product / len1 / len2;
-
-        // Find the angle.
-        double angle = Math.Acos(cos);
-        if (sin < 0) angle = -angle;
-        return angle;
     }
 
     #endregion
@@ -1144,22 +1146,28 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (ImGui.BeginTable("waypoint_top_table", 2, ImGuiTableFlags.NoBordersInBody|ImGuiTableFlags.PadOuterX))
         {
             ImGui.TableSetupColumn("Check", ImGuiTableColumnFlags.WidthFixed, 60);                                                               
-            ImGui.TableSetupColumn("Option", ImGuiTableColumnFlags.WidthStretch, 300); 
-                                
+            ImGui.TableSetupColumn("Option", ImGuiTableColumnFlags.WidthStretch, 300);                     
 
             ImGui.TableNextRow();
 
             ImGui.TableNextColumn();
-            // Enabled
+            bool _show = Settings.Waypoints.ShowWaypoints;
+            if(ImGui.Checkbox($"##show_waypoints", ref _show))                        
+                Settings.Waypoints.ShowWaypoints = _show;
+
             ImGui.TableNextColumn();
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 30.0f) / 2.0f);
-            bool _show = false;
-            if (ImGui.Checkbox($"##waypoints_enabled", ref _show)) {
-                // do something;
-            }
+            ImGui.Text("Show Waypoints on Atlas");
+
+            ImGui.TableNextRow();
             ImGui.TableNextColumn();
-            ImGui.Text("Show Waypoints");
-            
+            bool _showArrows = Settings.Waypoints.ShowWaypointArrows;
+            if(ImGui.Checkbox($"##show_arrows", ref _showArrows))                        
+                Settings.Waypoints.ShowWaypointArrows = _showArrows;
+
+            ImGui.TableNextColumn();
+            ImGui.Text("Show Waypoint Arrows on Atlas");
+
+            ImGui.TableNextRow();
         }
         ImGui.EndTable();
 
@@ -1382,9 +1390,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                         ImGui.PopStyleColor();
                         if (node.IsWaypoint)
                             ImGui.EndDisabled();
-                        
 
-                        // go back to first column
                         ImGui.PopID();
                     }
                 }
@@ -1401,7 +1407,10 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     #region Waypoint Functions
     private void DrawWaypoint(Waypoint waypoint) {
-        Vector2 waypointSize = new Vector2(32, 32);        
+        if (!waypoint.Show || !IsOnScreen(waypoint.MapNode().Element.GetClientRect().Center) || !Settings.Waypoints.ShowWaypoints)
+            return;
+
+        Vector2 waypointSize = new Vector2(48, 48);        
         waypointSize *= waypoint.Scale;
 
         Vector2 iconPosition = waypoint.MapNode().Element.GetClientRect().Center - new Vector2(0, (waypoint.MapNode().Element.GetClientRect().Height / 2));
@@ -1414,16 +1423,14 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         
         DrawCenteredTextWithBackground(waypoint.Name, waypointTextPosition, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
         
-        // Center icon horizontally
         iconPosition -= new Vector2(waypointSize.X / 2, 0);
         RectangleF iconSize = new RectangleF(iconPosition.X, iconPosition.Y, waypointSize.X, waypointSize.Y);
         Graphics.DrawImage(IconsFile, iconSize, SpriteHelper.GetUV(waypoint.Icon), waypoint.Color);
-        DrawWaypointArrow(waypoint);
+
 
     }
 
     private void AddWaypoint(AtlasNodeDescription mapNode) {
-        LogMessage($"Adding waypoint for {mapNode.Coordinate.ToString()}");
         if (!mapCache.ContainsKey(mapNode.Element.Address))
             CacheNewMapNode(mapNode);
 
@@ -1431,55 +1438,48 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (Settings.Waypoints.Waypoints.ContainsKey(node.Coordinate.ToString()))
             return;
 
+        float weight = (node.Weight - minMapWeight) / (maxMapWeight - minMapWeight);
         Waypoint newWaypoint = node.ToWaypoint();
         newWaypoint.Icon = MapIconsIndex.LootFilterLargeWhiteUpsideDownHouse;
-        newWaypoint.Color = Color.Red;
+        newWaypoint.Color = ColorUtils.InterpolateColor(Settings.Maps.BadNodeColor, Settings.Maps.GoodNodeColor, weight);
 
         Settings.Waypoints.Waypoints.Add(node.Coordinate.ToString(), newWaypoint);
         node.IsWaypoint = true;
-        LogMessage($"Added waypoint for {node.Name}");
     }
 
     private void RemoveWaypoint(AtlasNodeDescription mapNode) {
-        LogMessage($"Removing waypoint for {mapNode.Coordinate.ToString()}");
         if (!Settings.Waypoints.Waypoints.ContainsKey(mapNode.Coordinate.ToString()))
             return;
 
-        LogMessage($"Removing waypoint for {mapNode.Coordinate.ToString()}");
         Settings.Waypoints.Waypoints.Remove(mapNode.Coordinate.ToString());
         mapCache[mapNode.Element.Address].IsWaypoint = false;
     }
 
     private void DrawWaypointArrow(Waypoint waypoint) {
+        if (!Settings.Waypoints.ShowWaypointArrows)
+            return;
+
         Vector2 waypointPosition = waypoint.MapNode().Element.GetClientRect().Center;
 
-        // get distance
         float distance = Vector2.Distance(screenCenter, waypointPosition);
 
         if (distance < 400)
             return;
-        
+
+        Vector2 arrowSize = new(64, 64);
         Vector2 arrowPosition = waypointPosition;
         arrowPosition.X = Math.Clamp(arrowPosition.X, 0, GameController.Window.GetWindowRectangleTimeCache.Size.X);
         arrowPosition.Y = Math.Clamp(arrowPosition.Y, 0, GameController.Window.GetWindowRectangleTimeCache.Size.Y);
         arrowPosition = Vector2.Lerp(screenCenter, arrowPosition, 0.80f);
-
-        Vector2 arrowSize = new(64, 64);
-        // center the arrow
         arrowPosition -= new Vector2(arrowSize.X / 2, arrowSize.Y / 2);
 
         Vector2 direction = waypointPosition - screenCenter;
-
         float phi = (float)Math.Atan2(direction.Y, direction.X) + (float)(Math.PI / 2);
 
         DrawRotatedImage(arrowId, arrowPosition, arrowSize, phi, waypoint.Color);
-        // position the text on the center of the arrow
+
         Vector2 textPosition = arrowPosition + new Vector2(arrowSize.X / 2, arrowSize.Y / 2);
-        // move the text towards screen center by 50 
         textPosition = Vector2.Lerp(textPosition, screenCenter, 0.10f);
-
-        
-
         DrawCenteredTextWithBackground($"{waypoint.Name} ({distance:0})", textPosition, waypoint.Color, Settings.Graphics.BackgroundColor, true, 10, 4);
     }
 
