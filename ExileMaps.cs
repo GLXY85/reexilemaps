@@ -61,29 +61,13 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     public override bool Initialise()
     {
         Main = this;        
-        RegisterHotkey(Settings.Keybinds.RefreshMapCacheHotkey);
-        RegisterHotkey(Settings.Features.DebugKey);
-        RegisterHotkey(Settings.Keybinds.ToggleWaypointPanelHotkey);
-        RegisterHotkey(Settings.Keybinds.AddWaypointHotkey);
-        RegisterHotkey(Settings.Keybinds.DeleteWaypointHotkey);
-
-        // RegisterHotkey(Settings.Pathfinding.SetCurrentLocationHotkey);
-        // RegisterHotkey(Settings.Pathfinding.AddWaypointHotkey);
+        RegisterHotkeys();
+        SubscribeToEvents();
 
         LoadDefaultBiomes();
         LoadDefaultContentTypes();
         LoadDefaultMaps();
         LoadDefaultMods();
-
-        Settings.Maps.Maps.CollectionChanged += (_, _) => { recalculateWeights(); };
-        Settings.Maps.Maps.PropertyChanged += (_, _) => { recalculateWeights(); };
-        Settings.Biomes.Biomes.PropertyChanged += (_, _) => { recalculateWeights(); };
-        Settings.Biomes.Biomes.CollectionChanged += (_, _) => { recalculateWeights(); };
-        Settings.MapContent.ContentTypes.CollectionChanged += (_, _) => { recalculateWeights(); };
-        Settings.MapContent.ContentTypes.PropertyChanged += (_, _) => { recalculateWeights(); };
-        Settings.MapMods.MapModTypes.CollectionChanged += (_, _) => { recalculateWeights(); };
-        Settings.MapMods.MapModTypes.PropertyChanged += (_, _) => { recalculateWeights(); };
-
         
         Graphics.InitImage(IconsFile);
         iconsId = Graphics.GetTextureId(IconsFile);
@@ -227,8 +211,35 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     }
     #endregion
 
-    #region Keybinds
+    #region Keybinds & Events
 
+    ///MARK: SubscribeToEvents
+    /// <summary>
+    /// Subscribes to events that trigger a refresh of the map cache.
+    /// </summary>
+    private void SubscribeToEvents() {
+        Settings.Maps.Maps.CollectionChanged += (_, _) => { recalculateWeights(); };
+        Settings.Maps.Maps.PropertyChanged += (_, _) => { recalculateWeights(); };
+        Settings.Biomes.Biomes.PropertyChanged += (_, _) => { recalculateWeights(); };
+        Settings.Biomes.Biomes.CollectionChanged += (_, _) => { recalculateWeights(); };
+        Settings.MapContent.ContentTypes.CollectionChanged += (_, _) => { recalculateWeights(); };
+        Settings.MapContent.ContentTypes.PropertyChanged += (_, _) => { recalculateWeights(); };
+        Settings.MapMods.MapModTypes.CollectionChanged += (_, _) => { recalculateWeights(); };
+        Settings.MapMods.MapModTypes.PropertyChanged += (_, _) => { recalculateWeights(); };
+    }
+
+    ///MARK: RegisterHotkeys
+    /// <summary>
+    /// Registers the hotkeys defined in the settings.
+    /// </summary>
+    private void RegisterHotkeys() {
+        RegisterHotkey(Settings.Keybinds.RefreshMapCacheHotkey);
+        RegisterHotkey(Settings.Features.DebugKey);
+        RegisterHotkey(Settings.Keybinds.ToggleWaypointPanelHotkey);
+        RegisterHotkey(Settings.Keybinds.AddWaypointHotkey);
+        RegisterHotkey(Settings.Keybinds.DeleteWaypointHotkey);
+        RegisterHotkey(Settings.Keybinds.ShowTowerRangeHotkey);
+    }
     
     private static void RegisterHotkey(HotkeyNode hotkey)
     {
@@ -260,6 +271,16 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         if (Settings.Keybinds.DeleteWaypointHotkey.PressedOnce())        
             RemoveWaypoint(GetClosestNodeToCursor());
+        
+        if (Settings.Keybinds.ShowTowerRangeHotkey.PressedOnce()) {
+            mapCache.TryGetValue(GetClosestNodeToCursor().Element.Address, out Node node);
+            if (node != null) {
+                mapCache.Where(x => x.Value.DrawTowers && x.Value.Address != node.Address).ToList().ForEach(x => x.Value.DrawTowers = false);
+                node.DrawTowers = !node.DrawTowers;
+            }
+
+        }
+
 
 
     }
@@ -347,7 +368,11 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     
     #region Map Processing
-    
+    ///MARK: RenderNode
+    /// <summary>
+    /// Renders a map node on the atlas panel.
+    /// </summary>
+    /// <param name="mapNode"></param>
     private void RenderNode(AtlasPanelNode mapNode)
     {
         var ringCount = 0;           
@@ -365,8 +390,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             DrawTowerMods(mapNode);
             DrawMapName(mapNode);
             DrawWeight(mapNode);
-            
-            
+            DrawTowerRange(mapNode);
 
         } catch (Exception e) {
             LogError("Error drawing map node: " + e.Message + " - " + e.StackTrace);
@@ -1026,6 +1050,98 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     //         }
     //     }
     // }
+
+    /// MARK: DrawTowersWithinRange
+    /// <summary>
+    /// Draws lines between towers and maps within range of eachother.
+    /// </summary>
+    /// <param name="mapNode"></param>
+    private void DrawTowerRange(AtlasPanelNode mapNode) {
+        mapCache.TryGetValue(mapNode.Address, out Node cachedNode);
+        if (cachedNode == null || !cachedNode.DrawTowers || (mapNode.IsVisited && mapNode.Area.Name != "Lost Towers"))
+            return;
+
+        if (cachedNode.Name == "Lost Towers") {
+            DrawNodesWithinRange(mapNode);
+        } else {
+            DrawTowersWithinRange(mapNode);
+        }
+    
+    }
+    /// MARK: DrawTowersWithinRange
+    /// <summary>
+    ///  Draws lines between the current map node and any Lost Towers within range.
+    /// </summary>
+    /// <param name="mapNode"></param>
+    private void DrawTowersWithinRange(AtlasPanelNode mapNode) {
+        mapCache.TryGetValue(mapNode.Address, out Node cachedNode);
+        if (cachedNode == null || !cachedNode.DrawTowers || mapNode.IsVisited)
+            return;
+
+        var nearbyTowers = mapCache.Where(x => x.Value.Name == "Lost Towers" && Vector2.Distance(x.Value.Coordinate, cachedNode.Coordinate) <= 11).Select(x => x.Value).ToList();
+        if (nearbyTowers.Count == 0)
+            return;
+        
+        Graphics.DrawCircle(mapNode.GetClientRect().Center, 50, Settings.Graphics.LineColor, 5, 16);
+
+        foreach (var tower in nearbyTowers) {
+            var towerNode = AtlasPanel.Descriptions.FirstOrDefault(x => x.Coordinate == tower.Coordinate);
+            if (towerNode == null)
+                continue;
+
+            var towerPosition = towerNode.Element.GetClientRect();
+                           
+            
+            var startPos = mapNode.GetClientRect().Center;
+            var endPos = towerPosition.Center;
+            var distance = Vector2.Distance(startPos, endPos);
+            var direction = (endPos - startPos) / distance;
+            var offset = direction * 50;
+
+            Graphics.DrawCircle(towerPosition.Center, 50, Settings.Graphics.LineColor, 5, 16);      
+            Graphics.DrawLine(startPos + offset, endPos - offset, Settings.Graphics.MapLineWidth, Settings.Graphics.LineColor);     
+            DrawCenteredTextWithBackground($"{nearbyTowers.Count:0} towers in range", mapNode.GetClientRect().Center + new Vector2(0, -50), Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+        }
+    }
+
+    /// MARK: DrawNodesWithinRange
+    /// <summary>
+    /// Draws lines between maps and tower within range of eachother.
+    /// </summary>
+    /// <param name="mapNode"></param>
+    private void DrawNodesWithinRange(AtlasPanelNode mapNode) {
+        mapCache.TryGetValue(mapNode.Address, out Node cachedNode);
+        if (cachedNode == null || !cachedNode.DrawTowers)
+            return;
+
+        var nearbyMaps = mapCache.Where(x => x.Value.Name != "Lost Towers" && !x.Value.IsVisited && Vector2.Distance(x.Value.Coordinate, cachedNode.Coordinate) <= 11).Select(x => x.Value).ToList();
+        if (nearbyMaps.Count == 0)
+            return;
+        
+        Graphics.DrawCircle(mapNode.GetClientRect().Center, 50, Settings.Graphics.LineColor, 5, 16);
+
+        foreach (var map in nearbyMaps) {
+            var nearbyMap = AtlasPanel.Descriptions.FirstOrDefault(x => x.Coordinate == map.Coordinate);
+            if (nearbyMap == null)
+                continue;
+
+            var mapPosition = nearbyMap.Element.GetClientRect();
+            
+
+
+            
+            // get distance from node center to edge of drawn circle
+            var startPos = mapNode.GetClientRect().Center;
+            var endPos = mapPosition.Center;
+            var distance = Vector2.Distance(startPos, endPos);
+            var direction = (endPos - startPos) / distance;
+            var offset = direction * 50;
+
+            Graphics.DrawCircle(mapPosition.Center, 50, Settings.Graphics.LineColor, 5, 16);  
+            Graphics.DrawLine(startPos + offset, endPos - offset, Settings.Graphics.MapLineWidth, Settings.Graphics.LineColor);     
+            DrawCenteredTextWithBackground($"{nearbyMaps.Count:0} maps in range", mapNode.GetClientRect().Center + new Vector2(0, -50), Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+        }
+    }
 
     #endregion
 

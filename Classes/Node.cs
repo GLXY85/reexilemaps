@@ -37,11 +37,14 @@ public class Node : INotifyPropertyChanged
     private RectangleF cachedClientRect;
     private RectangleF cachedScreenRect;
     private bool FlaggedForRemoval { get; set; }
-
+    private bool drawTowers { get; set; }
+    
     public long Address { get; set; }
     public long ParentAddress { get; set; }
     public string Name { get; set; }
     public string Id { get; set; }
+
+
 
     public AtlasNodeDescription MapNode () {
         return Main.AtlasPanel.Descriptions.FirstOrDefault(x => x.Coordinate == Coordinate) ?? null;
@@ -120,6 +123,19 @@ public class Node : INotifyPropertyChanged
             {
                 isActive = value;
                 OnPropertyChanged(nameof(IsActive));
+            }
+        }
+    }
+
+    public bool DrawTowers
+    {
+        get => drawTowers;
+        set
+        {
+            if (drawTowers != value)
+            {
+                drawTowers = value;
+                OnPropertyChanged(nameof(DrawTowers));
             }
         }
     }
