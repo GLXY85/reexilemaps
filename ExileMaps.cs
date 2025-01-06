@@ -218,14 +218,18 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// Subscribes to events that trigger a refresh of the map cache.
     /// </summary>
     private void SubscribeToEvents() {
-        Settings.Maps.Maps.CollectionChanged += (_, _) => { recalculateWeights(); };
-        Settings.Maps.Maps.PropertyChanged += (_, _) => { recalculateWeights(); };
-        Settings.Biomes.Biomes.PropertyChanged += (_, _) => { recalculateWeights(); };
-        Settings.Biomes.Biomes.CollectionChanged += (_, _) => { recalculateWeights(); };
-        Settings.MapContent.ContentTypes.CollectionChanged += (_, _) => { recalculateWeights(); };
-        Settings.MapContent.ContentTypes.PropertyChanged += (_, _) => { recalculateWeights(); };
-        Settings.MapMods.MapModTypes.CollectionChanged += (_, _) => { recalculateWeights(); };
-        Settings.MapMods.MapModTypes.PropertyChanged += (_, _) => { recalculateWeights(); };
+        try {
+            Settings.Maps.Maps.CollectionChanged += (_, _) => { recalculateWeights(); };
+            Settings.Maps.Maps.PropertyChanged += (_, _) => { recalculateWeights(); };
+            Settings.Biomes.Biomes.PropertyChanged += (_, _) => { recalculateWeights(); };
+            Settings.Biomes.Biomes.CollectionChanged += (_, _) => { recalculateWeights(); };
+            Settings.MapContent.ContentTypes.CollectionChanged += (_, _) => { recalculateWeights(); };
+            Settings.MapContent.ContentTypes.PropertyChanged += (_, _) => { recalculateWeights(); };
+            Settings.MapMods.MapModTypes.CollectionChanged += (_, _) => { recalculateWeights(); };
+            Settings.MapMods.MapModTypes.PropertyChanged += (_, _) => { recalculateWeights(); };
+        } catch (Exception e) {
+            LogError("Error subscribing to events: " + e.Message);
+        }
     }
 
     ///MARK: RegisterHotkeys
