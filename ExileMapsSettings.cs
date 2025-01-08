@@ -102,6 +102,7 @@ public class HotkeySettings
     public HotkeyNode DeleteWaypointHotkey { get; set; } = new HotkeyNode(Keys.OemPeriod);
     public HotkeyNode ToggleWaypointPanelHotkey { get; set; } = new HotkeyNode(Keys.Oem2);
     public HotkeyNode ShowTowerRangeHotkey { get; set; } = new HotkeyNode(Keys.Oem7);
+    public HotkeyNode ShowMinimapHotkey { get; set; } = new HotkeyNode(Keys.F13);
 }
 
 [Submenu(CollapsedByDefault = false)]

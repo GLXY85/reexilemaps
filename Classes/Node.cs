@@ -34,9 +34,6 @@ public class Node : INotifyPropertyChanged
     
     private float weight;
     private Dictionary<string, Effect> effects = new Dictionary<string, Effect>();
-    private RectangleF cachedClientRect;
-    private RectangleF cachedScreenRect;
-    private bool FlaggedForRemoval { get; set; }
     private bool drawTowers { get; set; }
     
     public long Address { get; set; }

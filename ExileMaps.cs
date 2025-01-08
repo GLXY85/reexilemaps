@@ -54,6 +54,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     internal IntPtr arrowId;
     public bool WaypointPanelIsOpen = false;
 
+    private bool ShowMinimap = false;
+
 
     #endregion
 
@@ -126,7 +128,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             DrawWaypointPanel();
 
         tickCount++;
-        if (Settings.Graphics.RenderNTicks.Value % tickCount != 0) 
+        if (Settings.Graphics.RenderNTicks.Value % tickCount != 0)
             return;  
 
         tickCount = 0;
@@ -195,10 +197,16 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                 }
             }
         }
-
         catch (Exception e) {
             LogError("Error drawing waypoints: " + e.Message + "\n" + e.StackTrace);
         }
+
+        try {
+            DrawMinimap();
+        } catch (Exception e) {
+            LogError("Error drawing minimap: " + e.Message + "\n" + e.StackTrace);
+        }
+
         if (Settings.Features.DebugMode) {
             foreach (var mapNode in AtlasPanel.Descriptions) {
                 try {
@@ -243,6 +251,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         RegisterHotkey(Settings.Keybinds.AddWaypointHotkey);
         RegisterHotkey(Settings.Keybinds.DeleteWaypointHotkey);
         RegisterHotkey(Settings.Keybinds.ShowTowerRangeHotkey);
+        RegisterHotkey(Settings.Keybinds.ShowMinimapHotkey);
     }
     
     private static void RegisterHotkey(HotkeyNode hotkey)
@@ -285,7 +294,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         }
 
-
+        if (Settings.Keybinds.ShowMinimapHotkey.PressedOnce()) {
+            ShowMinimap = !ShowMinimap;
+        }
 
     }
     #endregion
@@ -379,6 +390,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// <param name="mapNode"></param>
     private void RenderNode(AtlasPanelNode mapNode)
     {
+        if (ShowMinimap) 
+            return;
+
         var ringCount = 0;           
 
         try {
@@ -445,8 +459,15 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     #endregion
 
+    private void SetPlayerLocation() {
+        
+    }
     private AtlasNodeDescription GetClosestNodeToCursor() {
         return AtlasPanel.Descriptions.OrderBy(x => Vector2.Distance(State.UIHoverElement.GetClientRect().Center, x.Element.GetClientRect().Center)).FirstOrDefault();
+    }
+
+    private AtlasNodeDescription GetClosestNodeToCenterScreen() {
+        return AtlasPanel.Descriptions.OrderBy(x => Vector2.Distance(screenCenter, x.Element.GetClientRect().Center)).FirstOrDefault();
     }
 
     #region Map Cache
@@ -743,7 +764,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                 if (Settings.Graphics.DrawGradientLines) {
                     Color sourceColor = mapNode.IsVisited ? Settings.Graphics.VisitedLineColor : mapNode.IsUnlocked ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
                     Color destinationColor = destinationNode.Element.IsVisited ? Settings.Graphics.VisitedLineColor : destinationNode.Element.IsUnlocked ? Settings.Graphics.UnlockedLineColor : Settings.Graphics.LockedLineColor;
-                    DrawGradientLine(sourcePos.Center, destinationPos.Center, sourceColor, destinationColor);
+                    DrawGradientLine(sourcePos.Center, destinationPos.Center, sourceColor, destinationColor, Settings.Graphics.MapLineWidth);
                 } else {
                 var color = Settings.Graphics.LockedLineColor;
 
@@ -1203,7 +1224,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         Graphics.DrawQuad(textureId, topLeft, topRight, bottomRight, bottomLeft, color);
         }
-        private void DrawGradientLine(Vector2 start, Vector2 end, Color startColor, Color endColor)
+        private void DrawGradientLine(Vector2 start, Vector2 end, Color startColor, Color endColor, float lineWidth)
     {
         // No need to draw a gradient if the colors are the same
         if (startColor == endColor)
@@ -1223,7 +1244,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             float t = (float)i / segments;
             Color segmentColor = ColorUtils.InterpolateColor(startColor, endColor, t);
 
-            Graphics.DrawLine(segmentStart, segmentEnd, Settings.Graphics.MapLineWidth, segmentColor);
+            Graphics.DrawLine(segmentStart, segmentEnd, lineWidth, segmentColor);
+
         }
     }
 
@@ -1620,6 +1642,125 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         Vector2 textPosition = arrowPosition + new Vector2(arrowSize.X / 2, arrowSize.Y / 2);
         textPosition = Vector2.Lerp(textPosition, screenCenter, 0.10f);
         DrawCenteredTextWithBackground($"{waypoint.Name} ({distance:0})", textPosition, color, Settings.Graphics.BackgroundColor, true, 10, 4);
+    }
+
+    #endregion
+
+    #region Minimap
+
+    private void DrawMinimap() {
+        if (!ShowMinimap || mapCache == null || mapCache.Count == 0)
+            return;
+
+        //position minimap at center of screen
+        Vector2 minimapSize = new Vector2(1800, 1200);
+        Vector2 minimapPosition = screenCenter - minimapSize / 2;
+        Vector2 minimapCenter = minimapPosition + minimapSize / 2;
+
+        // get Leftmost mapnode
+        float minX = AtlasPanel.Descriptions.Min(x => x.Coordinate.X);
+        float minY = AtlasPanel.Descriptions.Min(x => x.Coordinate.Y);
+        float maxX = AtlasPanel.Descriptions.Max(x => x.Coordinate.X);
+        float maxY = AtlasPanel.Descriptions.Max(x => x.Coordinate.Y);
+
+        float mapWidth = maxX - minX;
+        float mapHeight = maxY - minY;
+
+        float scaleX = minimapSize.X / mapWidth;
+        float scaleY = minimapSize.Y / mapHeight;
+
+        // draw minimap background
+        Graphics.DrawBox(minimapPosition, minimapPosition + minimapSize, Settings.Graphics.BackgroundColor, 5.0f);
+
+        // reduce minimap size by 5% to create a border
+        minimapPosition += new Vector2(20, 20);
+        minimapSize -= new Vector2(40, 40);
+
+        // draw map nodes
+        foreach (var mapNode in mapCache.Values) {
+            DrawMinimapNode(mapNode, minimapPosition, minimapSize, scaleX, scaleY, minX, minY);
+        }
+    }
+
+    private void DrawMinimapNode(Node mapNode, Vector2 minimapPos, Vector2 minimapSize, float scaleX, float scaleY, float minX, float minY) {
+            Vector2 nodePosition = new Vector2((mapNode.Coordinate.X - minX) * scaleX, (mapNode.Coordinate.Y - minY) * scaleY);
+            nodePosition += minimapPos;
+
+            float radius = 10;
+            Color color = Color.White;
+
+            if (Settings.Maps.ColorNodesByWeight) {
+                float weight = (mapNode.Weight - minMapWeight) / (maxMapWeight - minMapWeight);
+                color = ColorUtils.InterpolateColor(Settings.Maps.BadNodeColor, Settings.Maps.GoodNodeColor, weight);
+            } else {
+                var map = Settings.Maps.Maps.FirstOrDefault(x => x.Value.Name.Trim() == mapNode.Name && x.Value.Highlight == true).Value;
+
+                if (map != null) {
+                    color = map.NodeColor;
+                }
+            }
+
+            if (!IsOnScreen(nodePosition))
+                return;
+
+            // is it within minimap bounds?
+            RectangleF minimap = new RectangleF(minimapPos.X, minimapPos.Y, minimapSize.X, minimapSize.Y);
+            if (!minimap.Contains(nodePosition))
+                return;
+            
+
+            // Draw image
+            RectangleF iconSize = new RectangleF(nodePosition.X - radius, nodePosition.Y - radius, radius * 2, radius * 2);
+            Graphics.DrawImage(IconsFile, iconSize, SpriteHelper.GetUV(MapIconsIndex.BlightPath), color);
+            DrawMinimapConnections(mapNode, minimapPos, minimapSize, scaleX, scaleY, minX, minY);
+            
+            try {
+                if (GetClosestNodeToCenterScreen().Coordinate == mapNode.Coordinate) {
+                    //Draw "YOU ARE HERE" text
+
+                }
+            } catch (Exception e) {
+                //LogMessage(e.Message);
+            }
+            
+    }
+
+    private void DrawMinimapConnections(Node mapNode, Vector2 minimapPos, Vector2 minimapSize, float scaleX, float scaleY, float minX, float minY)
+    {
+        if (!mapCache.ContainsKey(mapNode.Address) ||
+        (!mapNode.IsVisible && !Settings.Features.DrawHiddenNodeConnections))
+            return;
+
+        var mapConnections = mapNode.Point;
+
+        if (mapConnections.Equals(default))
+            return;
+
+        // is it within minimap bounds?
+        RectangleF minimap = new RectangleF(minimapPos.X, minimapPos.Y, minimapSize.X, minimapSize.Y);
+
+        var connectionArray = new[] { mapConnections.Item2, mapConnections.Item3, mapConnections.Item4, mapConnections.Item5 };
+
+        foreach (Vector2i coordinates in connectionArray)
+        {
+            if (coordinates == default)
+                continue;
+
+            AtlasNodeDescription destinationNode = AtlasPanel.Descriptions.FirstOrDefault(x => x.Coordinate == coordinates);
+            if (destinationNode != null)
+            {
+                var sourcePos = new Vector2((mapNode.Coordinate.X - minX) * scaleX, (mapNode.Coordinate.Y - minY) * scaleY);
+                sourcePos += minimapPos;
+                var destPos = new Vector2((destinationNode.Coordinate.X - minX) * scaleX, (destinationNode.Coordinate.Y - minY) * scaleY);
+                destPos += minimapPos;
+
+                if (!minimap.Contains(sourcePos) || !minimap.Contains(destPos))
+                    return;
+
+                Graphics.DrawLine(sourcePos, destPos, 2, Settings.Graphics.LineColor);
+                
+            }
+        }
     }
 
     #endregion
