@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using ExileCore2.PoEMemory.Components;
 
 namespace ExileMaps.Classes
 {
@@ -13,12 +14,12 @@ namespace ExileMaps.Classes
             float a = color1.A + (color2.A - color1.A) * fraction;
 
             // Restrict RGBA values to 0-255
-            r = r > 255 ? 255 : r < 0 ? 0 : r;
-            g = g > 255 ? 255 : g < 0 ? 0 : g;
-            b = b > 255 ? 255 : b < 0 ? 0 : b;
-            a = a > 255 ? 255 : a < 0 ? 0 : a;
+            int iR = Math.Max(Math.Min((int)r, 255), 0);
+            int iG = Math.Max(Math.Min((int)g, 255), 0);
+            int iB = Math.Max(Math.Min((int)b, 255), 0);
+            int iA = Math.Max(Math.Min((int)a, 255), 0);
             
-            return Color.FromArgb((int)a, (int)r, (int)g, (int)b);
+            return Color.FromArgb(iA, iR, iG, iB);
         }
     }
 }

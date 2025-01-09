@@ -8,6 +8,7 @@ using ExileCore2.Shared.Nodes;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.ComponentModel;
+using System.Linq;
 
 namespace ExileMaps.Classes
 {
@@ -33,13 +34,18 @@ namespace ExileMaps.Classes
         public string Name { get; set; } = "";
         public string ID { get; set; } = "";
         public string RealID { get; set; } = "";
-        public string[] Biomes { get; set; } = new string[0];
+        public string[] Biomes { get; set; } = [];
 
-        public string[] Content { get; set; } = new string[0];
+        public string[] Content { get; set; } = [];
 
         public override string ToString()
         {
             return Name;
+        }
+
+        public string BiomesToString() {
+            if (Biomes.Length == 0) return "None";
+            return string.Join(", ", Biomes.Where(x => !string.IsNullOrWhiteSpace(x)));
         }
         
         [JsonConverter(typeof(JsonColorConverter))]

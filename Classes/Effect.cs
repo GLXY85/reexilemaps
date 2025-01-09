@@ -1,10 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Threading.Tasks;
 using GameOffsets2.Native;
 using System.Linq;
+using static ExileMaps.ExileMapsCore;
 
 namespace ExileMaps.Classes
 {
@@ -12,7 +11,7 @@ namespace ExileMaps.Classes
     {
         private string name;
         private string description;
-        private bool showOnMap;
+        private bool enabled;
         private int value1;
         private int value2;
         private long id;
@@ -32,6 +31,10 @@ namespace ExileMaps.Classes
         }
 
         public string GetSources() => string.Join(", ", Sources.Select(x => $"({x.X}, {x.Y})"));
+
+        public void RecalculateWeight() {
+            Weight = Enabled && Main.Settings.MapMods.MapModTypes.TryGetValue(ID.ToString(), out var mod) ? mod.Weight * Value1 : 0;
+        }
 
         public string Name
         {
@@ -59,15 +62,15 @@ namespace ExileMaps.Classes
             }
         }
 
-        public bool ShowOnMap
+        public bool Enabled
         {
-            get => showOnMap;
+            get => enabled;
             set
             {
-                if (showOnMap != value)
+                if (enabled != value)
                 {
-                    showOnMap = value;
-                    OnPropertyChanged(nameof(ShowOnMap));
+                    enabled = value;
+                    OnPropertyChanged(nameof(enabled));
                 }
             }
         }
