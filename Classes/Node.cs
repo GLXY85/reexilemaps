@@ -29,10 +29,13 @@ public class Node
     public long Address { get; set; }
     public long ParentAddress { get; set; }
     public string Name { get; set; }
-    public string Id { get; set; }
+    public string Id;
 
     public AtlasNodeDescription MapNode { get; set; }
 
+    public bool MatchID(string id) {
+        return Id.Replace("_NoBoss", "").Replace("Map","").Replace("UberBoss","").Trim() == id.Replace("_NoBoss", "").Replace("Map","").Replace("UberBoss","").Trim();
+    }
     public Waypoint ToWaypoint() {
         return new Waypoint {
             Name = Name,

@@ -155,13 +155,13 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         selectedNodes.ForEach(RenderNode);
 
         try {
-            List<string> waypointNames = Settings.MapTypes.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.Name.Trim()).ToList();
+            List<string> waypointNames = Settings.MapTypes.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.ID).ToList();
             if (Settings.Features.DrawLines && waypointNames.Count > 0) {
                 List<Node> waypointNodes;
 
                 lock (mapCacheLock) {                        
                     waypointNodes = mapCache.Values.Where(x => !x.IsVisited || x.IsAttempted)
-                    .Where(x => waypointNames.Contains(x.Name.Trim()))
+                    .Where(x => waypointNames.Contains(x.Id))
                     .Where(x => !Settings.Features.WaypointsUseAtlasRange || Vector2.Distance(screenCenter, x.MapNode.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000)).AsParallel().ToList();
                 }
                 
@@ -454,6 +454,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     private int CacheNewMapNode(AtlasNodeDescription node)
     {
+        string mapId = node.Element.Area.Id.Replace("_NoBoss", "").Replace("Map","").Replace("UberBoss","").Trim();
         Node newNode = new()
         {
             IsUnlocked = node.Element.IsUnlocked,
@@ -464,9 +465,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             Address = node.Element.Address,
             Coordinates = node.Coordinate,
             Name = node.Element.Area.Name,
-            Id = node.Element.Area.Id,
+            Id = mapId,
             MapNode = node,
-            MapType = Settings.MapTypes.Maps.TryGetValue(node.Element.Area.Name.Replace(" ",""), out Map mapType) ? mapType : new Map(),
+            MapType = Settings.MapTypes.Maps.TryGetValue(mapId, out Map mapType) ? mapType : new Map(),
         };
 
         // Set Content
@@ -488,19 +489,18 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             
             // Set Biomes
             try {
-                string mapName = node.Element.Area.Name.Trim();
-                var biomes = Settings.MapTypes.Maps.TryGetValue(mapName, out Map map) ? map.Biomes.Where(x => x != "").AsParallel().ToList() : [];
+                var biomes = Settings.MapTypes.Maps.TryGetValue(mapId, out Map map) ? map.Biomes.Where(x => x != "").AsParallel().ToList() : [];
 
                 foreach (var biome in biomes)                     
                     if (Settings.Biomes.Biomes.TryGetValue(biome, out Biome newBiome)) 
                         newNode.Biomes.TryAdd(newBiome.Name, newBiome);
 
             }   catch (Exception e) {
-                LogError($"Error getting Biomes for map type {node.Element.Area.Name.Trim()}: " + e.Message);
+                LogError($"Error getting Biomes for map type {mapId}: " + e.Message);
             }
         }
     
-        if (!newNode.IsVisited || newNode.Id == "MapLostTowers") {
+        if (!newNode.IsVisited || newNode.MatchID("LostTowers")) {
             try {
                 foreach(var source in AtlasPanel.EffectSources.Where(x => Vector2.Distance(x.Coordinate, node.Coordinate) <= 11).AsParallel().ToList()) {
                     foreach(var effect in source.Effects.Where(x => Settings.MapMods.MapModTypes.ContainsKey(x.ModId.ToString()) && x.Value != 0).AsParallel().ToList()) {
@@ -508,7 +508,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                         var requiredContent = Settings.MapMods.MapModTypes[effectKey].RequiredContent;
                         
                         if (newNode.Effects.TryGetValue(effectKey, out Effect existingEffect)) {
-                            if (newNode.Name != "Lost Towers" || !newNode.IsVisited)
+                            if (!newNode.MatchID("LostTowers") || !newNode.IsVisited)
                                 newNode.Effects[effectKey].Value1 += effect.Value;
 
                             newNode.Effects[effectKey].Sources.Add(source.Coordinate);
@@ -690,7 +690,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             (!Settings.MapContent.ShowRingsOnLockedNodes && !cachedNode.IsUnlocked) || 
             (!Settings.MapContent.ShowRingsOnUnlockedNodes && cachedNode.IsUnlocked) || 
             (!Settings.MapContent.ShowRingsOnHiddenNodes && !cachedNode.IsVisible) ||         
-            !cachedNode.Content.TryGetValue(Content, out Content cachedContent))            
+            !cachedNode.Content.TryGetValue(Content, out Content cachedContent) || 
+            !cachedNode.MapType.Highlight || !cachedContent.Highlight)            
             return 0;
 
         float radius = (Count * Settings.Graphics.RingWidth) + 1 + ((nodeCurrentPosition.Right - nodeCurrentPosition.Left) / 2 * Settings.Graphics.RingRadius);
@@ -711,7 +712,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     private void DrawWaypointLine(Node cachedNode)
     {
         
-        if (cachedNode.IsVisited || cachedNode.IsAttempted || !Settings.MapTypes.Maps.TryGetValue(cachedNode.Name.Trim().Replace(" ",""), out Map map))
+        if (cachedNode.IsVisited || cachedNode.IsAttempted || !cachedNode.MapType.DrawLine || !Settings.Features.DrawLines)
             return;
 
         RectangleF nodeCurrentPosition = cachedNode.MapNode.Element.GetClientRect();
@@ -730,10 +731,10 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         position.X = Math.Clamp(position.X, minX, maxX);
         position.Y = Math.Clamp(position.Y, minY, maxY);
 
-        Graphics.DrawLine(position, nodeCurrentPosition.Center, Settings.Graphics.MapLineWidth, map.NodeColor);
+        Graphics.DrawLine(position, nodeCurrentPosition.Center, Settings.Graphics.MapLineWidth, cachedNode.MapType.NodeColor);
 
         if (Settings.Features.DrawLineLabels) {
-            DrawCenteredTextWithBackground( $"{cachedNode.Name} ({Vector2.Distance(screenCenter, nodeCurrentPosition.Center):0})", position, map.NameColor, Settings.Graphics.BackgroundColor, true, 10, 4);
+            DrawCenteredTextWithBackground( $"{cachedNode.Name} ({Vector2.Distance(screenCenter, nodeCurrentPosition.Center):0})", position, cachedNode.MapType.NameColor, Settings.Graphics.BackgroundColor, true, 10, 4);
         }  
             
         
@@ -745,7 +746,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// <param name="mapNode">The atlas node description containing information about the map node to be drawn.</param>   
     private void DrawMapNode(Node cachedNode, RectangleF nodeCurrentPosition)
     {
-        if (!Settings.MapTypes.HighlightMapNodes || cachedNode.IsVisited)
+        if (!Settings.MapTypes.HighlightMapNodes || cachedNode.IsVisited || !cachedNode.MapType.Highlight)
             return;
             
         var radius = (nodeCurrentPosition.Right - nodeCurrentPosition.Left) / 4 * Settings.Graphics.NodeRadius;
@@ -761,7 +762,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             (!cachedNode.IsVisible && !Settings.MapTypes.ShowMapNamesOnHiddenNodes) ||
             (cachedNode.IsUnlocked && !Settings.MapTypes.ShowMapNamesOnUnlockedNodes) ||
             (!cachedNode.IsUnlocked && !Settings.MapTypes.ShowMapNamesOnLockedNodes) ||
-            cachedNode.IsVisited)
+            cachedNode.IsVisited || !cachedNode.MapType.Highlight)
             return;  
 
         // get the map weight % relative to the average map weight
@@ -782,17 +783,12 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             (!cachedNode.IsVisible && !Settings.MapTypes.ShowMapNamesOnHiddenNodes) ||
             (cachedNode.IsUnlocked && !Settings.MapTypes.ShowMapNamesOnUnlockedNodes) ||
             (!cachedNode.IsUnlocked && !Settings.MapTypes.ShowMapNamesOnLockedNodes) ||
-            cachedNode.IsVisited)
+            cachedNode.IsVisited || !cachedNode.MapType.Highlight)
             return;
 
-        var fontColor = Settings.Graphics.FontColor;
-        var backgroundColor = Settings.Graphics.BackgroundColor;
+        Color fontColor = Settings.MapTypes.UseColorsForMapNames ? cachedNode.MapType.NameColor : Settings.Graphics.FontColor;
+        Color backgroundColor = Settings.MapTypes.UseColorsForMapNames ? cachedNode.MapType.BackgroundColor : Settings.Graphics.BackgroundColor;
         
-        if (Settings.MapTypes.UseColorsForMapNames && Settings.MapTypes.Maps.TryGetValue(cachedNode.Name, out Map map)) {
-            fontColor = map.NameColor;
-            backgroundColor = map.BackgroundColor;
-        }
-
         if (Settings.MapTypes.UseWeightColorsForMapNames) {
             float weight = (cachedNode.Weight - minMapWeight) / (maxMapWeight - minMapWeight);
             fontColor = ColorUtils.InterpolateColor(Settings.MapTypes.BadNodeColor, Settings.MapTypes.GoodNodeColor, weight);
@@ -803,14 +799,13 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     private void DrawTowerMods(Node cachedNode, RectangleF nodeCurrentPosition)
     {
-        string mapName = cachedNode.Name.Trim();
-        if ((mapName == "Lost Towers" && !Settings.MapMods.ShowOnTowers) || (mapName != "Lost Towers" && !Settings.MapMods.ShowOnMaps))    
+        if ((cachedNode.MatchID("LostTowers") && !Settings.MapMods.ShowOnTowers) || (!cachedNode.MatchID("LostTowers") && !Settings.MapMods.ShowOnMaps) || !cachedNode.MapType.Highlight)    
             return; 
 
         Dictionary<string, Color> mods = [];
 
         var effects = new List<Effect>();
-        if (mapName == "Lost Towers") {            
+        if (cachedNode.MatchID("LostTowers")) {            
             if (Settings.MapMods.ShowOnTowers) {                
                 effects = cachedNode.Effects.Where(x => x.Value.Sources.Contains(cachedNode.Coordinates)).Select(x => x.Value).ToList();
 
@@ -827,7 +822,12 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             return;
         
         foreach (var effect in effects) {
-            mods.TryAdd(effect.ToString(), Settings.MapMods.MapModTypes[effect.ID.ToString()].Color);
+            if (Settings.MapMods.MapModTypes.TryGetValue(effect.ID.ToString(), out Mod mod)) {
+                if (effect.Value1 >= mod.MinValueToShow) {
+                    mods.TryAdd(effect.ToString(), mod.Color);
+                }
+            }
+            
         }
         mods = mods.OrderBy(x => x.Value.ToString()).ToDictionary(x => x.Key, x => x.Value);
         DrawMapModText(mods, cachedNode.MapNode.Element.GetClientRect().Center);
@@ -912,10 +912,10 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// </summary>
     /// <param name="mapNode"></param>
     private void DrawTowerRange(Node cachedNode) {
-        if (!cachedNode.DrawTowers || (cachedNode.IsVisited && cachedNode.Name != "Lost Towers"))
+        if (!cachedNode.DrawTowers || (cachedNode.IsVisited && !cachedNode.MatchID("LostTowers")))
             return;
 
-        if (cachedNode.Name == "Lost Towers") {
+        if (cachedNode.MatchID("LostTowers")) {
             DrawNodesWithinRange(cachedNode);
         } else {
             DrawTowersWithinRange(cachedNode);
@@ -930,7 +930,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (!cachedNode.DrawTowers || cachedNode.IsVisited)
             return;
 
-        var nearbyTowers = mapCache.Where(x => x.Value.Name == "Lost Towers" && Vector2.Distance(x.Value.Coordinates, cachedNode.Coordinates) <= 11).Select(x => x.Value).AsParallel().ToList();
+        var nearbyTowers = mapCache.Where(x => x.Value.MatchID("LostTowers") && Vector2.Distance(x.Value.Coordinates, cachedNode.Coordinates) <= 11).Select(x => x.Value).AsParallel().ToList();
         if (nearbyTowers.Count == 0)
             return;
 

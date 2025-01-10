@@ -25,6 +25,8 @@ namespace ExileMaps.Classes
         private string stat2;
         private bool showOnMap = true;
 
+        private float minValueToShow = 0;
+
         private string requiredContent = "";
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -86,6 +88,19 @@ namespace ExileMaps.Classes
                 {
                     weight = value;
                     OnPropertyChanged(nameof(Weight));
+                }
+            }
+        }
+
+        public float MinValueToShow
+        {
+            get => minValueToShow;
+            set
+            {
+                if (minValueToShow != value)
+                {
+                    minValueToShow = value;
+                    OnPropertyChanged(nameof(MinValueToShow));
                 }
             }
         }

@@ -629,7 +629,7 @@ public class MapModSettings
                     }
 
                     ImGui.TableNextColumn();
-                    ImGui.Text("Only Draw Mods that Apply (e.g. no breach mods on non-breach maps)");
+                    ImGui.Text("Only Count Mods that Apply (e.g. no breach mods on non-breach maps)");
 
                     ImGui.TableNextRow();
 
@@ -663,12 +663,13 @@ public class MapModSettings
                 ImGui.Spacing();
 
                 try {
-                    if (ImGui.BeginTable("mod_table", 5, ImGuiTableFlags.Borders))
+                    if (ImGui.BeginTable("mod_table", 6, ImGuiTableFlags.Borders))
                     {
                         ImGui.TableSetupColumn("Mod Type", ImGuiTableColumnFlags.WidthFixed, 250);                                                               
                         ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 100);     
+                        ImGui.TableSetupColumn("Min Value", ImGuiTableColumnFlags.WidthFixed, 100);
                         ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthFixed, 50);
-                        ImGui.TableSetupColumn("Show", ImGuiTableColumnFlags.WidthFixed, 50);
+                        ImGui.TableSetupColumn("Show", ImGuiTableColumnFlags.WidthFixed, 50);                        
                         ImGui.TableSetupColumn("Description", ImGuiTableColumnFlags.WidthStretch, 300);
                         ImGui.TableHeadersRow();
                         foreach (var (key,mod) in MapModTypes.OrderBy(x => x.Value.ModID))
@@ -687,7 +688,18 @@ public class MapModSettings
                             ImGui.SetNextItemWidth(100);
                             if(ImGui.SliderFloat($"##{mod}_weight", ref weight, -1.00f, 5.00f, "%.3f")) 
                                 mod.Weight = weight;
-                            
+
+                            ImGui.TableNextColumn();
+                            float minVal = mod.MinValueToShow;                        
+                            ImGui.SetNextItemWidth(100);
+                            if(ImGui.SliderFloat($"##{mod}_minweight", ref minVal, 0.00f, 100.00f, "%.1f")) 
+                                mod.MinValueToShow = minVal;
+                            else if (ImGui.IsItemHovered()) {
+                                ImGui.BeginTooltip();
+                                ImGui.Text("Minimum total value required for this mod to be displayed on the Atlas.");
+                                ImGui.EndTooltip();
+                            }
+
                             ImGui.TableNextColumn();
                             SettingsHelpers.CenterControl(30f);
                             Vector4 modColorVector = new(mod.Color.R / 255.0f, mod.Color.G / 255.0f, mod.Color.B / 255.0f, mod.Color.A / 255.0f);
@@ -700,6 +712,8 @@ public class MapModSettings
                             bool showOnMaps = mod.ShowOnMap;
                             if(ImGui.Checkbox($"##show_on_maps", ref showOnMaps))                        
                             mod.ShowOnMap = showOnMaps;
+
+
 
                             ImGui.TableNextColumn(); 
                                     

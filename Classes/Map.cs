@@ -18,7 +18,7 @@ namespace ExileMaps.Classes
         private Color backgroundColor = Color.FromArgb(200, 0, 0, 0);
         private Color nodeColor = Color.FromArgb(200, 155, 155, 155);
         private bool drawLine = false;
-        private bool highlight = false;
+        private bool highlight = true;
         private int count = 0;
         private int lockedCount = 0;
         private int fogCount = 0;
