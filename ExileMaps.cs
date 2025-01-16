@@ -155,13 +155,13 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         selectedNodes.ForEach(RenderNode);
 
         try {
-            List<string> waypointNames = Settings.MapTypes.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.ID).ToList();
+            List<string> waypointNames = Settings.MapTypes.Maps.Where(x => x.Value.DrawLine).Select(x => x.Value.Name).ToList();
             if (Settings.Features.DrawLines && waypointNames.Count > 0) {
                 List<Node> waypointNodes;
 
                 lock (mapCacheLock) {                        
                     waypointNodes = mapCache.Values.Where(x => !x.IsVisited || x.IsAttempted)
-                    .Where(x => waypointNames.Contains(x.Id))
+                    .Where(x => waypointNames.Contains(x.Name))
                     .Where(x => !Settings.Features.WaypointsUseAtlasRange || Vector2.Distance(screenCenter, x.MapNode.Element.GetClientRect().Center) <= (Settings.Features.AtlasRange ?? 2000)).AsParallel().ToList();
                 }
                 
@@ -467,7 +467,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             Name = node.Element.Area.Name,
             Id = mapId,
             MapNode = node,
-            MapType = Settings.MapTypes.Maps.TryGetValue(mapId, out Map mapType) ? mapType : new Map(),
+            MapType = Settings.MapTypes.Maps.TryGetValue(node.Element.Area.Name.Replace(" ", ""), out Map mapType) ? mapType : new Map(),
         };
 
         // Set Content
