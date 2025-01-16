@@ -732,7 +732,10 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             {
                 if (!Settings.Features.DrawVisitedNodeConnections && (destinationNode.Element.IsVisited || mapNode.IsVisited))
                     continue;
-                
+
+                if (!Settings.Features.DrawNotVisitedNodeConnections && mapNode.IsVisible && (!destinationNode.Element.IsVisited || !mapNode.IsVisited))
+                    continue;
+
                 var destinationPos = destinationNode.Element.GetClientRect();
 
                 var sourcePos = mapNode.GetClientRect();

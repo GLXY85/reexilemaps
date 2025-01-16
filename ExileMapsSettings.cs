@@ -71,6 +71,8 @@ public class FeatureSettings
 
     [Menu("Draw Connections for Visited Map Nodes")]
     public ToggleNode DrawVisitedNodeConnections { get; set; } = new ToggleNode(true);
+    [Menu("Draw Connections for Not Visited Map Nodes")]
+    public ToggleNode DrawNotVisitedNodeConnections { get; set; } = new ToggleNode(true);
 
     [Menu("Process Hidden Map Nodes")]
     public ToggleNode ProcessHiddenNodes { get; set; } = new ToggleNode(true);
