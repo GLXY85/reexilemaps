@@ -1,11 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Drawing;
-using ExileCore2;
-using ExileCore2.Shared.Enums;
-using ExileCore2.Shared.Attributes;
-using ExileCore2.Shared.Nodes;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.ComponentModel;
 using System.Linq;
@@ -15,12 +9,18 @@ namespace ExileMaps.Classes
     public class Map : INotifyPropertyChanged
     {
         private Color nameColor = Color.FromArgb(255, 255, 255, 255);
-        private Color backgroundColor = Color.FromArgb(200, 0, 0, 0);
+        private Color backgroundColor = Color.FromArgb(220, 0, 0, 0);
         private Color nodeColor = Color.FromArgb(200, 155, 155, 155);
         private bool drawLine = false;
         private bool highlight = true;
+        
+        [JsonIgnore]
         private int count = 0;
+
+        [JsonIgnore]
         private int lockedCount = 0;
+
+        [JsonIgnore]
         private int fogCount = 0;
         private float weight = 1.0f;
 
@@ -32,15 +32,27 @@ namespace ExileMaps.Classes
         }
 
         public string Name { get; set; } = "";
-        public string ID { get; set; } = "";
-        public string RealID { get; set; } = "";
+
+        [JsonIgnore]
+        public string ID { get; set; } = ""; // deprecated, here so peoples imported settings dont break immediately
+
+        public string[] IDs { get; set; } = [];
+        public string ShortestId { get; set; }
         public string[] Biomes { get; set; } = [];
 
-        public string[] Content { get; set; } = [];
+        public bool IsTower() {
+            return MatchID("MapSwampTower") || MatchID("MapLostTowers") || MatchID("MapMesa") || MatchID("MapBluff") || MatchID("MapAlpineRidge");
+        }
 
         public override string ToString()
         {
             return Name;
+        }
+
+        public bool MatchID(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return false;
+            return Array.Exists(IDs, x => x.Equals(id, StringComparison.OrdinalIgnoreCase));
         }
 
         public string BiomesToString() {

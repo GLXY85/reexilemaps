@@ -85,21 +85,43 @@ public class FeatureSettings
 
     [Menu("Debug Mode")]
     public ToggleNode DebugMode { get; set; } = new ToggleNode(false);
-    public HotkeyNode DebugKey { get; set; } = new HotkeyNode(Keys.F13);
+
 }
 [Submenu(CollapsedByDefault = false)]
 public class HotkeySettings
 {
     [Menu("Map Cache Refresh Hotkey", "Default: ]")]
-    public HotkeyNode RefreshMapCacheHotkey { get; set; } = new HotkeyNode(Keys.Oem6);
+    public HotkeyNode RefreshMapCacheHotkey { get; set; } = new HotkeyNode(Keys.Home);
+
     [Menu("Add Waypoint Hotkey", "Default: ,")]
-    public HotkeyNode AddWaypointHotkey { get; set; } = new HotkeyNode(Keys.Oemcomma);
+    public HotkeyNode AddWaypointHotkey { get; set; } = new HotkeyNode(Keys.Insert);
+
     [Menu("Remove Waypoint Hotkey", "Default: .")]
-    public HotkeyNode DeleteWaypointHotkey { get; set; } = new HotkeyNode(Keys.OemPeriod);
+    public HotkeyNode DeleteWaypointHotkey { get; set; } = new HotkeyNode(Keys.Delete);
+
     [Menu("Waypoint Panel Hotkey", "Default: /")]
-    public HotkeyNode ToggleWaypointPanelHotkey { get; set; } = new HotkeyNode(Keys.Oem2);
+    public HotkeyNode ToggleWaypointPanelHotkey { get; set; } = new HotkeyNode(Keys.End);
+
     [Menu("Show Towers in Range Hotkey", "Default: '")]
-    public HotkeyNode ShowTowerRangeHotkey { get; set; } = new HotkeyNode(Keys.Oem7);
+    public HotkeyNode ShowTowerRangeHotkey { get; set; } = new HotkeyNode(Keys.PageUp);
+
+    [Menu("Toggle Processing Visited Nodes", "Default: '")]
+    public HotkeyNode ToggleVisitedNodesHotkey { get; set; } = new HotkeyNode(Keys.F13);
+
+    [Menu("Toggle Processing Unlocked Nodes", "Default: '")]
+    public HotkeyNode ToggleUnlockedNodesHotkey { get; set; } = new HotkeyNode(Keys.F13);
+
+    [Menu("Toggle Processing Locked Nodes", "Default: '")]
+    public HotkeyNode ToggleLockedNodesHotkey { get; set; } = new HotkeyNode(Keys.F13);
+    
+    [Menu("Toggle Processing Hidden Nodes", "Default: '")]
+    public HotkeyNode ToggleHiddenNodesHotkey { get; set; } = new HotkeyNode(Keys.F13);
+
+    [Menu("Print Node Debug Data")]
+    public HotkeyNode DebugKey { get; set; } = new HotkeyNode(Keys.F13);
+
+    [Menu("Update Map Type Data")]
+    public HotkeyNode UpdateMapsKey { get; set; } = new HotkeyNode(Keys.F13);
 }
 
 [Submenu(CollapsedByDefault = false)]
@@ -747,9 +769,11 @@ public class WaypointSettings
     public bool ShowWaypoints { get; set; } = true;
     public bool ShowWaypointArrows { get; set; } = true;
 
-    public int WaypointPanelMaxItems { get; set; } = 100;
+    public int WaypointPanelMaxItems { get; set; } = 30;
     public string WaypointPanelSortBy { get; set; } = "Weight";
+    public bool WaypointsUseRegex { get; set; } = false;
 
+    public string WaypointPanelFilter { get; set; } = "";
     public ObservableDictionary<Vector2i, Waypoint> Waypoints { get; set; } = [];
     public WaypointSettings() {    
         CustomWaypointSettings = new CustomNode

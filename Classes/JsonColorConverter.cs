@@ -16,7 +16,7 @@ public class JsonColorConverter : JsonConverter<Color>
 
     public override void Write(Utf8JsonWriter writer, Color value, JsonSerializerOptions options)
     {
-        string colorString = $"{value.R}, {value.G}, {value.B}, {value.A}";
+        string colorString = $"{value.A}, {value.R}, {value.G}, {value.B}";
         writer.WriteStringValue(colorString);
     }
 

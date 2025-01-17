@@ -7,6 +7,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 using ExileCore2;
 using ExileCore2.PoEMemory;
@@ -148,7 +149,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             selectedNodes = mapCache.Values.Where(x => Settings.Features.ProcessVisitedNodes || !x.IsVisited || x.IsAttempted)
                 .Where(x => (Settings.Features.ProcessHiddenNodes && !x.IsVisible) || x.IsVisible)            
                 .Where(x => (Settings.Features.ProcessLockedNodes && !x.IsUnlocked) || x.IsUnlocked)
-                .Where(x => (Settings.Features.ProcessUnlockedNodes && x.IsUnlocked) || true)
+                .Where(x => (Settings.Features.ProcessUnlockedNodes && x.IsUnlocked) || !x.IsUnlocked)
                 .Where(x => IsOnScreen(x.MapNode.Element.GetClientRect().Center)).AsParallel().ToList();
         }
         
@@ -211,11 +212,16 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// </summary>
     private void RegisterHotkeys() {
         RegisterHotkey(Settings.Keybinds.RefreshMapCacheHotkey);
-        RegisterHotkey(Settings.Features.DebugKey);
+        RegisterHotkey(Settings.Keybinds.DebugKey);
         RegisterHotkey(Settings.Keybinds.ToggleWaypointPanelHotkey);
         RegisterHotkey(Settings.Keybinds.AddWaypointHotkey);
         RegisterHotkey(Settings.Keybinds.DeleteWaypointHotkey);
         RegisterHotkey(Settings.Keybinds.ShowTowerRangeHotkey);
+        RegisterHotkey(Settings.Keybinds.UpdateMapsKey);
+        RegisterHotkey(Settings.Keybinds.ToggleLockedNodesHotkey);
+        RegisterHotkey(Settings.Keybinds.ToggleUnlockedNodesHotkey);
+        RegisterHotkey(Settings.Keybinds.ToggleVisitedNodesHotkey);
+        RegisterHotkey(Settings.Keybinds.ToggleHiddenNodesHotkey);
     }
     
     private static void RegisterHotkey(HotkeyNode hotkey)
@@ -231,8 +237,11 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             RefreshMapCache();
         }
 
-        if (Settings.Features.DebugKey.PressedOnce())        
+        if (Settings.Keybinds.DebugKey.PressedOnce())        
             DoDebugging();
+
+        if (Settings.Keybinds.UpdateMapsKey.PressedOnce())        
+            UpdateMapData();
 
         if (Settings.Keybinds.ToggleWaypointPanelHotkey.PressedOnce()) {  
             WaypointPanelIsOpen = !WaypointPanelIsOpen;
@@ -243,7 +252,19 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
         if (Settings.Keybinds.DeleteWaypointHotkey.PressedOnce())        
             RemoveWaypoint(GetClosestNodeToCursor());
+
+        if (Settings.Keybinds.ToggleLockedNodesHotkey.PressedOnce())        
+            Settings.Features.ProcessLockedNodes.Value = !Settings.Features.ProcessLockedNodes.Value;
         
+        if (Settings.Keybinds.ToggleUnlockedNodesHotkey.PressedOnce())        
+            Settings.Features.ProcessUnlockedNodes.Value = !Settings.Features.ProcessUnlockedNodes.Value;
+
+        if (Settings.Keybinds.ToggleVisitedNodesHotkey.PressedOnce())
+            Settings.Features.ProcessVisitedNodes.Value = !Settings.Features.ProcessVisitedNodes.Value;
+
+        if (Settings.Keybinds.ToggleHiddenNodesHotkey.PressedOnce())
+            Settings.Features.ProcessHiddenNodes.Value = !Settings.Features.ProcessHiddenNodes.Value;
+
         if (Settings.Keybinds.ShowTowerRangeHotkey.PressedOnce()) {
             mapCache.TryGetValue(GetClosestNodeToCursor().Coordinates, out Node node);
             if (node != null) {
@@ -310,13 +331,19 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             var jsonFile = File.ReadAllText(Path.Combine(DirectoryFullName, defaultMapsPath));
             var maps = JsonSerializer.Deserialize<Dictionary<string, Map>>(jsonFile);
 
-            foreach (var map in maps.OrderBy(x => x.Value.Name)) {
-                Settings.MapTypes.Maps.TryGetValue(map.Key, out Map existingMap);
+            foreach (var (key,map) in maps.OrderBy(x => x.Value.Name)) {
 
-                if (existingMap == null) 
-                    Settings.MapTypes.Maps.TryAdd(map.Key, map.Value);  
-
-                else existingMap.Biomes ??= map.Value.Biomes;
+                // Update legacy map settings
+                if(Settings.MapTypes.Maps.TryGetValue(map.Name.Replace(" ", ""), out Map existingMap) && existingMap.IDs.Length == 0) {
+                    Settings.MapTypes.Maps.Remove(existingMap.Name.Replace(" ",""));
+                    existingMap.ID = key;
+                    existingMap.IDs = map.IDs;
+                    existingMap.ShortestId = map.ShortestId;
+                    Settings.MapTypes.Maps.TryAdd(key, existingMap);                
+                } else {
+                    // add new map
+                    Settings.MapTypes.Maps.TryAdd(key, map);
+                }
             }
         } catch (Exception e) {
             LogError("Error loading default maps: " + e.Message + "\n" + e.StackTrace);
@@ -379,6 +406,38 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         using (Graphics.SetTextScale(Settings.MapMods.MapModScale))
             DrawCenteredTextWithBackground(cachedNode.DebugText(), cachedNode.MapNode.Element.GetClientRect().Center, Settings.Graphics.FontColor, Settings.Graphics.BackgroundColor, true, 10, 4);
 
+    }
+
+    private void UpdateMapData() {
+        var uniqueMapNames = AtlasPanel.Descriptions.Select(x => x.Element.Area.Name).Distinct().ToList();
+
+        // iterate through each name and find the ID for all mapes iwth that name
+        foreach (var name in uniqueMapNames) {
+            var maps = AtlasPanel.Descriptions.Where(x => x.Element.Area.Name == name).ToList();
+            var mapIds = maps.Select(x => x.Element.Area.Id).Distinct().ToList();
+            // get shortest item from list
+            var shortID = mapIds.OrderBy(x => x.Length).FirstOrDefault();
+            if (Settings.MapTypes.Maps.TryGetValue(name.Replace(" ", ""), out Map mapType) || Settings.MapTypes.Maps.TryGetValue(shortID, out mapType)) {        
+                Settings.MapTypes.Maps.Remove(name.Replace(" ", ""));                
+                Settings.MapTypes.Maps.TryAdd(shortID, mapType);
+                mapType.IDs = [.. mapIds];
+                mapType.ShortestId = shortID;
+                LogMessage($"Updated Map Data for {shortID}");
+            } else {
+                var newMap = new Map { 
+                    Name = name, 
+                    IDs = [.. mapIds],
+                    ShortestId = shortID};
+        
+                Settings.MapTypes.Maps.TryAdd(shortID, newMap);        
+                LogMessage($"Added Map Data for {shortID}");    
+            }
+        }
+
+        var json = JsonSerializer.Serialize(Settings.MapTypes.Maps, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(Path.Combine(DirectoryFullName, defaultMapsPath), json);
+
+        LogMessage("Updated Map Data");
     }
 
     #endregion
@@ -454,7 +513,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     private int CacheNewMapNode(AtlasNodeDescription node)
     {
-        string mapId = node.Element.Area.Id.Replace("_NoBoss", "").Replace("Map","").Replace("UberBoss","").Trim();
+        string mapId = node.Element.Area.Id.Trim();
+        string shortID = mapId.Replace("_NoBoss", "");
         Node newNode = new()
         {
             IsUnlocked = node.Element.IsUnlocked,
@@ -467,7 +527,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             Name = node.Element.Area.Name,
             Id = mapId,
             MapNode = node,
-            MapType = Settings.MapTypes.Maps.TryGetValue(node.Element.Area.Name.Replace(" ", ""), out Map mapType) ? mapType : new Map(),
+            MapType = Settings.MapTypes.Maps.TryGetValue(shortID, out Map mapType) ? mapType : Settings.MapTypes.Maps.Where(x => x.Value.MatchID(mapId)).Select(x => x.Value).FirstOrDefault() ?? new Map()
         };
 
         // Set Content
@@ -500,7 +560,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             }
         }
     
-        if (!newNode.IsVisited || newNode.MatchID("LostTowers")) {
+        if (!newNode.IsVisited || newNode.IsTower) {
             try {
                 foreach(var source in AtlasPanel.EffectSources.Where(x => Vector2.Distance(x.Coordinate, node.Coordinate) <= 11).AsParallel().ToList()) {
                     foreach(var effect in source.Effects.Where(x => Settings.MapMods.MapModTypes.ContainsKey(x.ModId.ToString()) && x.Value != 0).AsParallel().ToList()) {
@@ -508,7 +568,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                         var requiredContent = Settings.MapMods.MapModTypes[effectKey].RequiredContent;
                         
                         if (newNode.Effects.TryGetValue(effectKey, out Effect existingEffect)) {
-                            if (!newNode.MatchID("LostTowers") || !newNode.IsVisited)
+                            if (!newNode.IsTower || !newNode.IsVisited)
                                 newNode.Effects[effectKey].Value1 += effect.Value;
 
                             newNode.Effects[effectKey].Sources.Add(source.Coordinate);
@@ -542,14 +602,15 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     private int RefreshCachedMapNode(AtlasNodeDescription node, Node cachedNode)
     {
+        string shortID = node.Element.Area.Id.Trim().Replace("_NoBoss", "");
         cachedNode.IsUnlocked = node.Element.IsUnlocked;
         cachedNode.IsVisible = node.Element.IsVisible;
         cachedNode.IsVisited = node.Element.IsVisited || (!node.Element.IsUnlocked && node.Element.IsVisited);
         cachedNode.IsActive = node.Element.IsActive;
         cachedNode.Address = node.Element.Address;
-        cachedNode.ParentAddress = node.Address;
+        cachedNode.ParentAddress = node.Address;     
         cachedNode.MapNode = node;
-        cachedNode.MapType = Settings.MapTypes.Maps.TryGetValue(node.Element.Area.Name.Replace(" ",""), out Map mapType) ? mapType : new Map();
+        cachedNode.MapType = Settings.MapTypes.Maps.TryGetValue(shortID, out Map mapType) ? mapType : Settings.MapTypes.Maps.Where(x => x.Value.MatchID(node.Element.Area.Id)).Select(x => x.Value).FirstOrDefault() ?? new Map();
 
         if (cachedNode.IsVisited)
             return 1;
@@ -572,7 +633,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                     var requiredContent = Settings.MapMods.MapModTypes[effectKey].RequiredContent;
                     
                     if (cachedNode.Effects.TryGetValue(effectKey, out Effect existingEffect)) {
-                        if (cachedNode.Id != "MapLostTowers" || !cachedNode.IsVisited)
+                        if (cachedNode.IsTower || !cachedNode.IsVisited)
                             cachedNode.Effects[effectKey].Value1 += effect.Value;
 
                         cachedNode.Effects[effectKey].Sources.Add(source.Coordinate);
@@ -799,13 +860,13 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     private void DrawTowerMods(Node cachedNode, RectangleF nodeCurrentPosition)
     {
-        if ((cachedNode.MatchID("LostTowers") && !Settings.MapMods.ShowOnTowers) || (!cachedNode.MatchID("LostTowers") && !Settings.MapMods.ShowOnMaps) || !cachedNode.MapType.Highlight)    
+        if ((cachedNode.IsTower && !Settings.MapMods.ShowOnTowers) || (!cachedNode.IsTower && !Settings.MapMods.ShowOnMaps) || !cachedNode.MapType.Highlight)    
             return; 
 
         Dictionary<string, Color> mods = [];
 
         var effects = new List<Effect>();
-        if (cachedNode.MatchID("LostTowers")) {            
+        if (cachedNode.IsTower) {            
             if (Settings.MapMods.ShowOnTowers) {                
                 effects = cachedNode.Effects.Where(x => x.Value.Sources.Contains(cachedNode.Coordinates)).Select(x => x.Value).ToList();
 
@@ -912,10 +973,10 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     /// </summary>
     /// <param name="mapNode"></param>
     private void DrawTowerRange(Node cachedNode) {
-        if (!cachedNode.DrawTowers || (cachedNode.IsVisited && !cachedNode.MatchID("LostTowers")))
+        if (!cachedNode.DrawTowers || (cachedNode.IsVisited && !cachedNode.IsTower))
             return;
 
-        if (cachedNode.MatchID("LostTowers")) {
+        if (cachedNode.IsTower) {
             DrawNodesWithinRange(cachedNode);
         } else {
             DrawTowersWithinRange(cachedNode);
@@ -930,7 +991,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         if (!cachedNode.DrawTowers || cachedNode.IsVisited)
             return;
 
-        var nearbyTowers = mapCache.Where(x => x.Value.MatchID("LostTowers") && Vector2.Distance(x.Value.Coordinates, cachedNode.Coordinates) <= 11).Select(x => x.Value).AsParallel().ToList();
+        var nearbyTowers = mapCache.Where(x => x.Value.IsTower && Vector2.Distance(x.Value.Coordinates, cachedNode.Coordinates) <= 11).Select(x => x.Value).AsParallel().ToList();
         if (nearbyTowers.Count == 0)
             return;
 
@@ -1158,9 +1219,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         // Collapse
         if (ImGui.CollapsingHeader("Waypoints", ImGuiTreeNodeFlags.DefaultOpen))
         {
-            var flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH;
+            var flags = ImGuiTableFlags.BordersInnerH;
             ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0, 0, 0, 0));
-            if (ImGui.BeginTable("waypoint_list_table", 8, flags, new Vector2(-1, panelSize.Y/3)))
+            if (ImGui.BeginTable("waypoint_list_table", 8, flags))//, new Vector2(-1, panelSize.Y/3)))
             {
                 ImGui.TableSetupColumn("Enable", ImGuiTableColumnFlags.WidthFixed, 30);                                                               
                 ImGui.TableSetupColumn("Waypoint Name", ImGuiTableColumnFlags.WidthFixed, 300);     
@@ -1240,18 +1301,20 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         #region Atlas Table
         if (ImGui.CollapsingHeader("Atlas"))
         {
+            
 
-            ImGui.BeginGroup();
             // Sort by Combobox
-            ImGui.SetNextItemWidth(200);
+            ImGui.Text("Sort: ");
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(100);
             string sortBy = Settings.Waypoints.WaypointPanelSortBy;
-            if (ImGui.BeginCombo("Sort By", sortBy))
+            if (ImGui.BeginCombo("##sortByCombo", sortBy))
             {
-                if (ImGui.Selectable("Name", sortBy == "Name"))
-                    sortBy = "Name";
-                if (ImGui.Selectable("Weight", sortBy == "Weight"))
-                    sortBy = "Weight";
-
+                if (ImGui.Selectable("Name", sortBy == "Name")) 
+                    sortBy = "Name";         
+                if (ImGui.Selectable("Weight", sortBy == "Weight")) 
+                    sortBy = "Weight";                    
+       
                 Settings.Waypoints.WaypointPanelSortBy = sortBy;
                 ImGui.EndCombo();
             }
@@ -1259,33 +1322,59 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             ImGui.SameLine();
             ImGui.Spacing();
             ImGui.SameLine();
+
+            ImGui.Text("Max Items: ");
+            ImGui.SameLine();
             int maxItems = Settings.Waypoints.WaypointPanelMaxItems;
-            ImGui.SetNextItemWidth(200);
-            if (ImGui.InputInt("Max Items", ref maxItems))
+            ImGui.SetNextItemWidth(100);
+            if (ImGui.InputInt("##maxItems", ref maxItems))
                 Settings.Waypoints.WaypointPanelMaxItems = maxItems; 
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
 
-            ImGui.EndGroup();
-
-            var tempCache = mapCache.Where(x => !x.Value.IsVisited).AsParallel().ToDictionary(x => x.Key, x => x.Value);    
-
-            switch(sortBy) {
-                case "Name":
-                    tempCache = tempCache.OrderBy(x => x.Value.Name).ToDictionary(x => x.Key, x => x.Value);
-                    break;
-                case "Weight":
-                    tempCache = tempCache.OrderByDescending(x => x.Value.Weight).ToDictionary(x => x.Key, x => x.Value);
-                    break;
-                default:
-                    tempCache = tempCache.OrderByDescending(x => x.Value.Weight).ToDictionary(x => x.Key, x => x.Value);
-                    break;
+            ImGui.Text("Search: ");
+            ImGui.SameLine();
+            string regex = Settings.Waypoints.WaypointPanelFilter;
+            ImGui.SetNextItemWidth(250);
+            if (ImGui.InputText("##search", ref regex, 32, ImGuiInputTextFlags.EnterReturnsTrue)) {
+                Settings.Waypoints.WaypointPanelFilter = regex;
+            } else if (ImGui.IsItemDeactivatedAfterEdit()) {
+                Settings.Waypoints.WaypointPanelFilter = regex;
+            } else if (ImGui.IsItemHovered()) {
+                ImGui.SetTooltip("Searches for map names and/or mod text. Press enter to search.");
             }
 
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
+            bool useRegex = Settings.Waypoints.WaypointsUseRegex;
+            if (ImGui.Checkbox("Regex", ref useRegex))
+                Settings.Waypoints.WaypointsUseRegex = useRegex;
+        
+
+            var tempCache = mapCache.Where(x => !x.Value.IsVisited).AsParallel().ToDictionary(x => x.Key, x => x.Value);    
+            // if search isnt blank
+            if (!string.IsNullOrEmpty(Settings.Waypoints.WaypointPanelFilter)) {
+                if (useRegex) {
+                    tempCache = tempCache.Where(x => Regex.IsMatch(x.Value.Name, Settings.Waypoints.WaypointPanelFilter, RegexOptions.IgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).AsParallel().ToDictionary(x => x.Key, x => x.Value);
+                } else {
+                    tempCache = tempCache.Where(x => x.Value.Name.Contains(Settings.Waypoints.WaypointPanelFilter, StringComparison.CurrentCultureIgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).AsParallel().ToDictionary(x => x.Key, x => x.Value);
+                }
+            }
+
+            tempCache = sortBy switch
+            {
+                "Name" => tempCache.OrderBy(x => x.Value.Name).ToDictionary(x => x.Key, x => x.Value),
+                "Weight" => tempCache.OrderByDescending(x => x.Value.Weight).ToDictionary(x => x.Key, x => x.Value),
+                _ => tempCache.OrderByDescending(x => x.Value.Weight).ToDictionary(x => x.Key, x => x.Value),
+            };
             tempCache = tempCache.Take(maxItems).ToDictionary(x => x.Key, x => x.Value);
 
-            var flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.Hideable | ImGuiTableFlags.NoSavedSettings;
+            var flags = ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.Hideable | ImGuiTableFlags.NoSavedSettings;
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2, 2)); // Adjust the padding values as needed
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(2, 2)); // A
-            if (ImGui.BeginTable("atlas_list_table", 8, flags, new Vector2(-1, panelSize.Y/3)))
+            if (ImGui.BeginTable("atlas_list_table", 8, flags))//, new Vector2(-1, panelSize.Y/3)))
             {                                                            
                 ImGui.TableSetupColumn("Map Name", ImGuiTableColumnFlags.WidthFixed, 200);   
                 ImGui.TableSetupColumn("Content", ImGuiTableColumnFlags.WidthFixed, 60);     

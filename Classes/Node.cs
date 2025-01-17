@@ -2,39 +2,63 @@ using System.Collections.Generic;
 using ExileCore2.PoEMemory.Elements.AtlasElements;
 using System.Text;
 using GameOffsets2.Native;
-using System.ComponentModel;
 using System.Linq;
-using static ExileMaps.ExileMapsCore;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace ExileMaps.Classes;
 
 public class Node
 {
+    public string Name { get; set; }
+    public string Id { get; set; }
+
+    [JsonIgnore]
     public bool IsUnlocked;
+    
+    [JsonIgnore]
     public bool IsVisible;
+    [JsonIgnore]
     public bool IsActive;
+    [JsonIgnore]
     public bool IsVisited;
+    [JsonIgnore]
     public bool IsWaypoint;
+    [JsonIgnore]
     public bool IsFailed => !IsUnlocked && IsVisited;
+    [JsonIgnore]
     public bool IsAttempted => !IsUnlocked && IsVisited;
-    public (Vector2i, Vector2i, Vector2i, Vector2i) NeighborCoordinates;
-    public Vector2i Coordinates;
-    public Dictionary<Vector2i, Node> Neighbors = [];
-    public Dictionary<string, Biome> Biomes = [];
-    public Dictionary<string, Content> Content = [];
+    [JsonIgnore]
+    public bool IsTower => MapType.IsTower();
+    [JsonIgnore]
+    public (Vector2i, Vector2i, Vector2i, Vector2i) NeighborCoordinates { get; set; } 
+    [JsonIgnore]
+    public Vector2i Coordinates { get; set; }
+    [JsonIgnore]
+    public Dictionary<Vector2i, Node> Neighbors { get; set; } = [];
+    public Dictionary<string, Biome> Biomes { get; set; } = [];
+    [JsonIgnore]
+    public Dictionary<string, Content> Content { get; set; } = [];
+    [JsonIgnore]
     public Map MapType { get; set; }
-    public float Weight;
-    public Dictionary<string, Effect> Effects = [];
+    [JsonIgnore]
+    public float Weight { get; set; }
+    [JsonIgnore]
+    public Dictionary<string, Effect> Effects { get; set; } = [];
+    [JsonIgnore]
     public bool DrawTowers { get; set; }
+
     public long Address { get; set; }
     public long ParentAddress { get; set; }
-    public string Name { get; set; }
-    public string Id;
 
+    [JsonIgnore]
+    public string[] EffectText => [.. Effects.Select(x => x.Value.ToString())];
+
+    [JsonIgnore]
     public AtlasNodeDescription MapNode { get; set; }
 
     public bool MatchID(string id) {
-        return Id.Replace("_NoBoss", "").Replace("Map","").Replace("UberBoss","").Trim() == id.Replace("_NoBoss", "").Replace("Map","").Replace("UberBoss","").Trim();
+        return MapType.MatchID(id);
     }
     public Waypoint ToWaypoint() {
         return new Waypoint {
@@ -92,8 +116,8 @@ public class Node
     public string DebugText() {
         
         StringBuilder sb = new();
-        sb.AppendLine($"Id: {Id}");
-        sb.AppendLine($"Address: {ParentAddress.ToString()}");
+        sb.AppendLine($"Id: {Id}"); 
+        sb.AppendLine($"ParentAddress: {ParentAddress:X}");
         sb.AppendLine($"Weight: {Weight}");
         sb.AppendLine($"Coordinates: {Coordinates}");
         sb.AppendLine($"Biomes: {string.Join(", ", Biomes.Where(x => x.Value != null).Select(x => x.Value.Name))}");
@@ -108,6 +132,11 @@ public class Node
         }
 
         return sb.ToString();
+    }
+
+    // Use regex to match EffectText
+    public bool MatchEffect(string regex) {
+        return EffectText.Any(x => Regex.IsMatch(x, regex, RegexOptions.IgnoreCase));
     }
 
     public List<Vector2i> GetNeighborCoordinates() {

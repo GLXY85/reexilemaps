@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using GameOffsets2.Native;
-using System.Linq;
 using static ExileMaps.ExileMapsCore;
 
 namespace ExileMaps.Classes
@@ -16,7 +15,7 @@ namespace ExileMaps.Classes
         private int value2;
         private long id;
         private float weight;
-        private List<Vector2i> sources = new List<Vector2i>();
+        private List<Vector2i> sources = [];
 
         public event PropertyChangedEventHandler PropertyChanged;
 
