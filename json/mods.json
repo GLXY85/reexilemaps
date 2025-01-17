@@ -598,7 +598,7 @@
         "MinValue2": 0,
         "MaxValue2": 0,
         "Weight": 0.1,
-        "Description": "$% Inc. Delirium Doodads",
+        "Description": "Freeze Fog for $s per rare",
         "Color": "200, 220, 220, 220",        
         "RequiredContent": "Delirium"
     }

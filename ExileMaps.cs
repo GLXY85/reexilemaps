@@ -705,6 +705,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
                 
             if (!Settings.Features.DrawVisitedNodeConnections && (destinationNode.IsVisited || cachedNode.IsVisited))
                 continue;
+
+            if ((!Settings.Features.DrawHiddenNodeConnections || !Settings.Features.ProcessHiddenNodes) && (!destinationNode.IsVisible || !cachedNode.IsVisible))
+                continue;
             
             var destinationPos = destinationNode.MapNode.Element.GetClientRect();
 
