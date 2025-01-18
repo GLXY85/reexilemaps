@@ -98,6 +98,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     {
         if (!AtlasPanel.IsVisible) {
             AtlasHasBeenClosed = true;
+            WaypointPanelIsOpen = false;
             return;
         }
 
