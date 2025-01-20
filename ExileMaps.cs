@@ -1333,9 +1333,16 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             ImGui.SetNextItemWidth(100);
             if (ImGui.InputInt("##maxItems", ref maxItems))
                 Settings.Waypoints.WaypointPanelMaxItems = maxItems; 
+
             ImGui.SameLine();
             ImGui.Spacing();
             ImGui.SameLine();
+
+            bool unlockedOnly = Settings.Waypoints.ShowUnlockedOnly;
+            if (ImGui.Checkbox("Show Unlocked Maps Only", ref unlockedOnly))
+                Settings.Waypoints.ShowUnlockedOnly = unlockedOnly;
+
+            ImGui.Separator();
 
             ImGui.Text("Search: ");
             ImGui.SameLine();
@@ -1355,9 +1362,10 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
             bool useRegex = Settings.Waypoints.WaypointsUseRegex;
             if (ImGui.Checkbox("Regex", ref useRegex))
                 Settings.Waypoints.WaypointsUseRegex = useRegex;
+            
+            ImGui.Separator();
         
-
-            var tempCache = mapCache.Where(x => !x.Value.IsVisited).AsParallel().ToDictionary(x => x.Key, x => x.Value);    
+            var tempCache = mapCache.Where(x => !x.Value.IsVisited && (!Settings.Waypoints.ShowUnlockedOnly || x.Value.IsUnlocked)).AsParallel().ToDictionary(x => x.Key, x => x.Value);    
             // if search isnt blank
             if (!string.IsNullOrEmpty(Settings.Waypoints.WaypointPanelFilter)) {
                 if (useRegex) {

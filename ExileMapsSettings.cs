@@ -772,6 +772,7 @@ public class WaypointSettings
     public int WaypointPanelMaxItems { get; set; } = 30;
     public string WaypointPanelSortBy { get; set; } = "Weight";
     public bool WaypointsUseRegex { get; set; } = false;
+    public bool ShowUnlockedOnly { get; set; } = false;
 
     public string WaypointPanelFilter { get; set; } = "";
     public ObservableDictionary<Vector2i, Waypoint> Waypoints { get; set; } = [];
