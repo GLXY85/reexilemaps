@@ -18,29 +18,15 @@ namespace ExileMaps;
 public class ExileMapsSettings : ISettings
 {
     public ToggleNode Enable { get; set; } = new ToggleNode(false);
-
-    [Menu("Toggle Features")]
-    public FeatureSettings Features { get; set; } = new FeatureSettings();
-    
-    [Menu("Keybinds")]
-    public HotkeySettings Keybinds { get; set; } = new HotkeySettings();
-
-    [Menu("Graphics, Colors, and Performance Settings")]    
+    public FeatureSettings Features { get; set; } = new FeatureSettings();    
+    public HotkeySettings Keybinds { get; set; } = new HotkeySettings();  
     public GraphicSettings Graphics { get; set; } = new GraphicSettings();
 
     [Menu("Map Settings")]
     public MapSettings MapTypes { get; set; } = new MapSettings();
-
-    [Menu("Biome Settings")]
     public BiomeSettings Biomes { get; set; } = new BiomeSettings();
-
-    [Menu("Content Settings")]
     public ContentSettings MapContent { get; set; } = new ContentSettings();
-
-    [Menu("Atlas Mod Settings")]
     public MapModSettings MapMods { get; set; } = new MapModSettings();
-
-    [Menu("Waypoint Settings")]
     public WaypointSettings Waypoints { get; set; } = new WaypointSettings();
 
 }
@@ -87,7 +73,7 @@ public class FeatureSettings
     public ToggleNode DebugMode { get; set; } = new ToggleNode(false);
 
 }
-[Submenu(CollapsedByDefault = false)]
+[Submenu(CollapsedByDefault = true)]
 public class HotkeySettings
 {
     [Menu("Map Cache Refresh Hotkey", "Default: ]")]
@@ -124,7 +110,7 @@ public class HotkeySettings
     public HotkeyNode UpdateMapsKey { get; set; } = new HotkeyNode(Keys.F13);
 }
 
-[Submenu(CollapsedByDefault = false)]
+[Submenu(CollapsedByDefault = true)]
 public class GraphicSettings
 {
     [Menu("Render every N ticks", "Throttle the renderer to only re-render every Nth tick - can improve performance.")]
@@ -170,32 +156,22 @@ public class GraphicSettings
     public RangeNode<float> NodeRadius { get; set; } = new RangeNode<float>(1.5f, 0, 10);
 }
 
+[Submenu(CollapsedByDefault = true)]
 /// <summary>
 /// Settings for Map types
 /// </summary>
 /// MARK: MapSettings
-[Submenu(CollapsedByDefault = true)]
 public class MapSettings
 {
-    [JsonIgnore]
-    public CustomNode CustomMapSettings { get; set; }
-    public bool HighlightMapNodes { get; set; } = true;
-    public bool ColorNodesByWeight { get; set; } = true;
-    public bool DrawWeightOnMap { get; set; } = false;
-    public bool ShowMapNames { get; set; } = true;
-    public bool UseColorsForMapNames { get; set; } = true;
-    public bool UseWeightColorsForMapNames { get; set; } = true;
-    public bool ShowMapNamesOnUnlockedNodes { get; set; } = true;
-    public bool ShowMapNamesOnLockedNodes { get; set; } = true;
-    public bool ShowMapNamesOnHiddenNodes { get; set; } = true;
-    public Color GoodNodeColor { get; set; } = Color.FromArgb(200, 50, 255, 50);
-    public Color BadNodeColor { get; set; } = Color.FromArgb(200, 255, 50, 50);
-    public ObservableDictionary<string, Map> Maps { get; set; } = [];
+
     public MapSettings() {    
+        
         CustomMapSettings = new CustomNode
         {
+            
             DrawDelegate = () =>
             {
+                
                 if (ImGui.BeginTable("map_options_table", 2, ImGuiTableFlags.NoBordersInBody|ImGuiTableFlags.PadOuterX))
                 {
                     ImGui.TableSetupColumn("Check", ImGuiTableColumnFlags.WidthFixed, 40);                                                               
@@ -299,102 +275,129 @@ public class MapSettings
                         BadNodeColor = Color.FromArgb((int)(badColor.W * 255), (int)(badColor.X * 255), (int)(badColor.Y * 255), (int)(badColor.Z * 255));
 
                     ImGui.TableNextColumn();
-                    ImGui.Text("Bad Node Color");  
-                    ImGui.TableNextRow();
-
-                    
+                    ImGui.Text("Bad Node Color"); 
                 }
 
-                ImGui.EndTable();                
-                ImGui.Spacing();
+                ImGui.EndTable();       
 
+   
 
+                
+      
 
-                ImGui.Spacing();
-                ImGui.TextWrapped("CTRL+Click on a slider to manually enter a value.");
-                ImGui.Spacing();
-                if (ImGui.TreeNodeEx("Map Table", ImGuiTreeNodeFlags.DefaultOpen|ImGuiTreeNodeFlags.SpanFullWidth)) {
-                    {
-
-                    if (ImGui.BeginTable("maps_table", 7, ImGuiTableFlags.SizingFixedFit|ImGuiTableFlags.Borders|ImGuiTableFlags.PadOuterX))
-                    {
-    
-                        ImGui.TableSetupColumn("Map", ImGuiTableColumnFlags.WidthFixed, 250);                                                              
-                        ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 100); 
-                        ImGui.TableSetupColumn("Node", ImGuiTableColumnFlags.WidthFixed, 30);     
-                        ImGui.TableSetupColumn("Text", ImGuiTableColumnFlags.WidthFixed, 30);               
-                        ImGui.TableSetupColumn("Text BG", ImGuiTableColumnFlags.WidthFixed, 30);
-                        ImGui.TableSetupColumn("Line", ImGuiTableColumnFlags.WidthFixed, 30);                              
-                        ImGui.TableSetupColumn("Biomes", ImGuiTableColumnFlags.WidthStretch, 200);   
-                        ImGui.TableHeadersRow();
-                        
-                        if (Maps.Count == 0)   
-                            Main.LoadDefaultMaps();
-                        
-                        foreach (var (key,map) in Maps.OrderBy(x => x.Value.Name))
-                        {
-                            ImGui.PushID($"Map_{key}");
-                            ImGui.TableNextRow();
-                            ImGui.TableNextColumn();
-                            bool isMapHighlighted = map.Highlight;
-
-                            // Highlight
-                            if(ImGui.Checkbox($"##{key}_highlight", ref isMapHighlighted))
-                                map.Highlight = isMapHighlighted;
-
-                            // Name
-                            ImGui.SameLine();
-                            ImGui.Text(map.Name);
-
-                            // Weight
-                            ImGui.TableNextColumn();
-                            float weight = map.Weight;
-                            ImGui.SetNextItemWidth(100);
-                            if(ImGui.SliderFloat($"##{key}_weight", ref weight, -25.0f, 50.0f, "%.1f"))                        
-                                map.Weight = weight;
-
-                            ImGui.TableNextColumn();
-
-                            // Node Color
-                            SettingsHelpers.CenterControl(30f);
-                            Vector4 colorVector = new(map.NodeColor.R / 255.0f, map.NodeColor.G / 255.0f, map.NodeColor.B / 255.0f, map.NodeColor.A / 255.0f);
-                            if(ImGui.ColorEdit4($"##{key}_nodecolor", ref colorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
-                                map.NodeColor = Color.FromArgb((int)(colorVector.W * 255), (int)(colorVector.X * 255), (int)(colorVector.Y * 255), (int)(colorVector.Z * 255));
-                            
-                            // Text Color
-                            ImGui.TableNextColumn();
-                            SettingsHelpers.CenterControl(30f);
-                            Vector4 nameColorVector = new(map.NameColor.R / 255.0f, map.NameColor.G / 255.0f, map.NameColor.B / 255.0f, map.NameColor.A / 255.0f);
-                            if(ImGui.ColorEdit4($"##{key}_namecolor", ref nameColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
-                                map.NameColor = Color.FromArgb((int)(nameColorVector.W * 255), (int)(nameColorVector.X * 255), (int)(nameColorVector.Y * 255), (int)(nameColorVector.Z * 255));
-                            
-                            // Text BG Color
-                            ImGui.TableNextColumn();
-                            SettingsHelpers.CenterControl(30f);
-                            Vector4 bgColorVector = new(map.BackgroundColor.R / 255.0f, map.BackgroundColor.G / 255.0f, map.BackgroundColor.B / 255.0f, map.BackgroundColor.A / 255.0f);
-                            if(ImGui.ColorEdit4($"##{key}_bgcolor", ref bgColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
-                                map.BackgroundColor = Color.FromArgb((int)(bgColorVector.W * 255), (int)(bgColorVector.X * 255), (int)(bgColorVector.Y * 255), (int)(bgColorVector.Z * 255));
-                            
-                            // Line Color
-                            ImGui.TableNextColumn();
-                            SettingsHelpers.CenterControl(30f);
-                            bool drawLine = map.DrawLine;
-                            if(ImGui.Checkbox($"##{key}_line", ref drawLine))
-                                map.DrawLine = drawLine;    
-                            
-                            // Biomes
-                            ImGui.TableNextColumn();
-                            ImGui.Text(map.BiomesToString() ?? "None");
-
-                            ImGui.PopID();
-                        }                
-                    }
-                    ImGui.EndTable();
-                    }
-                }
             }
         };
+
+        MapTable = new CustomNode
+        {
+            
+            DrawDelegate = () =>
+            {
+
+            ImGui.Separator();
+            ImGui.TextWrapped("CTRL+Click on a slider to manually enter a value.");
+            
+            if (ImGui.BeginTable("maps_table", 7, ImGuiTableFlags.SizingFixedFit|ImGuiTableFlags.Borders|ImGuiTableFlags.PadOuterX))
+            {
+
+                ImGui.TableSetupColumn("Map", ImGuiTableColumnFlags.WidthFixed, 250);                                                              
+                ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 100); 
+                ImGui.TableSetupColumn("Node", ImGuiTableColumnFlags.WidthFixed, 30);     
+                ImGui.TableSetupColumn("Text", ImGuiTableColumnFlags.WidthFixed, 30);               
+                ImGui.TableSetupColumn("Text BG", ImGuiTableColumnFlags.WidthFixed, 30);
+                ImGui.TableSetupColumn("Line", ImGuiTableColumnFlags.WidthFixed, 30);                              
+                ImGui.TableSetupColumn("Biomes", ImGuiTableColumnFlags.WidthStretch, 200);   
+                ImGui.TableHeadersRow();
+                
+                if (Maps.Count == 0)   
+                    Main.LoadDefaultMaps();
+                
+                foreach (var (key,map) in Maps.OrderBy(x => x.Value.Name))
+                {
+                    ImGui.PushID($"Map_{key}");
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    bool isMapHighlighted = map.Highlight;
+
+                    // Highlight
+                    if(ImGui.Checkbox($"##{key}_highlight", ref isMapHighlighted))
+                        map.Highlight = isMapHighlighted;
+
+                    // Name
+                    ImGui.SameLine();
+                    ImGui.Text(map.Name);
+
+                    // Weight
+                    ImGui.TableNextColumn();
+                    float weight = map.Weight;
+                    ImGui.SetNextItemWidth(100);
+                    if(ImGui.SliderFloat($"##{key}_weight", ref weight, -25.0f, 50.0f, "%.1f"))                        
+                        map.Weight = weight;
+
+                    ImGui.TableNextColumn();
+
+                    // Node Color
+                    SettingsHelpers.CenterControl(30f);
+                    Vector4 colorVector = new(map.NodeColor.R / 255.0f, map.NodeColor.G / 255.0f, map.NodeColor.B / 255.0f, map.NodeColor.A / 255.0f);
+                    if(ImGui.ColorEdit4($"##{key}_nodecolor", ref colorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
+                        map.NodeColor = Color.FromArgb((int)(colorVector.W * 255), (int)(colorVector.X * 255), (int)(colorVector.Y * 255), (int)(colorVector.Z * 255));
+                    
+                    // Text Color
+                    ImGui.TableNextColumn();
+                    SettingsHelpers.CenterControl(30f);
+                    Vector4 nameColorVector = new(map.NameColor.R / 255.0f, map.NameColor.G / 255.0f, map.NameColor.B / 255.0f, map.NameColor.A / 255.0f);
+                    if(ImGui.ColorEdit4($"##{key}_namecolor", ref nameColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
+                        map.NameColor = Color.FromArgb((int)(nameColorVector.W * 255), (int)(nameColorVector.X * 255), (int)(nameColorVector.Y * 255), (int)(nameColorVector.Z * 255));
+                    
+                    // Text BG Color
+                    ImGui.TableNextColumn();
+                    SettingsHelpers.CenterControl(30f);
+                    Vector4 bgColorVector = new(map.BackgroundColor.R / 255.0f, map.BackgroundColor.G / 255.0f, map.BackgroundColor.B / 255.0f, map.BackgroundColor.A / 255.0f);
+                    if(ImGui.ColorEdit4($"##{key}_bgcolor", ref bgColorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
+                        map.BackgroundColor = Color.FromArgb((int)(bgColorVector.W * 255), (int)(bgColorVector.X * 255), (int)(bgColorVector.Y * 255), (int)(bgColorVector.Z * 255));
+                    
+                    // Line Color
+                    ImGui.TableNextColumn();
+                    SettingsHelpers.CenterControl(30f);
+                    bool drawLine = map.DrawLine;
+                    if(ImGui.Checkbox($"##{key}_line", ref drawLine))
+                        map.DrawLine = drawLine;    
+                    
+                    // Biomes
+                    ImGui.TableNextColumn();
+                    ImGui.Text(map.BiomesToString() ?? "None");
+
+                    ImGui.PopID();
+                }                
+            }
+            ImGui.EndTable();
+            }
+        };
+
     }
+
+    [JsonIgnore]
+    public CustomNode CustomMapSettings { get; set; }
+
+    [Menu("Map Types", 1032, CollapsedByDefault = false)]
+    [JsonIgnore]
+    public EmptyNode MapTypesHeader { get; set; }
+    [JsonIgnore]    
+    [Menu(null, parentIndex = 1032)]
+    public CustomNode MapTable { get; set; }
+
+    public bool HighlightMapNodes { get; set; } = true;
+    public bool ColorNodesByWeight { get; set; } = true;
+    public bool DrawWeightOnMap { get; set; } = false;
+    public bool ShowMapNames { get; set; } = true;
+    public bool UseColorsForMapNames { get; set; } = true;
+    public bool UseWeightColorsForMapNames { get; set; } = true;
+    public bool ShowMapNamesOnUnlockedNodes { get; set; } = true;
+    public bool ShowMapNamesOnLockedNodes { get; set; } = true;
+    public bool ShowMapNamesOnHiddenNodes { get; set; } = true;
+    public Color GoodNodeColor { get; set; } = Color.FromArgb(200, 50, 255, 50);
+    public Color BadNodeColor { get; set; } = Color.FromArgb(200, 255, 50, 50);
+    public ObservableDictionary<string, Map> Maps { get; set; } = [];
 }
 
 /// <summary>
@@ -775,7 +778,7 @@ public class WaypointSettings
     public bool ShowUnlockedOnly { get; set; } = false;
 
     public string WaypointPanelFilter { get; set; } = "";
-    public ObservableDictionary<Vector2i, Waypoint> Waypoints { get; set; } = [];
+    public ObservableDictionary<string, Waypoint> Waypoints { get; set; } = [];
     public WaypointSettings() {    
         CustomWaypointSettings = new CustomNode
         {
@@ -809,7 +812,7 @@ public class WaypointSettings
                     ImGui.TableNextRow();
 
                 }
-            ImGui.EndTable();
+                ImGui.EndTable();
             }
         };
     }

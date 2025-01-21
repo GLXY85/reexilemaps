@@ -6,11 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text.Json;
-using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 
 using ExileCore2;
-using ExileCore2.PoEMemory;
 using ExileCore2.PoEMemory.Elements.AtlasElements;
 using ExileCore2.PoEMemory.MemoryObjects;
 using ExileCore2.Shared.Helpers;
@@ -23,7 +21,6 @@ using ImGuiNET;
 
 using RectangleF = ExileCore2.Shared.RectangleF;
 using ExileMaps.Classes;
-using Microsoft.VisualBasic;
 
 namespace ExileMaps;
 
@@ -39,8 +36,8 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     private const string ArrowPath = "textures\\arrow.png";
     private const string IconsFile = "Icons.png";
     
-    public IngameUIElements UI => GameController.Game.IngameState.IngameUi;
-    public AtlasPanel AtlasPanel => UI.WorldMap.AtlasPanel;
+    public IngameUIElements UI;
+    public AtlasPanel AtlasPanel;
 
     private Vector2 screenCenter;
     private Dictionary<Vector2i, Node> mapCache = [];
@@ -96,6 +93,9 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 
     public override void Tick()
     {
+        UI = GameController.Game.IngameState.IngameUi;
+        AtlasPanel = UI.WorldMap.AtlasPanel;
+
         if (!AtlasPanel.IsVisible) {
             AtlasHasBeenClosed = true;
             WaypointPanelIsOpen = false;
@@ -148,7 +148,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         List<Node> selectedNodes;
         lock (mapCacheLock) {
             selectedNodes = mapCache.Values.Where(x => Settings.Features.ProcessVisitedNodes || !x.IsVisited || x.IsAttempted)
-                .Where(x => (Settings.Features.ProcessHiddenNodes && !x.IsVisible) || x.IsVisible)            
+                .Where(x => (Settings.Features.ProcessHiddenNodes && !x.IsVisible) || x.IsVisible || x.IsTower)            
                 .Where(x => (Settings.Features.ProcessLockedNodes && !x.IsUnlocked) || x.IsUnlocked)
                 .Where(x => (Settings.Features.ProcessUnlockedNodes && x.IsUnlocked) || !x.IsUnlocked)
                 .Where(x => IsOnScreen(x.MapNode.Element.GetClientRect().Center)).AsParallel().ToList();
@@ -1506,7 +1506,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     }
 
     private void AddWaypoint(Node cachedNode) {
-        if (Settings.Waypoints.Waypoints.ContainsKey(cachedNode.Coordinates))
+        if (Settings.Waypoints.Waypoints.ContainsKey(cachedNode.Coordinates.ToString()))
             return;
 
         float weight = (cachedNode.Weight - minMapWeight) / (maxMapWeight - minMapWeight);
@@ -1514,17 +1514,17 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         newWaypoint.Icon = MapIconsIndex.LootFilterLargeWhiteUpsideDownHouse;
         newWaypoint.Color = ColorUtils.InterpolateColor(Settings.MapTypes.BadNodeColor, Settings.MapTypes.GoodNodeColor, weight);
 
-        Settings.Waypoints.Waypoints.Add(cachedNode.Coordinates, newWaypoint);
+        Settings.Waypoints.Waypoints.Add(cachedNode.Coordinates.ToString(), newWaypoint);
     }
 
     private void RemoveWaypoint(Node cachedNode) {
-        if (!Settings.Waypoints.Waypoints.ContainsKey(cachedNode.Coordinates))
+        if (!Settings.Waypoints.Waypoints.ContainsKey(cachedNode.Coordinates.ToString()))
             return;
 
-        Settings.Waypoints.Waypoints.Remove(cachedNode.Coordinates);
+        Settings.Waypoints.Waypoints.Remove(cachedNode.Coordinates.ToString());
     }
     private void RemoveWaypoint(Waypoint waypoint) {
-        Settings.Waypoints.Waypoints.Remove(waypoint.Coordinates);
+        Settings.Waypoints.Waypoints.Remove(waypoint.Coordinates.ToString());
     }
 
     private void DrawWaypointArrow(Waypoint waypoint) {

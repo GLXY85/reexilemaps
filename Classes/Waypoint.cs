@@ -7,8 +7,7 @@ using GameOffsets2.Native;
 using ExileCore2.PoEMemory.Elements.AtlasElements;
 using ExileCore2.Shared.Enums;
 using static ExileMaps.ExileMapsCore;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace ExileMaps.Classes
 {
@@ -28,9 +27,7 @@ namespace ExileMaps.Classes
         public MapIconsIndex Icon { get; set; }
         public Color Color { get; set; }
 
-        
-
-
+        [JsonIgnore]
         public string CoordinatesString
         {
             get => $"{Coordinates.X},{Coordinates.Y}";
@@ -39,6 +36,7 @@ namespace ExileMaps.Classes
         
         public long Address { get; set; }
 
+        
         public AtlasNodeDescription MapNode () {
             if (Main.AtlasPanel == null) return null;
             return Main.AtlasPanel.Descriptions.FirstOrDefault(x => x.Coordinate.ToString() == Coordinates.ToString()) ?? null;
