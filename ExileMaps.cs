@@ -833,7 +833,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         // get the map weight % relative to the average map weight
         float weight = (cachedNode.Weight - minMapWeight) / (maxMapWeight - minMapWeight);  
          
-        float offsetX = (Graphics.MeasureText(cachedNode.Name.ToUpper()).X / 2) + 30;
+        float offsetX = Settings.MapTypes.ShowMapNames ? (Graphics.MeasureText(cachedNode.Name.ToUpper()).X / 2) + 30 : 50;
         Vector2 position = new(nodeCurrentPosition.Center.X + offsetX, nodeCurrentPosition.Center.Y);
 
         DrawCenteredTextWithBackground($"{(int)(weight*100)}%", position, ColorUtils.InterpolateColor(Settings.MapTypes.BadNodeColor, Settings.MapTypes.GoodNodeColor, weight), Settings.Graphics.BackgroundColor, true, 10, 3);
