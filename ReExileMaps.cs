@@ -1761,7 +1761,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     var centerNode = GetClosestNodeToCenterScreen();
                     if (centerNode != null) {
                         Vector2i centerCoords = centerNode.Coordinates;
-                        searchResults = query.OrderBy(n => Vector2i.Distance(centerCoords, n.Coordinates)).ToList();
+                        searchResults = query.OrderBy(n => Vector2i.Distance(ref centerCoords, ref n.Coordinates)).ToList();
                     } else {
                         searchResults = query.OrderByDescending(n => n.Weight).ToList();
                     }
@@ -1801,7 +1801,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             }
             
             // Search hint tooltip
-            if (ImGui.IsItemHovered() || ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled, 10)) {
+            if (ImGui.IsItemHovered() || ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) {
                 ImGui.BeginTooltip();
                 ImGui.Text("Search Syntax Guide:");
                 ImGui.Separator();
