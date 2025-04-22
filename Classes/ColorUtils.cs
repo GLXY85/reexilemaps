@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using ExileCore2.PoEMemory.Components;
+using System.Numerics;
 
 namespace ReExileMaps.Classes
 {
@@ -20,6 +21,16 @@ namespace ReExileMaps.Classes
             int iA = Math.Max(Math.Min((int)a, 255), 0);
             
             return Color.FromArgb(iA, iR, iG, iB);
+        }
+        
+        public static Vector4 ToVector4(this Color color)
+        {
+            return new Vector4(
+                color.R / 255.0f, 
+                color.G / 255.0f, 
+                color.B / 255.0f, 
+                color.A / 255.0f
+            );
         }
     }
 }

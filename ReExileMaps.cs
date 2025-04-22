@@ -1625,7 +1625,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.SetNextWindowPos(searchPanelPosition, ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(600, 500), ImGuiCond.FirstUseEver);
         
-        if (ImGui.Begin("Map Search###MapSearchPanel", ref Settings.Search.PanelIsOpen, windowFlags)) {
+        bool isOpen = Settings.Search.PanelIsOpen;
+        if (ImGui.Begin("Map Search###MapSearchPanel", ref isOpen, windowFlags)) {
+            Settings.Search.PanelIsOpen = isOpen;
             searchPanelPosition = ImGui.GetWindowPos();
             
             // Search bar
