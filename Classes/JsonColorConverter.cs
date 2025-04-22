@@ -1,22 +1,36 @@
 using System;
 using System.Drawing;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace ReExileMaps.Classes;
 
-public class JsonColorConverter : JsonConverter<Color>
+public class JsonColorConverter : JsonConverter
 {
-    public override Color Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override bool CanConvert(Type objectType)
     {
-        string colorString = reader.GetString();
+        return objectType == typeof(Color);
+    }
+
+    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    {
+        if (reader.TokenType == JsonToken.Null)
+            return null;
+
+        string colorString = reader.Value?.ToString();
         return ParseColor(colorString);
     }
 
-    public override void Write(Utf8JsonWriter writer, Color value, JsonSerializerOptions options)
+    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
     {
-        string colorString = $"{value.A}, {value.R}, {value.G}, {value.B}";
-        writer.WriteStringValue(colorString);
+        if (value == null)
+        {
+            writer.WriteNull();
+            return;
+        }
+
+        Color color = (Color)value;
+        string colorString = $"{color.A}, {color.R}, {color.G}, {color.B}";
+        writer.WriteValue(colorString);
     }
 
     private Color ParseColor(string colorString)
