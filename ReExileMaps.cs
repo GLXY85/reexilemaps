@@ -491,18 +491,15 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             if (AtlasPanel?.Descriptions == null || AtlasPanel.Descriptions.Count == 0)
                 return null;
                 
-            var hoverElement = GameController?.Game?.IngameState?.UIHoverElement;
-            if (hoverElement == null)
-                return null;
-                
+            // Используем центр экрана вместо отслеживания курсора
             var closestNode = AtlasPanel.Descriptions
-                .Where(x => x != null && x.Element != null) // Защита от null-элементов
+                .Where(x => x != null && x.Element != null)
                 .OrderBy(x => {
                     try {
-                        return Vector2.Distance(hoverElement.GetClientRect().Center, x.Element.GetClientRect().Center);
+                        return Vector2.Distance(screenCenter, x.Element.GetClientRect().Center);
                     }
                     catch {
-                        return float.MaxValue; // Если не удалось вычислить расстояние
+                        return float.MaxValue;
                     }
                 })
                 .AsParallel()
@@ -1791,37 +1788,33 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                                        .ToList();
                     break;
                 case "Distance":
-                    // Используем текущее положение курсора вместо центра экрана
-                    var cursorNode = GetClosestNodeToCursor();
-                    if (cursorNode != null) {
-                        Vector2i cursorCoords = cursorNode.Coordinates;
-                        try {
-                            // Используем безопасное логирование с проверкой на null
-                            if (LogMessage != null) {
-                                LogMessage($"Sorting by distance from cursor position at {cursorCoords}");
-                            }
-                            // Сортируем сначала по возрастанию расстояния (ближние карты первыми)
-                            searchResults = query.OrderBy(n => {
-                                if (n == null) return float.MaxValue; // Защита от возможных null значений
-                                Vector2i nodeCoords = n.Coordinates;
-                                return Vector2i.Distance(ref cursorCoords, ref nodeCoords);
-                            }).ToList();
+                    // Используем центр экрана вместо положения курсора
+                    try {
+                        if (LogMessage != null) {
+                            LogMessage($"Sorting by distance from player position");
                         }
-                        catch (Exception ex) {
-                            // Используем безопасное логирование ошибок
+                        // Сортируем сначала по возрастанию расстояния (ближние карты первыми)
+                        searchResults = query.OrderBy(n => {
+                            if (n == null) return float.MaxValue; // Защита от возможных null значений
                             try {
-                                if (LogError != null) {
-                                    LogError($"Error during distance sorting: {ex.Message}");
-                                }
+                                return Vector2.Distance(screenCenter, n.MapNode.Element.GetClientRect().Center);
                             }
                             catch {
-                                // Игнорируем ошибку в логировании ошибки
+                                return float.MaxValue;
                             }
-                            // Запасной вариант при ошибке - сортировка по весу
-                            searchResults = query.OrderByDescending(n => n.Weight).ToList();
+                        }).ToList();
+                    }
+                    catch (Exception ex) {
+                        // Используем безопасное логирование ошибок
+                        try {
+                            if (LogError != null) {
+                                LogError($"Error during distance sorting: {ex.Message}");
+                            }
                         }
-                    } else {
-                        // Запасной вариант, если курсор не на узле
+                        catch {
+                            // Игнорируем ошибку в логировании ошибки
+                        }
+                        // Запасной вариант при ошибке - сортировка по весу
                         searchResults = query.OrderByDescending(n => n.Weight).ToList();
                     }
                     break;
@@ -1897,24 +1890,11 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             // Отображаем текущую позицию для измерения расстояния, если выбрана сортировка по расстоянию
             if (Settings.Search.SortBy == "Distance") {
                 ImGui.SameLine();
-                try {
-                    var cursorNode = GetClosestNodeToCursor();
-                    if (cursorNode != null) {
-                        ImGui.TextColored(new Vector4(0.5f, 0.8f, 0.5f, 1.0f), 
-                            $"(от позиции игрока: {cursorNode.Name} [{cursorNode.Coordinates.X},{cursorNode.Coordinates.Y}])");
-                        if (ImGui.IsItemHovered()) {
-                            ImGui.BeginTooltip();
-                            ImGui.Text("Расстояние измеряется от текущего положения игрока на атласе");
-                            ImGui.Text("Переместите курсор на другую карту в атласе для изменения точки отсчета");
-                            ImGui.EndTooltip();
-                        }
-                    }
-                    else {
-                        ImGui.TextColored(new Vector4(0.9f, 0.6f, 0.2f, 1.0f), "(выберите карту на атласе)");
-                    }
-                }
-                catch {
-                    // Игнорируем ошибки при отображении информации о расстоянии
+                ImGui.TextColored(new Vector4(0.5f, 0.8f, 0.5f, 1.0f), "(от позиции игрока в центре экрана)");
+                if (ImGui.IsItemHovered()) {
+                    ImGui.BeginTooltip();
+                    ImGui.Text("Расстояние измеряется от текущего положения игрока в центре экрана");
+                    ImGui.EndTooltip();
                 }
             }
             
@@ -2016,28 +1996,21 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     // Distance column (if Distance sorting is active)
                     if (Settings.Search.SortBy == "Distance") {
                         ImGui.TableNextColumn();
-                        var cursorNode = GetClosestNodeToCursor();
-                        if (cursorNode != null && node != null) {
-                            try {
-                                Vector2i cursorCoords = cursorNode.Coordinates;
-                                Vector2i nodeCoords = node.Coordinates;
-                                int distance = (int)Vector2i.Distance(ref cursorCoords, ref nodeCoords);
-                                
-                                // Цвет зависит от расстояния: зеленый для близких, красный для дальних
-                                float distanceNormalized = Math.Min(distance / 50.0f, 1.0f); // Нормализуем, считая 50 расстояний максимумом
-                                Vector4 distanceColor = ColorUtils.InterpolateColor(
-                                    Color.LightGreen, 
-                                    Color.OrangeRed, 
-                                    distanceNormalized
-                                ).ToVector4();
-                                
-                                ImGui.TextColored(distanceColor, $"{distance} ед.");
-                            }
-                            catch {
-                                // При любой ошибке вычисления расстояния показываем прочерк
-                                ImGui.Text("-");
-                            }
-                        } else {
+                        try {
+                            float distance = Vector2.Distance(screenCenter, node.MapNode.Element.GetClientRect().Center);
+                            
+                            // Цвет зависит от расстояния: зеленый для близких, красный для дальних
+                            float distanceNormalized = Math.Min(distance / 2000.0f, 1.0f); // Нормализуем, считая 2000 расстояний максимумом
+                            Vector4 distanceColor = ColorUtils.InterpolateColor(
+                                Color.LightGreen, 
+                                Color.OrangeRed, 
+                                distanceNormalized
+                            ).ToVector4();
+                            
+                            ImGui.TextColored(distanceColor, $"{distance:F0} ед.");
+                        }
+                        catch {
+                            // При любой ошибке вычисления расстояния показываем прочерк
                             ImGui.Text("-");
                         }
                     }
