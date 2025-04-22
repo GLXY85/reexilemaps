@@ -98,38 +98,47 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     public override void Tick()
     {
-        UI = GameController.Game.IngameState.IngameUi;
-        AtlasPanel = UI.WorldMap.AtlasPanel;
-
-        if (!AtlasPanel.IsVisible) {
-            AtlasHasBeenClosed = true;
-            WaypointPanelIsOpen = false;
-            return;
-        }
-
-        if (AtlasHasBeenClosed) {
-            RefreshMapCache(true);
-        }
-
-        AtlasHasBeenClosed = false;
-
-        cacheTicks++;
-        if (cacheTicks % 100 != 0) 
-            if (AtlasPanel.Descriptions.Count > mapCache.Count)
-                refreshCache = true;
-        cacheTicks = 0;
-        
-        screenCenter = GameController.Window.GetWindowRectangle().Center - GameController.Window.GetWindowRectangle().Location;
-        
-        if (refreshCache && !refreshingCache && (DateTime.Now.Subtract(lastRefresh).TotalSeconds > Settings.Graphics.MapCacheRefreshRate || mapCache.Count == 0))
-        {
-            var job = new Job($"{nameof(ReExileMapsCore)}RefreshCache", () =>
-            {
-                RefreshMapCache();
-                refreshCache = false;
-            });
-            job.Start();
+        try {
+            if (GameController?.Game?.IngameState?.IngameUi == null) return;
             
+            UI = GameController.Game.IngameState.IngameUi;
+            if (UI?.WorldMap?.AtlasPanel == null) return;
+            
+            AtlasPanel = UI.WorldMap.AtlasPanel;
+
+            if (!AtlasPanel.IsVisible) {
+                AtlasHasBeenClosed = true;
+                WaypointPanelIsOpen = false;
+                return;
+            }
+
+            if (AtlasHasBeenClosed) {
+                RefreshMapCache(true);
+            }
+
+            AtlasHasBeenClosed = false;
+
+            cacheTicks++;
+            if (cacheTicks % 100 != 0) 
+                if (AtlasPanel.Descriptions != null && AtlasPanel.Descriptions.Count > mapCache.Count)
+                    refreshCache = true;
+            cacheTicks = 0;
+            
+            if (GameController?.Window?.GetWindowRectangle() == null) return;
+            screenCenter = GameController.Window.GetWindowRectangle().Center - GameController.Window.GetWindowRectangle().Location;
+            
+            if (refreshCache && !refreshingCache && (DateTime.Now.Subtract(lastRefresh).TotalSeconds > Settings.Graphics.MapCacheRefreshRate || mapCache.Count == 0))
+            {
+                var job = new Job($"{nameof(ReExileMapsCore)}RefreshCache", () =>
+                {
+                    RefreshMapCache();
+                    refreshCache = false;
+                });
+                job.Start();
+            }
+        }
+        catch (Exception ex) {
+            LogError($"Error in Tick: {ex.Message}\n{ex.StackTrace}");
         }
         
         return;
@@ -238,59 +247,77 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         hotkey.OnValueChanged += () => { Input.RegisterKey(hotkey); };
     }
     private void CheckKeybinds() {
-        if (!AtlasPanel.IsVisible)
-            return;
+        try {
+            if (AtlasPanel == null || !AtlasPanel.IsVisible)
+                return;
 
-        if (Settings.Keybinds.RefreshMapCacheHotkey.PressedOnce()) {  
-            RefreshMapCache();
-        }
-
-        if (Settings.Keybinds.DebugKey.PressedOnce())        
-            DoDebugging();
-
-        if (Settings.Keybinds.UpdateMapsKey.PressedOnce())        
-            UpdateMapData();
-
-        if (Settings.Keybinds.ToggleWaypointPanelHotkey.PressedOnce()) {  
-            WaypointPanelIsOpen = !WaypointPanelIsOpen;
-        }
-
-        if (Settings.Keybinds.AddWaypointHotkey.PressedOnce())        
-            AddWaypoint(GetClosestNodeToCursor());
-
-        if (Settings.Keybinds.DeleteWaypointHotkey.PressedOnce())        
-            RemoveWaypoint(GetClosestNodeToCursor());
-
-        if (Settings.Keybinds.ToggleLockedNodesHotkey.PressedOnce())        
-            Settings.Features.ProcessLockedNodes.Value = !Settings.Features.ProcessLockedNodes.Value;
-        
-        if (Settings.Keybinds.ToggleUnlockedNodesHotkey.PressedOnce())        
-            Settings.Features.ProcessUnlockedNodes.Value = !Settings.Features.ProcessUnlockedNodes.Value;
-
-        if (Settings.Keybinds.ToggleVisitedNodesHotkey.PressedOnce())
-            Settings.Features.ProcessVisitedNodes.Value = !Settings.Features.ProcessVisitedNodes.Value;
-
-        if (Settings.Keybinds.ToggleHiddenNodesHotkey.PressedOnce())
-            Settings.Features.ProcessHiddenNodes.Value = !Settings.Features.ProcessHiddenNodes.Value;
-
-        if (Settings.Keybinds.ShowTowerRangeHotkey.PressedOnce()) {
-            mapCache.TryGetValue(GetClosestNodeToCursor().Coordinates, out Node node);
-            if (node != null) {
-                mapCache.Where(x => x.Value.DrawTowers && x.Value.Address != node.Address).AsParallel().ToList().ForEach(x => x.Value.DrawTowers = false);
-                node.DrawTowers = !node.DrawTowers;
+            if (Settings?.Keybinds?.RefreshMapCacheHotkey?.PressedOnce() == true) {  
+                RefreshMapCache();
             }
 
-        }
+            if (Settings?.Keybinds?.DebugKey?.PressedOnce() == true) {
+                DoDebugging();
+            }
 
-        if (Settings.Keybinds.SearchPanelHotkey.PressedOnce()) {
-            Settings.Search.PanelIsOpen = !Settings.Search.PanelIsOpen;
-            if (Settings.Search.PanelIsOpen) {
-                // Set initial position for search panel
-                searchPanelPosition = new Vector2(GameController.Window.GetWindowRectangle().Width / 2 - 300, 100);
-                UpdateSearchResults();
+            if (Settings?.Keybinds?.UpdateMapsKey?.PressedOnce() == true) {
+                UpdateMapData();
+            }
+
+            if (Settings?.Keybinds?.ToggleWaypointPanelHotkey?.PressedOnce() == true) {  
+                WaypointPanelIsOpen = !WaypointPanelIsOpen;
+            }
+
+            if (Settings?.Keybinds?.AddWaypointHotkey?.PressedOnce() == true) {
+                var node = GetClosestNodeToCursor();
+                if (node != null) AddWaypoint(node);
+            }
+
+            if (Settings?.Keybinds?.DeleteWaypointHotkey?.PressedOnce() == true) {
+                var node = GetClosestNodeToCursor();
+                if (node != null) RemoveWaypoint(node);
+            }
+
+            if (Settings?.Keybinds?.ToggleLockedNodesHotkey?.PressedOnce() == true && Settings?.Features?.ProcessLockedNodes != null) {
+                Settings.Features.ProcessLockedNodes.Value = !Settings.Features.ProcessLockedNodes.Value;
+            }
+            
+            if (Settings?.Keybinds?.ToggleUnlockedNodesHotkey?.PressedOnce() == true && Settings?.Features?.ProcessUnlockedNodes != null) {
+                Settings.Features.ProcessUnlockedNodes.Value = !Settings.Features.ProcessUnlockedNodes.Value;
+            }
+
+            if (Settings?.Keybinds?.ToggleVisitedNodesHotkey?.PressedOnce() == true && Settings?.Features?.ProcessVisitedNodes != null) {
+                Settings.Features.ProcessVisitedNodes.Value = !Settings.Features.ProcessVisitedNodes.Value;
+            }
+
+            if (Settings?.Keybinds?.ToggleHiddenNodesHotkey?.PressedOnce() == true && Settings?.Features?.ProcessHiddenNodes != null) {
+                Settings.Features.ProcessHiddenNodes.Value = !Settings.Features.ProcessHiddenNodes.Value;
+            }
+
+            if (Settings?.Keybinds?.ShowTowerRangeHotkey?.PressedOnce() == true) {
+                var cursor = GetClosestNodeToCursor();
+                if (cursor != null && mapCache.TryGetValue(cursor.Coordinates, out Node node)) {
+                    if (node != null) {
+                        var nodesToUpdate = mapCache.Where(x => x.Value.DrawTowers && x.Value.Address != node.Address).AsParallel().ToList();
+                        foreach (var n in nodesToUpdate) {
+                            if (n.Value != null) n.Value.DrawTowers = false;
+                        }
+                        node.DrawTowers = !node.DrawTowers;
+                    }
+                }
+            }
+
+            if (Settings?.Keybinds?.SearchPanelHotkey?.PressedOnce() == true && Settings?.Search != null) {
+                Settings.Search.PanelIsOpen = !Settings.Search.PanelIsOpen;
+                if (Settings.Search.PanelIsOpen && GameController?.Window?.GetWindowRectangle() != null) {
+                    // Set initial position for search panel
+                    searchPanelPosition = new Vector2(GameController.Window.GetWindowRectangle().Width / 2 - 300, 100);
+                    UpdateSearchResults();
+                }
             }
         }
-
+        catch (Exception ex) {
+            LogError($"Error in CheckKeybinds: {ex.Message}\n{ex.StackTrace}");
+        }
     }
     #endregion
 
@@ -1695,8 +1722,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             ImGui.Separator();
             
             // Results table
-            if (ImGui.BeginTable("search_results_table", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
+            if (ImGui.BeginTable("search_results_table", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
                 ImGui.TableSetupColumn("Название карты", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Координаты", ImGuiTableColumnFlags.WidthFixed, 100);
                 ImGui.TableSetupColumn("Статус", ImGuiTableColumnFlags.WidthFixed, 120);
                 ImGui.TableSetupColumn("Тип", ImGuiTableColumnFlags.WidthFixed, 120);
                 ImGui.TableSetupColumn("Рейтинг", ImGuiTableColumnFlags.WidthFixed, 80);
@@ -1712,6 +1740,10 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     // Name
                     ImGui.TableNextColumn();
                     ImGui.Text(node.Name);
+                    
+                    // Coordinates
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{node.Coordinates.X}, {node.Coordinates.Y}");
                     
                     // Status
                     ImGui.TableNextColumn();
