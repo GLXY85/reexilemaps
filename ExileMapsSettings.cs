@@ -29,6 +29,8 @@ public class ReExileMapsSettings : ISettings
     public MapModSettings MapMods { get; set; } = new MapModSettings();
     public WaypointSettings Waypoints { get; set; } = new WaypointSettings();
 
+    [Menu("Search Settings")]
+    public SearchSettings Search { get; set; } = new SearchSettings();
 }
 
 [Submenu(CollapsedByDefault = false)]
@@ -108,6 +110,9 @@ public class HotkeySettings
 
     [Menu("Update Map Type Data")]
     public HotkeyNode UpdateMapsKey { get; set; } = new HotkeyNode(Keys.F13);
+
+    [Menu("Open Map Search Panel Hotkey", "Default: F4")]
+    public HotkeyNode SearchPanelHotkey { get; set; } = new HotkeyNode(Keys.F4);
 }
 
 [Submenu(CollapsedByDefault = true)]
@@ -813,6 +818,35 @@ public class WaypointSettings
 
                 }
                 ImGui.EndTable();
+            }
+        };
+    }
+}
+
+[Submenu(CollapsedByDefault = true)]
+/// <summary>
+/// Settings for Map Search
+/// </summary>
+public class SearchSettings
+{
+    [JsonIgnore]
+    public CustomNode SearchPanel { get; set; }
+    
+    public bool ShowUnlockedMaps { get; set; } = true;
+    public bool ShowLockedMaps { get; set; } = true;
+    public bool ShowHiddenMaps { get; set; } = true;
+    public bool HideVisitedMaps { get; set; } = true;
+    public bool HideFailedMaps { get; set; } = true;
+    public bool PanelIsOpen { get; set; } = false;
+    public int SearchPanelMaxItems { get; set; } = 30;
+    public bool AutoRemoveWaypointAfterVisit { get; set; } = true;
+    public string SearchQuery { get; set; } = "";
+
+    public SearchSettings() {
+        SearchPanel = new CustomNode
+        {
+            DrawDelegate = () => {
+                // Конкретная реализация будет в методе DrawSearchPanel в ReExileMapsCore
             }
         };
     }

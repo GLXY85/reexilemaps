@@ -63,6 +63,11 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private bool WaypointPanelIsOpen = false;
     private bool ShowMinimap = false;
 
+    private bool SearchPanelIsOpen = false;
+    private Vector2 searchPanelPosition = Vector2.Zero;
+    private List<Node> searchResults = [];
+    private string previousSearchQuery = "";
+
     #endregion
 
     #region ExileCore Methods
@@ -135,6 +140,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         CheckKeybinds();
 
         if (WaypointPanelIsOpen) DrawWaypointPanel();
+        if (Settings.Search.PanelIsOpen) DrawSearchPanel();
 
         TickCount++;
         if (Settings.Graphics.RenderNTicks.Value % TickCount != 0) return;  
@@ -223,6 +229,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         RegisterHotkey(Settings.Keybinds.ToggleUnlockedNodesHotkey);
         RegisterHotkey(Settings.Keybinds.ToggleVisitedNodesHotkey);
         RegisterHotkey(Settings.Keybinds.ToggleHiddenNodesHotkey);
+        RegisterHotkey(Settings.Keybinds.SearchPanelHotkey);
     }
     
     private static void RegisterHotkey(HotkeyNode hotkey)
@@ -273,6 +280,15 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 node.DrawTowers = !node.DrawTowers;
             }
 
+        }
+
+        if (Settings.Keybinds.SearchPanelHotkey.PressedOnce()) {
+            Settings.Search.PanelIsOpen = !Settings.Search.PanelIsOpen;
+            if (Settings.Search.PanelIsOpen) {
+                // Set initial position for search panel
+                searchPanelPosition = new Vector2(GameController.Window.GetWindowRectangle().Width / 2 - 300, 100);
+                UpdateSearchResults();
+            }
         }
 
     }
@@ -604,11 +620,11 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private int RefreshCachedMapNode(AtlasNodeDescription node, Node cachedNode)
     {
         string shortID = node.Element.Area.Id.Trim().Replace("_NoBoss", "");
-        cachedNode.IsUnlocked = node.Element.IsUnlocked;
+        cachedNode.IsUnlocked = node.Element.IsCompleted;
         cachedNode.IsVisible = node.Element.IsVisible;
-        cachedNode.IsVisited = node.Element.IsVisited || (!node.Element.IsUnlocked && node.Element.IsVisited);
+        cachedNode.IsVisited = node.Element.IsVisited;
         cachedNode.IsActive = node.Element.IsActive;
-        cachedNode.Address = node.Element.Address;
+        cachedNode.Address = node.Address;
         cachedNode.ParentAddress = node.Address;     
         cachedNode.MapNode = node;
         cachedNode.MapType = Settings.MapTypes.Maps.TryGetValue(shortID, out Map mapType) ? mapType : Settings.MapTypes.Maps.Where(x => x.Value.MatchID(node.Element.Area.Id)).Select(x => x.Value).FirstOrDefault() ?? new Map();
@@ -660,6 +676,24 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         }
 
         cachedNode.RecalculateWeight();
+
+        bool wasUnlocked = cachedNode.IsUnlocked;
+        bool wasVisited = cachedNode.IsVisited;
+        
+        cachedNode.IsUnlocked = node.Element.IsCompleted;
+        cachedNode.IsVisible = node.Element.IsVisible;
+        cachedNode.IsVisited = node.Element.IsVisited;
+        
+        // If node was visited or unlocked and it wasn't before, and auto-remove is enabled
+        if (Settings.Search.AutoRemoveWaypointAfterVisit && 
+            ((!wasVisited && cachedNode.IsVisited) || (!wasUnlocked && cachedNode.IsUnlocked))) {
+            // Remove waypoint if it exists
+            string coordKey = cachedNode.Coordinates.ToString();
+            if (Settings.Waypoints.Waypoints.ContainsKey(coordKey)) {
+                Settings.Waypoints.Waypoints.Remove(coordKey);
+            }
+        }
+
         return 1;
     } 
     
@@ -1558,6 +1592,199 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     #endregion
 
+    #region Map Search Panel
+    private void UpdateSearchResults() {
+        if (string.IsNullOrWhiteSpace(Settings.Search.SearchQuery)) {
+            searchResults.Clear();
+            return;
+        }
 
+        string searchQuery = Settings.Search.SearchQuery.ToLower();
+        if (searchQuery != previousSearchQuery) {
+            searchResults.Clear();
+            previousSearchQuery = searchQuery;
+
+            lock (mapCacheLock) {
+                searchResults = mapCache.Values
+                    .Where(node => node.Name.ToLower().Contains(searchQuery))
+                    .Where(node => (Settings.Search.ShowUnlockedMaps && node.IsUnlocked) ||
+                                  (Settings.Search.ShowLockedMaps && !node.IsUnlocked && node.IsVisible) ||
+                                  (Settings.Search.ShowHiddenMaps && !node.IsVisible))
+                    .Where(node => !(Settings.Search.HideVisitedMaps && node.IsVisited && node.IsUnlocked))
+                    .Where(node => !(Settings.Search.HideFailedMaps && node.IsVisited && !node.IsUnlocked))
+                    .ToList();
+            }
+        }
+    }
+
+    private void DrawSearchPanel() {
+        if (!Settings.Search.PanelIsOpen) return;
+
+        var windowFlags = ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse;
+        
+        ImGui.SetNextWindowPos(searchPanelPosition, ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(600, 500), ImGuiCond.FirstUseEver);
+        
+        if (ImGui.Begin("Map Search###MapSearchPanel", ref Settings.Search.PanelIsOpen, windowFlags)) {
+            searchPanelPosition = ImGui.GetWindowPos();
+            
+            // Search bar
+            ImGui.Text("Поиск карт:");
+            ImGui.SameLine();
+            string searchQuery = Settings.Search.SearchQuery;
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            if (ImGui.InputText("###SearchQuery", ref searchQuery, 100)) {
+                Settings.Search.SearchQuery = searchQuery;
+                UpdateSearchResults();
+            }
+            
+            // Filter options
+            if (ImGui.BeginTable("search_options_table", 2, ImGuiTableFlags.NoBordersInBody)) {
+                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 300);
+                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 300);
+                
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                bool showUnlocked = Settings.Search.ShowUnlockedMaps;
+                if (ImGui.Checkbox("Показывать разблокированные карты", ref showUnlocked)) {
+                    Settings.Search.ShowUnlockedMaps = showUnlocked;
+                    UpdateSearchResults();
+                }
+                
+                ImGui.TableNextColumn();
+                bool hideVisited = Settings.Search.HideVisitedMaps;
+                if (ImGui.Checkbox("Скрывать пройденные карты", ref hideVisited)) {
+                    Settings.Search.HideVisitedMaps = hideVisited;
+                    UpdateSearchResults();
+                }
+                
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                bool showLocked = Settings.Search.ShowLockedMaps;
+                if (ImGui.Checkbox("Показывать заблокированные карты", ref showLocked)) {
+                    Settings.Search.ShowLockedMaps = showLocked;
+                    UpdateSearchResults();
+                }
+                
+                ImGui.TableNextColumn();
+                bool hideFailed = Settings.Search.HideFailedMaps;
+                if (ImGui.Checkbox("Скрывать зафейленные карты", ref hideFailed)) {
+                    Settings.Search.HideFailedMaps = hideFailed;
+                    UpdateSearchResults();
+                }
+                
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                bool showHidden = Settings.Search.ShowHiddenMaps;
+                if (ImGui.Checkbox("Показывать скрытые карты", ref showHidden)) {
+                    Settings.Search.ShowHiddenMaps = showHidden;
+                    UpdateSearchResults();
+                }
+                
+                ImGui.TableNextColumn();
+                bool autoRemove = Settings.Search.AutoRemoveWaypointAfterVisit;
+                if (ImGui.Checkbox("Автоудаление путевых точек после посещения", ref autoRemove)) {
+                    Settings.Search.AutoRemoveWaypointAfterVisit = autoRemove;
+                }
+                
+                ImGui.EndTable();
+            }
+            
+            ImGui.Separator();
+            
+            // Results table
+            if (ImGui.BeginTable("search_results_table", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
+                ImGui.TableSetupColumn("Название карты", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Статус", ImGuiTableColumnFlags.WidthFixed, 120);
+                ImGui.TableSetupColumn("Тип", ImGuiTableColumnFlags.WidthFixed, 120);
+                ImGui.TableSetupColumn("Рейтинг", ImGuiTableColumnFlags.WidthFixed, 80);
+                ImGui.TableSetupColumn("Действия", ImGuiTableColumnFlags.WidthFixed, 100);
+                ImGui.TableHeadersRow();
+                
+                int visibleRows = 0;
+                foreach (var node in searchResults) {
+                    if (visibleRows >= Settings.Search.SearchPanelMaxItems) break;
+                    
+                    ImGui.TableNextRow();
+                    
+                    // Name
+                    ImGui.TableNextColumn();
+                    ImGui.Text(node.Name);
+                    
+                    // Status
+                    ImGui.TableNextColumn();
+                    if (node.IsVisited && node.IsUnlocked) {
+                        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1.0f), "Пройдена");
+                    } else if (node.IsVisited && !node.IsUnlocked) {
+                        ImGui.TextColored(new Vector4(0.9f, 0.3f, 0.3f, 1.0f), "Зафейлена");
+                    } else if (node.IsUnlocked) {
+                        ImGui.TextColored(new Vector4(0.3f, 0.9f, 0.3f, 1.0f), "Разблокирована");
+                    } else if (node.IsVisible) {
+                        ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.3f, 1.0f), "Заблокирована");
+                    } else {
+                        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.9f, 1.0f), "Скрытая");
+                    }
+                    
+                    // Type
+                    ImGui.TableNextColumn();
+                    if (node.IsTower) {
+                        ImGui.TextColored(new Vector4(0.8f, 0.6f, 0.2f, 1.0f), "Башня");
+                    } else {
+                        ImGui.Text("Карта");
+                    }
+                    
+                    // Weight
+                    ImGui.TableNextColumn();
+                    float normalizedWeight = (node.Weight - minMapWeight) / (maxMapWeight - minMapWeight);
+                    Vector4 weightColor = ColorUtils.InterpolateColor(
+                        Settings.MapTypes.BadNodeColor, 
+                        Settings.MapTypes.GoodNodeColor, 
+                        normalizedWeight
+                    ).ToVector4();
+                    ImGui.TextColored(weightColor, $"{node.Weight:F1}");
+                    
+                    // Actions
+                    ImGui.TableNextColumn();
+                    ImGui.PushID($"actions_{node.Id}");
+                    
+                    bool hasWaypoint = Settings.Waypoints.Waypoints.ContainsKey(node.Coordinates.ToString());
+                    if (hasWaypoint) {
+                        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.7f, 0.3f, 0.3f, 0.8f));
+                        if (ImGui.Button("Удалить WP")) {
+                            RemoveWaypoint(node);
+                        }
+                        ImGui.PopStyleColor();
+                    } else {
+                        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.7f, 0.3f, 0.8f));
+                        if (ImGui.Button("Добавить WP")) {
+                            AddWaypoint(node);
+                        }
+                        ImGui.PopStyleColor();
+                    }
+                    
+                    ImGui.PopID();
+                    
+                    visibleRows++;
+                }
+                
+                ImGui.EndTable();
+            }
+            
+            // Status info
+            ImGui.Text($"Результатов: {searchResults.Count}");
+            if (searchResults.Count > Settings.Search.SearchPanelMaxItems) {
+                ImGui.SameLine();
+                ImGui.TextColored(new Vector4(0.9f, 0.6f, 0.1f, 1.0f), $"(показано {Settings.Search.SearchPanelMaxItems})");
+            }
+            
+            ImGui.Separator();
+            
+            if (ImGui.Button("Закрыть", new Vector2(120, 0))) {
+                Settings.Search.PanelIsOpen = false;
+            }
+        }
+        ImGui.End();
+    }
+    #endregion
 
 }
