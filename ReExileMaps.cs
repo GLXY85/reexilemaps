@@ -1768,6 +1768,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     if (cursorNode != null) {
                         Vector2i cursorCoords = cursorNode.Coordinates;
                         LogMessage($"Sorting by distance from cursor position at {cursorCoords}");
+                        // Сортируем сначала по возрастанию расстояния (ближние карты первыми)
                         searchResults = query.OrderBy(n => {
                             Vector2i nodeCoords = n.Coordinates;
                             return Vector2i.Distance(ref cursorCoords, ref nodeCoords);
@@ -1852,10 +1853,10 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 var cursorNode = GetClosestNodeToCursor();
                 if (cursorNode != null) {
                     ImGui.TextColored(new Vector4(0.5f, 0.8f, 0.5f, 1.0f), 
-                        $"(от {cursorNode.Name} [{cursorNode.Coordinates.X},{cursorNode.Coordinates.Y}])");
+                        $"(от позиции игрока: {cursorNode.Name} [{cursorNode.Coordinates.X},{cursorNode.Coordinates.Y}])");
                     if (ImGui.IsItemHovered()) {
                         ImGui.BeginTooltip();
-                        ImGui.Text("Расстояние измеряется от текущего положения курсора на атласе");
+                        ImGui.Text("Расстояние измеряется от текущего положения игрока на атласе");
                         ImGui.Text("Переместите курсор на другую карту в атласе для изменения точки отсчета");
                         ImGui.EndTooltip();
                     }
@@ -1895,7 +1896,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 
                 // Показываем столбец с расстоянием, если выбрана сортировка по расстоянию
                 if (Settings.Search.SortBy == "Distance") {
-                    ImGui.TableSetupColumn("Distance", ImGuiTableColumnFlags.WidthFixed, 80);
+                    ImGui.TableSetupColumn("Расстояние", ImGuiTableColumnFlags.WidthFixed, 90);
                     ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 80);
                 } else {
                     ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 80);
@@ -1974,7 +1975,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                                 distanceNormalized
                             ).ToVector4();
                             
-                            ImGui.TextColored(distanceColor, $"{distance}");
+                            ImGui.TextColored(distanceColor, $"{distance} ед.");
                         } else {
                             ImGui.Text("-");
                         }
