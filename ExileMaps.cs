@@ -118,7 +118,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         
         if (refreshCache && !refreshingCache && (DateTime.Now.Subtract(lastRefresh).TotalSeconds > Settings.Graphics.MapCacheRefreshRate || mapCache.Count == 0))
         {
-            var job = new Job($"{nameof(ReExileMaps)}RefreshCache", () =>
+            var job = new Job($"{nameof(ReExileMapsCore)}RefreshCache", () =>
             {
                 RefreshMapCache();
                 refreshCache = false;
