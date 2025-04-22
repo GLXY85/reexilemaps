@@ -6,16 +6,16 @@ using System.Numerics;
 using ExileCore2.Shared.Attributes;
 using ExileCore2.Shared.Interfaces;
 using ExileCore2.Shared.Nodes;
-using ExileMaps.Classes;
+using ReExileMaps.Classes;
 using ImGuiNET;
 using Newtonsoft.Json;
 using GameOffsets2.Native;
 
-using static ExileMaps.ReExileMapsCore;
+using static ReExileMaps.ReExileMapsCore;
 
-namespace ExileMaps;
+namespace ReExileMaps;
 
-public class ExileMapsSettings : ISettings
+public class ReExileMapsSettings : ISettings
 {
     public ToggleNode Enable { get; set; } = new ToggleNode(false);
     public FeatureSettings Features { get; set; } = new FeatureSettings();    

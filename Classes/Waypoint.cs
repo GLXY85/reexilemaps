@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using GameOffsets2.Native;
 using ExileCore2.PoEMemory.Elements.AtlasElements;
 using ExileCore2.Shared.Enums;
-using static ExileMaps.ReExileMapsCore;
+using static ReExileMaps.ReExileMapsCore;
 using Newtonsoft.Json;
 
-namespace ExileMaps.Classes
+namespace ReExileMaps.Classes
 {
     public class Waypoint
     {

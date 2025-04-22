@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using GameOffsets2.Native;
-using static ExileMaps.ReExileMapsCore;
+using static ReExileMaps.ReExileMapsCore;
 
-namespace ExileMaps.Classes
+namespace ReExileMaps.Classes
 {
     public class Effect : INotifyPropertyChanged
     {

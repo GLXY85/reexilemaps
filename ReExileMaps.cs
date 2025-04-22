@@ -21,11 +21,11 @@ using GameOffsets2.Native;
 using ImGuiNET;
 
 using RectangleF = ExileCore2.Shared.RectangleF;
-using ExileMaps.Classes;
+using ReExileMaps.Classes;
 
-namespace ExileMaps;
+namespace ReExileMaps;
 
-public class ReExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
+public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 {
     #region Declarations
     public static ReExileMapsCore Main;
