@@ -487,8 +487,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     #endregion
 
     private Node GetClosestNodeToCursor() {
+        if (AtlasPanel?.Descriptions == null || AtlasPanel.Descriptions.Count == 0)
+            return null;
+            
         var closestNode = AtlasPanel.Descriptions.OrderBy(x => Vector2.Distance(GameController.Game.IngameState.UIHoverElement.GetClientRect().Center, x.Element.GetClientRect().Center)).AsParallel().FirstOrDefault();
-
+        
+        if (closestNode == null)
+            return null;
+            
         if (mapCache.TryGetValue(closestNode.Coordinate, out Node cachedNode))
             return cachedNode;
         else
@@ -496,7 +502,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     }
 
     private Node GetClosestNodeToCenterScreen() {
+        if (AtlasPanel?.Descriptions == null || AtlasPanel.Descriptions.Count == 0)
+            return null;
+            
         var closestNode = AtlasPanel.Descriptions.OrderBy(x => Vector2.Distance(screenCenter, x.Element.GetClientRect().Center)).AsParallel().FirstOrDefault();
+        
+        if (closestNode == null)
+            return null;
+            
         if (mapCache.TryGetValue(closestNode.Coordinate, out Node cachedNode))
             return cachedNode;
         else 
@@ -511,6 +524,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         if (clearCache)        
             lock (mapCacheLock)            
                 mapCache.Clear();
+
+        if (AtlasPanel?.Descriptions == null || AtlasPanel.Descriptions.Count == 0) {
+            refreshingCache = false;
+            refreshCache = false;
+            lastRefresh = DateTime.Now;
+            return;
+        }
 
         List<AtlasNodeDescription> atlasNodes = [.. AtlasPanel.Descriptions];
 
@@ -606,31 +626,37 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     
         if (!newNode.IsVisited || newNode.IsTower) {
             try {
-                foreach(var source in AtlasPanel.EffectSources.Where(x => Vector2.Distance(x.Coordinate, node.Coordinate) <= 11).AsParallel().ToList()) {
-                    foreach(var effect in source.Effects.Where(x => Settings.MapMods.MapModTypes.ContainsKey(x.ModId.ToString()) && x.Value != 0).AsParallel().ToList()) {
-                        var effectKey = effect.ModId.ToString();
-                        var requiredContent = Settings.MapMods.MapModTypes[effectKey].RequiredContent;
-                        
-                        if (newNode.Effects.TryGetValue(effectKey, out Effect existingEffect)) {
-                            if (!newNode.IsTower || !newNode.IsVisited)
-                                newNode.Effects[effectKey].Value1 += effect.Value;
+                if (AtlasPanel?.EffectSources != null) {
+                    foreach(var source in AtlasPanel.EffectSources.Where(x => Vector2.Distance(x.Coordinate, node.Coordinate) <= 11).AsParallel().ToList()) {
+                        if (source?.Effects != null) {
+                            foreach(var effect in source.Effects.Where(x => Settings.MapMods.MapModTypes.ContainsKey(x.ModId.ToString()) && x.Value != 0).AsParallel().ToList()) {
+                                var effectKey = effect.ModId.ToString();
+                                var requiredContent = Settings.MapMods.MapModTypes.TryGetValue(effectKey, out var modType) ? modType.RequiredContent : string.Empty;
+                                
+                                if (newNode.Effects.TryGetValue(effectKey, out Effect existingEffect)) {
+                                    if (!newNode.IsTower || !newNode.IsVisited)
+                                        newNode.Effects[effectKey].Value1 += effect.Value;
 
-                            newNode.Effects[effectKey].Sources.Add(source.Coordinate);
-                        } else {
-                            Effect newEffect = new() {
-                                Name = Settings.MapMods.MapModTypes[effectKey].Name,
-                                Description = Settings.MapMods.MapModTypes[effectKey].Description,
-                                Value1 = effect.Value,
-                                ID = effect.ModId,
-                                Enabled = Settings.MapMods.MapModTypes[effectKey].ShowOnMap && 
-                                            !(Settings.MapMods.OnlyDrawApplicableMods && 
-                                            !string.IsNullOrEmpty(requiredContent) && 
-                                            (newNode.Content == null || !newNode.Content.Any(x => x.Value.Name.Contains(requiredContent)))),
-                                Sources = [source.Coordinate]
-                            };
-                            
-                            newNode.Effects.TryAdd(effectKey, newEffect);
-                        }                                       
+                                    newNode.Effects[effectKey].Sources.Add(source.Coordinate);
+                                } else {
+                                    if (Settings.MapMods.MapModTypes.TryGetValue(effectKey, out var mod)) {
+                                        Effect newEffect = new() {
+                                            Name = mod.Name,
+                                            Description = mod.Description,
+                                            Value1 = effect.Value,
+                                            ID = effect.ModId,
+                                            Enabled = mod.ShowOnMap && 
+                                                    !(Settings.MapMods.OnlyDrawApplicableMods && 
+                                                    !string.IsNullOrEmpty(requiredContent) && 
+                                                    (newNode.Content == null || !newNode.Content.Any(x => x.Value.Name.Contains(requiredContent)))),
+                                            Sources = [source.Coordinate]
+                                        };
+                                        
+                                        newNode.Effects.TryAdd(effectKey, newEffect);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -671,31 +697,37 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
         try {
             cachedNode.Effects.Clear();
-            foreach(var source in AtlasPanel.EffectSources.Where(x => Vector2.Distance(x.Coordinate, node.Coordinate) <= 11).ToList()) {
-                foreach(var effect in source.Effects.Where(x => Settings.MapMods.MapModTypes.ContainsKey(x.ModId.ToString()) && x.Value != 0).ToList()) {
-                    var effectKey = effect.ModId.ToString();
-                    var requiredContent = Settings.MapMods.MapModTypes[effectKey].RequiredContent;
-                    
-                    if (cachedNode.Effects.TryGetValue(effectKey, out Effect existingEffect)) {
-                        if (cachedNode.IsTower || !cachedNode.IsVisited)
-                            cachedNode.Effects[effectKey].Value1 += effect.Value;
+            if (AtlasPanel?.EffectSources != null) {
+                foreach(var source in AtlasPanel.EffectSources.Where(x => Vector2.Distance(x.Coordinate, node.Coordinate) <= 11).ToList()) {
+                    if (source?.Effects != null) {
+                        foreach(var effect in source.Effects.Where(x => Settings.MapMods.MapModTypes.ContainsKey(x.ModId.ToString()) && x.Value != 0).ToList()) {
+                            var effectKey = effect.ModId.ToString();
+                            var requiredContent = Settings.MapMods.MapModTypes.TryGetValue(effectKey, out var modType) ? modType.RequiredContent : string.Empty;
+                            
+                            if (cachedNode.Effects.TryGetValue(effectKey, out Effect existingEffect)) {
+                                if (cachedNode.IsTower || !cachedNode.IsVisited)
+                                    cachedNode.Effects[effectKey].Value1 += effect.Value;
 
-                        cachedNode.Effects[effectKey].Sources.Add(source.Coordinate);
-                    } else {
-                        Effect newEffect = new() {
-                            Name = Settings.MapMods.MapModTypes[effectKey].Name,
-                            Description = Settings.MapMods.MapModTypes[effectKey].Description,
-                            Value1 = effect.Value,
-                            ID = effect.ModId,
-                            Enabled = Settings.MapMods.MapModTypes[effectKey].ShowOnMap && 
-                                        !(Settings.MapMods.OnlyDrawApplicableMods && 
-                                        !string.IsNullOrEmpty(requiredContent) && 
-                                        (cachedNode.Content == null || !cachedNode.Content.Any(x => x.Value.Name.Contains(requiredContent)))),
-                            Sources = [source.Coordinate]
-                        };
-                        
-                        cachedNode.Effects.TryAdd(effectKey, newEffect);
-                    }                                       
+                                cachedNode.Effects[effectKey].Sources.Add(source.Coordinate);
+                            } else {
+                                if (Settings.MapMods.MapModTypes.TryGetValue(effectKey, out var mod)) {
+                                    Effect newEffect = new() {
+                                        Name = mod.Name,
+                                        Description = mod.Description,
+                                        Value1 = effect.Value,
+                                        ID = effect.ModId,
+                                        Enabled = mod.ShowOnMap && 
+                                                    !(Settings.MapMods.OnlyDrawApplicableMods && 
+                                                    !string.IsNullOrEmpty(requiredContent) && 
+                                                    (cachedNode.Content == null || !cachedNode.Content.Any(x => x.Value.Name.Contains(requiredContent)))),
+                                        Sources = [source.Coordinate]
+                                    };
+                                    
+                                    cachedNode.Effects.TryAdd(effectKey, newEffect);
+                                }
+                            }                                       
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
