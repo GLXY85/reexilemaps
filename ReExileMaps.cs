@@ -515,7 +515,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         }
         catch (Exception ex) {
             try {
-                LogError?.Invoke($"Error in GetClosestNodeToCursor: {ex.Message}");
+                LogError($"Error in GetClosestNodeToCursor: {ex.Message}");
             }
             catch {
                 // Игнорируем ошибки в самом логировании
@@ -1788,8 +1788,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 case "Distance":
                     // Используем центр экрана вместо положения курсора
                     try {
-                        // Используем безопасное логирование с проверкой на null
-                        LogMessage?.Invoke($"Sorting by distance from player position");
+                        // Используем безопасное логирование
+                        LogMessage($"Sorting by distance from player position");
                         
                         // Сортируем сначала по возрастанию расстояния (ближние карты первыми)
                         searchResults = query.OrderBy(n => {
@@ -1805,7 +1805,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     catch (Exception ex) {
                         // Используем безопасное логирование ошибок
                         try {
-                            LogError?.Invoke($"Error during distance sorting: {ex.Message}");
+                            LogError($"Error during distance sorting: {ex.Message}");
                         }
                         catch {
                             // Игнорируем ошибку в логировании ошибки
