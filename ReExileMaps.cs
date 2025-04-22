@@ -1664,18 +1664,87 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         }
 
         string searchQuery = Settings.Search.SearchQuery.ToLower();
+        // Check for property search syntax: prop:value
+        bool isPropertySearch = false;
+        string propertyName = "";
+        string propertyValue = "";
+        
+        if (searchQuery.Contains(":")) {
+            var parts = searchQuery.Split(':', 2);
+            if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]) && !string.IsNullOrWhiteSpace(parts[1])) {
+                isPropertySearch = true;
+                propertyName = parts[0].Trim().ToLower();
+                propertyValue = parts[1].Trim().ToLower();
+                
+                LogMessage($"Property search: '{propertyName}' = '{propertyValue}'");
+            }
+        }
+
         if (searchQuery != previousSearchQuery || true) { // Always refresh for now
             searchResults.Clear();
             previousSearchQuery = searchQuery;
 
             lock (mapCacheLock) {
-                var query = mapCache.Values
-                    .Where(node => node.Name.ToLower().Contains(searchQuery) || 
-                           (node.MapType?.Name?.ToLower()?.Contains(searchQuery) == true) ||
-                           node.Effects.Any(e => e.Value.Name.ToLower().Contains(searchQuery) || 
-                                               e.Value.Description.ToLower().Contains(searchQuery)) ||
-                           node.Content.Any(c => c.Value.Name.ToLower().Contains(searchQuery)) ||
-                           node.Biomes.Any(b => b.Value.Name.ToLower().Contains(searchQuery)));
+                IEnumerable<Node> query;
+                
+                if (isPropertySearch) {
+                    query = mapCache.Values.Where(node => {
+                        // Search by property type
+                        switch (propertyName) {
+                            case "content":
+                            case "type":
+                                return node.Content != null && 
+                                       node.Content.Any(c => c.Value.Name.ToLower().Contains(propertyValue));
+                            
+                            case "effect":
+                            case "mod":
+                                return node.Effects != null && 
+                                       node.Effects.Any(e => e.Value.Name.ToLower().Contains(propertyValue) || 
+                                                           e.Value.Description.ToLower().Contains(propertyValue));
+                            
+                            case "biome":
+                                return node.Biomes != null && 
+                                       node.Biomes.Any(b => b.Value.Name.ToLower().Contains(propertyValue));
+                            
+                            case "name":
+                                return node.Name.ToLower().Contains(propertyValue) ||
+                                      (node.MapType?.Name?.ToLower()?.Contains(propertyValue) == true);
+                            
+                            case "status":
+                                if (propertyValue.Contains("visit"))
+                                    return node.IsVisited;
+                                else if (propertyValue.Contains("unlock"))
+                                    return node.IsUnlocked;
+                                else if (propertyValue.Contains("lock"))
+                                    return !node.IsUnlocked;
+                                else if (propertyValue.Contains("hidden"))
+                                    return !node.IsVisible;
+                                else if (propertyValue.Contains("tower"))
+                                    return node.IsTower;
+                                else if (propertyValue.Contains("fail"))
+                                    return node.IsVisited && !node.IsUnlocked;
+                                return false;
+                            
+                            default:
+                                // Try generic property search across all properties
+                                return node.Name.ToLower().Contains(propertyValue) ||
+                                      (node.MapType?.Name?.ToLower()?.Contains(propertyValue) == true) ||
+                                       node.Effects.Any(e => e.Value.Name.ToLower().Contains(propertyValue) || 
+                                                           e.Value.Description.ToLower().Contains(propertyValue)) ||
+                                       node.Content.Any(c => c.Value.Name.ToLower().Contains(propertyValue)) ||
+                                       node.Biomes.Any(b => b.Value.Name.ToLower().Contains(propertyValue));
+                        }
+                    });
+                } else {
+                    // Standard search (no property specified)
+                    query = mapCache.Values
+                        .Where(node => node.Name.ToLower().Contains(searchQuery) || 
+                               (node.MapType?.Name?.ToLower()?.Contains(searchQuery) == true) ||
+                               node.Effects.Any(e => e.Value.Name.ToLower().Contains(searchQuery) || 
+                                                   e.Value.Description.ToLower().Contains(searchQuery)) ||
+                               node.Content.Any(c => c.Value.Name.ToLower().Contains(searchQuery)) ||
+                               node.Biomes.Any(b => b.Value.Name.ToLower().Contains(searchQuery)));
+                }
                 
                 // Apply sorting
                 switch (Settings.Search.SortBy) {
@@ -1719,6 +1788,23 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             if (ImGui.InputText("###SearchQuery", ref searchQuery, 100)) {
                 Settings.Search.SearchQuery = searchQuery;
                 UpdateSearchResults();
+            }
+            
+            // Search hint tooltip
+            if (ImGui.IsItemHovered()) {
+                ImGui.BeginTooltip();
+                ImGui.Text("Search Syntax Guide:");
+                ImGui.Separator();
+                ImGui.Text("Standard search: any text");
+                ImGui.Text("Property search: property:value");
+                ImGui.Separator();
+                ImGui.Text("Available properties:");
+                ImGui.BulletText("content:value - Search by content type (e.g. content:delirium)");
+                ImGui.BulletText("effect:value - Search by map effects (e.g. effect:coalesced)");
+                ImGui.BulletText("biome:value - Search by biome name (e.g. biome:forest)");
+                ImGui.BulletText("name:value - Search by map name (e.g. name:tower)");
+                ImGui.BulletText("status:value - Search by status (visited, unlocked, locked, hidden, tower)");
+                ImGui.EndTooltip();
             }
             
             // Search controls

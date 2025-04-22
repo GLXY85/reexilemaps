@@ -35,6 +35,17 @@ After installing the plugin, start the game and enable Re:ExileMaps in the plugi
 - Search works for map names, content types, effects, and biomes
 - Results can be sorted by name, status, or weight
 
+#### Advanced Search Syntax
+
+You can use property-based search with the following syntax: `property:value`
+
+Available properties:
+- `content:value` - Search by content type (e.g., `content:delirium`)
+- `effect:value` - Search by map effects (e.g., `effect:coalesced corruption`)
+- `biome:value` - Search by biome name (e.g., `biome:forest`)
+- `name:value` - Search by map name (e.g., `name:tower`)
+- `status:value` - Search by status (e.g., `status:visited`, `status:unlocked`)
+
 ## License
 
 [MIT](LICENSE)
@@ -77,6 +88,17 @@ Re:ExileMaps - это плагин для Path of Exile, который улуч
 - Введите название карты или другие ключевые слова для поиска
 - Поиск работает по названиям карт, типам контента, эффектам и биомам
 - Результаты можно сортировать по имени, статусу или весу
+
+#### Расширенный синтаксис поиска
+
+Вы можете использовать поиск по свойствам с помощью следующего синтаксиса: `свойство:значение`
+
+Доступные свойства:
+- `content:значение` - Поиск по типу контента (например, `content:delirium`)
+- `effect:значение` - Поиск по эффектам карты (например, `effect:coalesced corruption`)
+- `biome:значение` - Поиск по названию биома (например, `biome:forest`)
+- `name:значение` - Поиск по названию карты (например, `name:tower`)
+- `status:значение` - Поиск по статусу (например, `status:visited`, `status:unlocked`)
 
 ## Лицензия
 
