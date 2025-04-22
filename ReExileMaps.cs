@@ -1789,47 +1789,44 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         var windowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.HorizontalScrollbar;
         
         ImGui.SetNextWindowPos(searchPanelPosition, ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(800, 500), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(900, 600), ImGuiCond.FirstUseEver);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10, 10));
+        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(8, 6));
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 5));
         
         bool isOpen = Settings.Search.PanelIsOpen;
         if (ImGui.Begin("Map Search###MapSearchPanel", ref isOpen, windowFlags)) {
             Settings.Search.PanelIsOpen = isOpen;
             searchPanelPosition = ImGui.GetWindowPos();
             
-            // Search bar
-            ImGui.Text("Search maps:");
+            // Header section with better organized search controls
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.17f, 0.17f, 0.2f, 0.8f));
+            ImGui.BeginChild("SearchHeader", new Vector2(-1, 80), ImGuiChildFlags.None);
+            
+            // Search input row with better alignment
+            ImGui.Spacing();
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("Search maps:"); 
             ImGui.SameLine();
             string searchQuery = Settings.Search.SearchQuery;
-            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 80); // Make room for search button
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 80);
             bool enterPressed = ImGui.InputText("###SearchQuery", ref searchQuery, 100, ImGuiInputTextFlags.EnterReturnsTrue);
             Settings.Search.SearchQuery = searchQuery;
             
             ImGui.SameLine();
-            if (ImGui.Button("Search") || enterPressed) {
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.5f, 0.7f, 1.0f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.6f, 0.8f, 1.0f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.2f, 0.4f, 0.6f, 1.0f));
+            if (ImGui.Button("Search", new Vector2(75, 0)) || enterPressed) {
                 UpdateSearchResults();
             }
+            ImGui.PopStyleColor(3);
             
-            // Search hint tooltip
-            if (ImGui.IsItemHovered() || ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) {
-                ImGui.BeginTooltip();
-                ImGui.Text("Search Syntax Guide:");
-                ImGui.Separator();
-                ImGui.Text("Standard search: any text");
-                ImGui.Text("Property search: property:value");
-                ImGui.Separator();
-                ImGui.Text("Available properties:");
-                ImGui.BulletText("content:value - Search by content type (e.g., content:delirium)");
-                ImGui.BulletText("effect:value - Search by map effects (e.g., effect:coalesced)");
-                ImGui.BulletText("biome:value - Search by biome name (e.g., biome:forest)");
-                ImGui.BulletText("name:value - Search by map name (e.g., name:tower)");
-                ImGui.BulletText("status:value - Search by status (e.g., status:visited, status:unlocked, status:locked)");
-                ImGui.EndTooltip();
-            }
-            
-            // Search controls
+            // Controls row
+            ImGui.Spacing();
             ImGui.BeginGroup();
             
-            // Sorting controls
+            // Sorting controls with better styling
             ImGui.AlignTextToFramePadding();
             ImGui.Text("Sort by:");
             ImGui.SameLine();
@@ -1838,43 +1835,50 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             int sortIndex = Array.IndexOf(sortOptions, Settings.Search.SortBy);
             if (sortIndex < 0) sortIndex = 0;
             
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.2f, 0.2f, 0.25f, 1.0f));
             ImGui.SetNextItemWidth(120);
             if (ImGui.Combo("###SortBy", ref sortIndex, sortOptions, sortOptions.Length)) {
                 Settings.Search.SortBy = sortOptions[sortIndex];
                 UpdateSearchResults();
             }
+            ImGui.PopStyleColor();
             
-            ImGui.SameLine();
+            ImGui.SameLine(0, 20);
             ImGui.AlignTextToFramePadding();
             ImGui.Text("Max items:");
             ImGui.SameLine();
             
             int maxItems = Settings.Search.SearchPanelMaxItems;
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.2f, 0.2f, 0.25f, 1.0f));
             ImGui.SetNextItemWidth(80);
             if (ImGui.InputInt("###MaxItems", ref maxItems, 5, 10)) {
                 if (maxItems < 5) maxItems = 5;
                 if (maxItems > 100) maxItems = 100;
                 Settings.Search.SearchPanelMaxItems = maxItems;
             }
+            ImGui.PopStyleColor();
             
             ImGui.EndGroup();
-            
-            ImGui.Separator();
+            ImGui.EndChild();
+            ImGui.PopStyleColor();
             
             // Main layout with results and help panel
             ImGui.Columns(2, "search_layout", false);
-            ImGui.SetColumnWidth(0, 450); // Set width for results column
+            ImGui.SetColumnWidth(0, ImGui.GetWindowWidth() * 0.72f); // results get 72% of width
             
-            // LEFT COLUMN - Results table
-            // Results table
-            if (ImGui.BeginTable("search_results_table", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
+            // LEFT COLUMN - Results table with more height for results
+            if (ImGui.BeginTable("search_results_table", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable, new Vector2(0, ImGui.GetContentRegionAvail().Y - 40))) {
                 ImGui.TableSetupColumn("Map Name", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("Coordinates", ImGuiTableColumnFlags.WidthFixed, 100);
-                ImGui.TableSetupColumn("Status", ImGuiTableColumnFlags.WidthFixed, 120);
-                ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 120);
-                ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 80);
-                ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 100);
+                ImGui.TableSetupColumn("Status", ImGuiTableColumnFlags.WidthFixed, 90);
+                ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 80);
+                ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 60);
+                ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 80);
+                ImGui.TableSetupScrollFreeze(0, 1); // Freeze header row
                 ImGui.TableHeadersRow();
+                
+                ImGui.PushStyleColor(ImGuiCol.TableRowBg, new Vector4(0.19f, 0.19f, 0.22f, 0.9f));
+                ImGui.PushStyleColor(ImGuiCol.TableRowBgAlt, new Vector4(0.22f, 0.22f, 0.25f, 0.9f));
                 
                 int visibleRows = 0;
                 foreach (var node in searchResults) {
@@ -1882,9 +1886,15 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     
                     ImGui.TableNextRow();
                     
-                    // Name
+                    // Name with tooltips for full name
                     ImGui.TableNextColumn();
-                    ImGui.Text(node.Name);
+                    ImGui.TextWrapped(node.Name);
+                    if (ImGui.IsItemHovered()) {
+                        ImGui.BeginTooltip();
+                        ImGui.Text(node.Name);
+                        ImGui.Text($"Node ID: {node.Id}");
+                        ImGui.EndTooltip();
+                    }
                     
                     // Coordinates
                     ImGui.TableNextColumn();
@@ -1892,9 +1902,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     
                     // Status
                     ImGui.TableNextColumn();
-                    if (node.IsVisited && node.IsUnlocked) {
-                        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1.0f), "Completed");
-                    } else if (node.IsVisited && !node.IsUnlocked) {
+                    if (node.IsVisited && !node.IsUnlocked) {
                         ImGui.TextColored(new Vector4(0.9f, 0.3f, 0.3f, 1.0f), "Failed");
                     } else if (node.IsUnlocked) {
                         ImGui.TextColored(new Vector4(0.3f, 0.9f, 0.3f, 1.0f), "Unlocked");
@@ -1922,23 +1930,25 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     ).ToVector4();
                     ImGui.TextColored(weightColor, $"{node.Weight:F1}");
                     
-                    // Actions
+                    // Actions with improved buttons
                     ImGui.TableNextColumn();
                     ImGui.PushID($"actions_{node.Id}");
                     
                     bool hasWaypoint = Settings.Waypoints.Waypoints.ContainsKey(node.Coordinates.ToString());
                     if (hasWaypoint) {
                         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.7f, 0.3f, 0.3f, 0.8f));
-                        if (ImGui.Button("Remove WP")) {
+                        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.8f, 0.4f, 0.4f, 0.9f));
+                        if (ImGui.Button("Remove")) {
                             RemoveWaypoint(node);
                         }
-                        ImGui.PopStyleColor();
+                        ImGui.PopStyleColor(2);
                     } else {
                         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.7f, 0.3f, 0.8f));
+                        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.8f, 0.4f, 0.9f));
                         if (ImGui.Button("Add WP")) {
                             AddWaypoint(node);
                         }
-                        ImGui.PopStyleColor();
+                        ImGui.PopStyleColor(2);
                     }
                     
                     ImGui.PopID();
@@ -1946,6 +1956,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     visibleRows++;
                 }
                 
+                ImGui.PopStyleColor(2); // Pop table row colors
                 ImGui.EndTable();
             }
             
@@ -1959,59 +1970,82 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             // NEXT COLUMN - Search help panel
             ImGui.NextColumn();
             
-            // Help panel
-            ImGui.BeginChild("SearchHelpPanel", new Vector2(0, 350), ImGuiChildFlags.None);
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.15f, 0.15f, 0.15f, 0.7f));
+            // Help panel with better styling
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.17f, 0.17f, 0.2f, 0.8f));
+            ImGui.BeginChild("SearchHelpPanel", new Vector2(-1, -40), ImGuiChildFlags.None);
             
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.9f, 0.9f, 0.9f, 1.0f));
+            ImGui.PushFont(ImGui.GetFont()); // You might want to use a larger font if available
             ImGui.Text("Search Syntax Guide");
+            ImGui.PopFont();
+            ImGui.PopStyleColor();
+            
             ImGui.Separator();
             ImGui.TextWrapped("Use simple text or property search with format:");
-            ImGui.TextWrapped("property:value");
+            ImGui.Spacing();
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 1.0f, 0.8f, 1.0f));
+            ImGui.Text("property:value");
+            ImGui.PopStyleColor();
             ImGui.Spacing();
             
             ImGui.TextColored(new Vector4(0.9f, 0.7f, 0.3f, 1.0f), "Examples:");
             
-            ImGui.Separator();
-            ImGui.TextColored(new Vector4(0.3f, 0.7f, 0.9f, 1.0f), "Content search:");
-            ImGui.BulletText("content:delirium");
-            ImGui.BulletText("content:ritual");
+            ImGui.Spacing();
+            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), "Content search:");
+            ImGui.Indent(10);
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "content:delirium");
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "content:ritual");
+            ImGui.Unindent(10);
             
-            ImGui.Separator();
-            ImGui.TextColored(new Vector4(0.3f, 0.7f, 0.9f, 1.0f), "Effect search:");
-            ImGui.BulletText("effect:coalesced");
-            ImGui.BulletText("effect:corruption");
+            ImGui.Spacing();
+            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), "Effect search:");
+            ImGui.Indent(10);
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "effect:coalesced");
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "effect:corruption");
+            ImGui.Unindent(10);
             
-            ImGui.Separator();
-            ImGui.TextColored(new Vector4(0.3f, 0.7f, 0.9f, 1.0f), "Biome search:");
-            ImGui.BulletText("biome:forest");
-            ImGui.BulletText("biome:mountain");
+            ImGui.Spacing();
+            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), "Biome search:");
+            ImGui.Indent(10);
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "biome:forest");
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "biome:mountain");
+            ImGui.Unindent(10);
             
-            ImGui.Separator();
-            ImGui.TextColored(new Vector4(0.3f, 0.7f, 0.9f, 1.0f), "Name search:");
-            ImGui.BulletText("name:tower");
-            ImGui.BulletText("name:strand");
+            ImGui.Spacing();
+            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), "Name search:");
+            ImGui.Indent(10);
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "name:tower");
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "name:strand");
+            ImGui.Unindent(10);
             
-            ImGui.Separator();
-            ImGui.TextColored(new Vector4(0.3f, 0.7f, 0.9f, 1.0f), "Status search:");
-            ImGui.BulletText("status:visited");
-            ImGui.BulletText("status:unlocked");
-            ImGui.BulletText("status:locked");
-            ImGui.BulletText("status:hidden");
-            ImGui.BulletText("status:tower");
+            ImGui.Spacing();
+            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), "Status search:");
+            ImGui.Indent(10);
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "status:unlocked");
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "status:locked");
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "status:hidden");
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "status:tower");
+            ImGui.Unindent(10);
             
-            ImGui.PopStyleColor();
             ImGui.EndChild();
+            ImGui.PopStyleColor();
             
             // Reset columns
             ImGui.Columns(1);
             
             ImGui.Separator();
             
-            if (ImGui.Button("Close", new Vector2(120, 0))) {
+            // Button with better styling
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.4f, 0.4f, 0.5f, 0.8f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.5f, 0.5f, 0.6f, 0.9f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.3f, 0.3f, 0.4f, 1.0f));
+            if (ImGui.Button("Close", new Vector2(120, 30))) {
                 Settings.Search.PanelIsOpen = false;
             }
+            ImGui.PopStyleColor(3);
         }
         ImGui.End();
+        ImGui.PopStyleVar(3);
     }
     #endregion
 
