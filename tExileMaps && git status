@@ -1,0 +1,4 @@
+ Classes/Content.cs   |   14 [32m+[m
+ ExileMaps.cs         | 1602 [32m++++++++++++++++++++++++++++++++++++++++[m[31m----------[m
+ ExileMapsSettings.cs |   72 [32m++[m[31m-[m
+ 3 files changed, 1368 insertions(+), 320 deletions(-)
