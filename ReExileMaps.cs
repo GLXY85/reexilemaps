@@ -1954,7 +1954,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             ImGui.NextColumn();
             
             // Help panel
-            ImGui.BeginChild("SearchHelpPanel", new Vector2(0, 350), true);
+            ImGui.BeginChild("SearchHelpPanel", new Vector2(0, 350), ImGuiChildFlags.None);
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.15f, 0.15f, 0.15f, 0.7f));
             
             ImGui.Text("Search Syntax Guide");
