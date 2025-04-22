@@ -198,7 +198,7 @@
     "13073": {
         "ModID": "TowerDeliriumDifficultyIncrease",
         "Stat2": "",
-        "Name": "of Madness",
+        "Name": "of Insanity",
         "MinValue1": 5,
         "MaxValue1": 10,
         "MinValue2": 0,
@@ -601,5 +601,18 @@
         "Description": "Freeze Fog for $s per rare",
         "Color": "200, 220, 220, 220",        
         "RequiredContent": "Delirium"
+    },
+    "14000": {
+        "ModID": "TowerCoalescedCorruption",
+        "Stat2": "",
+        "Name": "Coalesced",
+        "MinValue1": 10,
+        "MaxValue1": 20,
+        "MinValue2": 0,
+        "MaxValue2": 0,
+        "Weight": 5.0,
+        "Description": "$% Coalesced Corruption",
+        "Color": "200, 220, 20, 60",
+        "RequiredContent": "Corruption"
     }
 }

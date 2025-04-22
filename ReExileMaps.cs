@@ -68,6 +68,11 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private List<Node> searchResults = [];
     private string previousSearchQuery = "";
 
+    // Для сортировки по расстоянию
+    private Dictionary<string, float> cachedDistances = new Dictionary<string, float>();
+    private List<MapSearchItem> mapItems = new List<MapSearchItem>();
+    private string referencePositionText = "";
+
     #endregion
 
     #region ExileCore Methods
@@ -491,12 +496,29 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             if (AtlasPanel?.Descriptions == null || AtlasPanel.Descriptions.Count == 0)
                 return null;
                 
-            // Используем центр экрана вместо отслеживания курсора
+            // Получаем текущее положение курсора относительно игрового окна
+            Vector2 cursorPos = Vector2.Zero;
+            try {
+                // Используем положение курсора мыши через элемент интерфейса
+                if (GameController?.Game?.IngameState?.UIHoverElement != null)
+                    cursorPos = GameController.Game.IngameState.UIHoverElement.Tooltip.GetClientRect().Center;
+                else
+                    cursorPos = screenCenter; // Запасной вариант - центр экрана
+                
+                // Логирование для отладки
+                LogMessage($"Курсор находится в позиции: X={cursorPos.X}, Y={cursorPos.Y}");
+            }
+            catch (Exception ex) {
+                LogError($"Ошибка при получении позиции курсора: {ex.Message}");
+                cursorPos = screenCenter; // Запасной вариант - центр экрана
+            }
+            
+            // Ищем ближайшую ноду к позиции курсора
             var closestNode = AtlasPanel.Descriptions
                 .Where(x => x != null && x.Element != null)
                 .OrderBy(x => {
                     try {
-                        return Vector2.Distance(screenCenter, x.Element.GetClientRect().Center);
+                        return Vector2.Distance(cursorPos, x.Element.GetClientRect().Center);
                     }
                     catch {
                         return float.MaxValue;
@@ -2285,4 +2307,87 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     }
     #endregion
 
+    private void SortDistanceColumn() {
+        try {
+            var referencePosText = "неизвестно";
+            Vector2 referencePos = Vector2.Zero;
+            
+            // Получаем ближайшую к курсору ноду
+            var closestNode = GetClosestNodeToCursor();
+            
+            if (closestNode != null) {
+                referencePosText = closestNode.Name;
+                // Пробуем найти координаты ноды для справки
+                if (AtlasPanel?.Descriptions != null) {
+                    var nodeDesc = AtlasPanel.Descriptions.FirstOrDefault(x => 
+                        x != null && x.Element != null && 
+                        GetMapNameFromDescription(x.Text).Equals(closestNode.Name, StringComparison.OrdinalIgnoreCase));
+                        
+                    if (nodeDesc?.Element != null) {
+                        referencePos = nodeDesc.Element.GetClientRect().Center;
+                    }
+                }
+            } else {
+                // Используем позицию курсора как запасной вариант
+                try {
+                    if (GameController?.Game?.IngameState?.UIHoverElement != null) {
+                        referencePos = GameController.Game.IngameState.UIHoverElement.Tooltip.GetClientRect().Center;
+                        referencePosText = "позиция курсора";
+                    } else {
+                        referencePos = screenCenter;
+                        referencePosText = "центр экрана";
+                    }
+                }
+                catch (Exception ex) {
+                    LogError($"Ошибка при получении позиции курсора: {ex.Message}");
+                    referencePos = screenCenter;
+                    referencePosText = "центр экрана (ошибка)";
+                }
+            }
+            
+            // Логируем для отладки
+            LogMessage($"Сортировка по расстоянию от: {referencePosText}");
+            
+            // Сохраняем расстояния для каждой карты
+            cachedDistances.Clear();
+            
+            // Вычисляем расстояния для всех карт
+            foreach (var mapItem in mapItems) {
+                float distance = float.MaxValue; // Значение по умолчанию
+                
+                try {
+                    if (AtlasPanel?.Descriptions != null) {
+                        var nodeDesc = AtlasPanel.Descriptions.FirstOrDefault(x => 
+                            x != null && x.Element != null && 
+                            GetMapNameFromDescription(x.Text).Equals(mapItem.Name, StringComparison.OrdinalIgnoreCase));
+                            
+                        if (nodeDesc?.Element != null) {
+                            distance = Vector2.Distance(referencePos, nodeDesc.Element.GetClientRect().Center);
+                        }
+                    }
+                }
+                catch (Exception ex) {
+                    LogError($"Ошибка при вычислении расстояния для {mapItem.Name}: {ex.Message}");
+                }
+                
+                cachedDistances[mapItem.Name] = distance;
+            }
+            
+            // Сортируем результаты поиска по расстоянию
+            mapItems = mapItems
+                .OrderBy(x => cachedDistances.ContainsKey(x.Name) ? cachedDistances[x.Name] : float.MaxValue)
+                .ToList();
+                
+            // Обновляем текст для отображения
+            referencePositionText = $"Сортировка от: {referencePosText}";
+        }
+        catch (Exception ex) {
+            try {
+                LogError($"Error in SortDistanceColumn: {ex.Message}");
+            }
+            catch {
+                // Игнорируем ошибки в самом логировании
+            }
+        }
+    }
 }
