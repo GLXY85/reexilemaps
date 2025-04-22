@@ -1573,6 +1573,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         string sortBy = Settings.Waypoints.WaypointPanelSortBy;
         if (ImGui.BeginCombo("##sortByCombo", sortBy))
         {
+            if (ImGui.Selectable("Distance", sortBy == "Distance")) 
+                sortBy = "Distance";         
             if (ImGui.Selectable("Name", sortBy == "Name")) 
                 sortBy = "Name";         
             if (ImGui.Selectable("Weight", sortBy == "Weight")) 
@@ -1633,6 +1635,42 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 tempCache = tempCache.Where(x => x.Value.Name.Contains(Settings.Waypoints.WaypointPanelFilter, StringComparison.CurrentCultureIgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).AsParallel().ToDictionary(x => x.Key, x => x.Value);
             }
         }
+        
+        // Применяем сортировку по выбранному методу
+        switch (sortBy)
+        {
+            case "Distance":
+                try 
+                {
+                    // Сортировка по расстоянию от центра экрана (ближние карты первыми)
+                    tempCache = tempCache.OrderBy(x => {
+                        try {
+                            return Vector2.Distance(screenCenter, x.Value.MapNode.Element.GetClientRect().Center);
+                        }
+                        catch {
+                            return float.MaxValue;
+                        }
+                    }).ToDictionary(x => x.Key, x => x.Value);
+                }
+                catch 
+                {
+                    // При ошибке сортируем по весу
+                    tempCache = tempCache.OrderByDescending(x => x.Value.Weight).ToDictionary(x => x.Key, x => x.Value);
+                }
+                break;
+                
+            case "Name":
+                tempCache = tempCache.OrderBy(x => x.Value.Name).ToDictionary(x => x.Key, x => x.Value);
+                break;
+                
+            case "Weight":
+            default:
+                tempCache = tempCache.OrderByDescending(x => x.Value.Weight).ToDictionary(x => x.Key, x => x.Value);
+                break;
+        }
+        
+        // Ограничиваем количество элементов
+        tempCache = tempCache.Take(Settings.Waypoints.WaypointPanelMaxItems).ToDictionary(x => x.Key, x => x.Value);
 
         var flags = ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.Hideable | ImGuiTableFlags.NoSavedSettings;
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2, 2)); // Adjust the padding values as needed
@@ -1892,16 +1930,6 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             
             // Apply sorting
             switch (Settings.Search.SortBy) {
-                case "Name":
-                    searchResults = query.OrderBy(n => n.Name).ToList();
-                    break;
-                case "Status":
-                    searchResults = query.OrderBy(n => n.IsVisited)
-                                       .ThenBy(n => !n.IsUnlocked)
-                                       .ThenBy(n => !n.IsVisible)
-                                       .ThenByDescending(n => n.Weight)
-                                       .ToList();
-                    break;
                 case "Distance":
                     // Используем центр экрана вместо положения курсора
                     try {
@@ -1930,6 +1958,16 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                         // Запасной вариант при ошибке - сортировка по весу
                         searchResults = query.OrderByDescending(n => n.Weight).ToList();
                     }
+                    break;
+                case "Name":
+                    searchResults = query.OrderBy(n => n.Name).ToList();
+                    break;
+                case "Status":
+                    searchResults = query.OrderBy(n => n.IsVisited)
+                                       .ThenBy(n => !n.IsUnlocked)
+                                       .ThenBy(n => !n.IsVisible)
+                                       .ThenByDescending(n => n.Weight)
+                                       .ToList();
                     break;
                 case "Weight":
                 default:
@@ -1988,7 +2026,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             ImGui.Text("Sort by:");
             ImGui.SameLine();
             
-            string[] sortOptions = new[] { "Weight", "Name", "Status", "Distance" };
+            string[] sortOptions = new[] { "Distance", "Weight", "Name", "Status" };
             int sortIndex = Array.IndexOf(sortOptions, Settings.Search.SortBy);
             if (sortIndex < 0) sortIndex = 0;
             
