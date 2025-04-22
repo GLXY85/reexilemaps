@@ -1812,11 +1812,11 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 ImGui.Text("Property search: property:value");
                 ImGui.Separator();
                 ImGui.Text("Available properties:");
-                ImGui.BulletText("content:value - Search by content type (e.g. content:delirium)");
-                ImGui.BulletText("effect:value - Search by map effects (e.g. effect:coalesced)");
-                ImGui.BulletText("biome:value - Search by biome name (e.g. biome:forest)");
-                ImGui.BulletText("name:value - Search by map name (e.g. name:tower)");
-                ImGui.BulletText("status:value - Search by status (visited, unlocked, locked, hidden, tower)");
+                ImGui.BulletText("content:value - Search by content type (e.g., content:delirium)");
+                ImGui.BulletText("effect:value - Search by map effects (e.g., effect:coalesced)");
+                ImGui.BulletText("biome:value - Search by biome name (e.g., biome:forest)");
+                ImGui.BulletText("name:value - Search by map name (e.g., name:tower)");
+                ImGui.BulletText("status:value - Search by status (e.g., status:visited, status:unlocked, status:locked)");
                 ImGui.EndTooltip();
             }
             
@@ -1855,6 +1855,11 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             
             ImGui.Separator();
             
+            // Main layout with results and help panel
+            ImGui.Columns(2, "search_layout", false);
+            ImGui.SetColumnWidth(0, 450); // Set width for results column
+            
+            // LEFT COLUMN - Results table
             // Results table
             if (ImGui.BeginTable("search_results_table", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
                 ImGui.TableSetupColumn("Map Name", ImGuiTableColumnFlags.WidthStretch);
@@ -1944,6 +1949,55 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 ImGui.SameLine();
                 ImGui.TextColored(new Vector4(0.9f, 0.6f, 0.1f, 1.0f), $"(showing {Settings.Search.SearchPanelMaxItems})");
             }
+            
+            // NEXT COLUMN - Search help panel
+            ImGui.NextColumn();
+            
+            // Help panel
+            ImGui.BeginChild("SearchHelpPanel", new Vector2(0, 350), true);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.15f, 0.15f, 0.15f, 0.7f));
+            
+            ImGui.Text("Search Syntax Guide");
+            ImGui.Separator();
+            ImGui.TextWrapped("Use simple text or property search with format:");
+            ImGui.TextWrapped("property:value");
+            ImGui.Spacing();
+            
+            ImGui.TextColored(new Vector4(0.9f, 0.7f, 0.3f, 1.0f), "Examples:");
+            
+            ImGui.Separator();
+            ImGui.TextColored(new Vector4(0.3f, 0.7f, 0.9f, 1.0f), "Content search:");
+            ImGui.BulletText("content:delirium");
+            ImGui.BulletText("content:ritual");
+            
+            ImGui.Separator();
+            ImGui.TextColored(new Vector4(0.3f, 0.7f, 0.9f, 1.0f), "Effect search:");
+            ImGui.BulletText("effect:coalesced");
+            ImGui.BulletText("effect:corruption");
+            
+            ImGui.Separator();
+            ImGui.TextColored(new Vector4(0.3f, 0.7f, 0.9f, 1.0f), "Biome search:");
+            ImGui.BulletText("biome:forest");
+            ImGui.BulletText("biome:mountain");
+            
+            ImGui.Separator();
+            ImGui.TextColored(new Vector4(0.3f, 0.7f, 0.9f, 1.0f), "Name search:");
+            ImGui.BulletText("name:tower");
+            ImGui.BulletText("name:strand");
+            
+            ImGui.Separator();
+            ImGui.TextColored(new Vector4(0.3f, 0.7f, 0.9f, 1.0f), "Status search:");
+            ImGui.BulletText("status:visited");
+            ImGui.BulletText("status:unlocked");
+            ImGui.BulletText("status:locked");
+            ImGui.BulletText("status:hidden");
+            ImGui.BulletText("status:tower");
+            
+            ImGui.PopStyleColor();
+            ImGui.EndChild();
+            
+            // Reset columns
+            ImGui.Columns(1);
             
             ImGui.Separator();
             
