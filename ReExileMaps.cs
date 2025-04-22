@@ -5,7 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Text.Json;
+using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 
 using ExileCore2;
@@ -285,7 +285,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 Settings.MapMods.MapModTypes = new ObservableDictionary<string, Mod>();
 
             var jsonFile = File.ReadAllText(Path.Combine(DirectoryFullName, defaultModsPath));
-            var mods = JsonSerializer.Deserialize<Dictionary<string, Mod>>(jsonFile);
+            var mods = JsonConvert.DeserializeObject<Dictionary<string, Mod>>(jsonFile);
 
             foreach (var mod in mods.OrderBy(x => x.Value.Name))
                 Settings.MapMods.MapModTypes.TryAdd(mod.Key, mod.Value);
@@ -299,7 +299,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private void LoadDefaultBiomes() {
         try {
             var jsonFile = File.ReadAllText(Path.Combine(DirectoryFullName, defaultBiomesPath));
-            var biomes = JsonSerializer.Deserialize<Dictionary<string, Biome>>(jsonFile);
+            var biomes = JsonConvert.DeserializeObject<Dictionary<string, Biome>>(jsonFile);
 
             foreach (var biome in biomes.Where(x => x.Value.Name != "").OrderBy(x => x.Value.Name))
                 Settings.Biomes.Biomes.TryAdd(biome.Key, biome.Value);  
@@ -314,7 +314,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private void LoadDefaultContentTypes() {
         try {
             var jsonFile = File.ReadAllText(Path.Combine(DirectoryFullName, defaultContentPath));
-            var contentTypes = JsonSerializer.Deserialize<Dictionary<string, Content>>(jsonFile);
+            var contentTypes = JsonConvert.DeserializeObject<Dictionary<string, Content>>(jsonFile);
 
             foreach (var content in contentTypes.OrderBy(x => x.Value.Name))
                 Settings.MapContent.ContentTypes.TryAdd(content.Key, content.Value);   
@@ -330,7 +330,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     {
         try {
             var jsonFile = File.ReadAllText(Path.Combine(DirectoryFullName, defaultMapsPath));
-            var maps = JsonSerializer.Deserialize<Dictionary<string, Map>>(jsonFile);
+            var maps = JsonConvert.DeserializeObject<Dictionary<string, Map>>(jsonFile);
 
             foreach (var (key,map) in maps.OrderBy(x => x.Value.Name)) {
 
@@ -435,7 +435,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             }
         }
 
-        var json = JsonSerializer.Serialize(Settings.MapTypes.Maps, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonConvert.SerializeObject(Settings.MapTypes.Maps, Formatting.Indented);
         File.WriteAllText(Path.Combine(DirectoryFullName, defaultMapsPath), json);
 
         LogMessage("Updated Map Data");
