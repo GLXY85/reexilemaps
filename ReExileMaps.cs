@@ -487,18 +487,46 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     #endregion
 
     private Node GetClosestNodeToCursor() {
-        if (AtlasPanel?.Descriptions == null || AtlasPanel.Descriptions.Count == 0)
-            return null;
+        try {
+            if (AtlasPanel?.Descriptions == null || AtlasPanel.Descriptions.Count == 0)
+                return null;
+                
+            var hoverElement = GameController?.Game?.IngameState?.UIHoverElement;
+            if (hoverElement == null)
+                return null;
+                
+            var closestNode = AtlasPanel.Descriptions
+                .Where(x => x != null && x.Element != null) // Защита от null-элементов
+                .OrderBy(x => {
+                    try {
+                        return Vector2.Distance(hoverElement.GetClientRect().Center, x.Element.GetClientRect().Center);
+                    }
+                    catch {
+                        return float.MaxValue; // Если не удалось вычислить расстояние
+                    }
+                })
+                .AsParallel()
+                .FirstOrDefault();
             
-        var closestNode = AtlasPanel.Descriptions.OrderBy(x => Vector2.Distance(GameController.Game.IngameState.UIHoverElement.GetClientRect().Center, x.Element.GetClientRect().Center)).AsParallel().FirstOrDefault();
-        
-        if (closestNode == null)
+            if (closestNode == null)
+                return null;
+                
+            if (mapCache.TryGetValue(closestNode.Coordinate, out Node cachedNode))
+                return cachedNode;
+            else
+                return null;
+        }
+        catch (Exception ex) {
+            try {
+                if (LogError != null) {
+                    LogError($"Error in GetClosestNodeToCursor: {ex.Message}");
+                }
+            }
+            catch {
+                // Игнорируем ошибки в самом логировании
+            }
             return null;
-            
-        if (mapCache.TryGetValue(closestNode.Coordinate, out Node cachedNode))
-            return cachedNode;
-        else
-            return null;
+        }
     }
 
     private Node GetClosestNodeToCenterScreen() {
@@ -1767,12 +1795,31 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     var cursorNode = GetClosestNodeToCursor();
                     if (cursorNode != null) {
                         Vector2i cursorCoords = cursorNode.Coordinates;
-                        LogMessage($"Sorting by distance from cursor position at {cursorCoords}");
-                        // Сортируем сначала по возрастанию расстояния (ближние карты первыми)
-                        searchResults = query.OrderBy(n => {
-                            Vector2i nodeCoords = n.Coordinates;
-                            return Vector2i.Distance(ref cursorCoords, ref nodeCoords);
-                        }).ToList();
+                        try {
+                            // Используем безопасное логирование с проверкой на null
+                            if (LogMessage != null) {
+                                LogMessage($"Sorting by distance from cursor position at {cursorCoords}");
+                            }
+                            // Сортируем сначала по возрастанию расстояния (ближние карты первыми)
+                            searchResults = query.OrderBy(n => {
+                                if (n == null) return float.MaxValue; // Защита от возможных null значений
+                                Vector2i nodeCoords = n.Coordinates;
+                                return Vector2i.Distance(ref cursorCoords, ref nodeCoords);
+                            }).ToList();
+                        }
+                        catch (Exception ex) {
+                            // Используем безопасное логирование ошибок
+                            try {
+                                if (LogError != null) {
+                                    LogError($"Error during distance sorting: {ex.Message}");
+                                }
+                            }
+                            catch {
+                                // Игнорируем ошибку в логировании ошибки
+                            }
+                            // Запасной вариант при ошибке - сортировка по весу
+                            searchResults = query.OrderByDescending(n => n.Weight).ToList();
+                        }
                     } else {
                         // Запасной вариант, если курсор не на узле
                         searchResults = query.OrderByDescending(n => n.Weight).ToList();
@@ -1850,16 +1897,24 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             // Отображаем текущую позицию для измерения расстояния, если выбрана сортировка по расстоянию
             if (Settings.Search.SortBy == "Distance") {
                 ImGui.SameLine();
-                var cursorNode = GetClosestNodeToCursor();
-                if (cursorNode != null) {
-                    ImGui.TextColored(new Vector4(0.5f, 0.8f, 0.5f, 1.0f), 
-                        $"(от позиции игрока: {cursorNode.Name} [{cursorNode.Coordinates.X},{cursorNode.Coordinates.Y}])");
-                    if (ImGui.IsItemHovered()) {
-                        ImGui.BeginTooltip();
-                        ImGui.Text("Расстояние измеряется от текущего положения игрока на атласе");
-                        ImGui.Text("Переместите курсор на другую карту в атласе для изменения точки отсчета");
-                        ImGui.EndTooltip();
+                try {
+                    var cursorNode = GetClosestNodeToCursor();
+                    if (cursorNode != null) {
+                        ImGui.TextColored(new Vector4(0.5f, 0.8f, 0.5f, 1.0f), 
+                            $"(от позиции игрока: {cursorNode.Name} [{cursorNode.Coordinates.X},{cursorNode.Coordinates.Y}])");
+                        if (ImGui.IsItemHovered()) {
+                            ImGui.BeginTooltip();
+                            ImGui.Text("Расстояние измеряется от текущего положения игрока на атласе");
+                            ImGui.Text("Переместите курсор на другую карту в атласе для изменения точки отсчета");
+                            ImGui.EndTooltip();
+                        }
                     }
+                    else {
+                        ImGui.TextColored(new Vector4(0.9f, 0.6f, 0.2f, 1.0f), "(выберите карту на атласе)");
+                    }
+                }
+                catch {
+                    // Игнорируем ошибки при отображении информации о расстоянии
                 }
             }
             
@@ -1962,20 +2017,26 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     if (Settings.Search.SortBy == "Distance") {
                         ImGui.TableNextColumn();
                         var cursorNode = GetClosestNodeToCursor();
-                        if (cursorNode != null) {
-                            Vector2i cursorCoords = cursorNode.Coordinates;
-                            Vector2i nodeCoords = node.Coordinates;
-                            int distance = (int)Vector2i.Distance(ref cursorCoords, ref nodeCoords);
-                            
-                            // Цвет зависит от расстояния: зеленый для близких, красный для дальних
-                            float distanceNormalized = Math.Min(distance / 50.0f, 1.0f); // Нормализуем, считая 50 расстояний максимумом
-                            Vector4 distanceColor = ColorUtils.InterpolateColor(
-                                Color.LightGreen, 
-                                Color.OrangeRed, 
-                                distanceNormalized
-                            ).ToVector4();
-                            
-                            ImGui.TextColored(distanceColor, $"{distance} ед.");
+                        if (cursorNode != null && node != null) {
+                            try {
+                                Vector2i cursorCoords = cursorNode.Coordinates;
+                                Vector2i nodeCoords = node.Coordinates;
+                                int distance = (int)Vector2i.Distance(ref cursorCoords, ref nodeCoords);
+                                
+                                // Цвет зависит от расстояния: зеленый для близких, красный для дальних
+                                float distanceNormalized = Math.Min(distance / 50.0f, 1.0f); // Нормализуем, считая 50 расстояний максимумом
+                                Vector4 distanceColor = ColorUtils.InterpolateColor(
+                                    Color.LightGreen, 
+                                    Color.OrangeRed, 
+                                    distanceNormalized
+                                ).ToVector4();
+                                
+                                ImGui.TextColored(distanceColor, $"{distance} ед.");
+                            }
+                            catch {
+                                // При любой ошибке вычисления расстояния показываем прочерк
+                                ImGui.Text("-");
+                            }
                         } else {
                             ImGui.Text("-");
                         }
