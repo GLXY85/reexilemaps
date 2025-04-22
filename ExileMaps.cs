@@ -14,6 +14,7 @@ using ExileCore2.PoEMemory.MemoryObjects;
 using ExileCore2.Shared.Helpers;
 using ExileCore2.Shared.Nodes;
 using ExileCore2.Shared.Enums;
+using ExileCore2.Shared.Attributes;
 
 using GameOffsets2.Native;
 
@@ -24,6 +25,7 @@ using ExileMaps.Classes;
 
 namespace ExileMaps;
 
+[PluginName("Re:ExileMaps")]
 public class ReExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 {
     #region Declarations
