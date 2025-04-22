@@ -48,7 +48,7 @@ namespace ReExileMaps.Classes
             }
         }
 
-        [JsonConverter(typeof(JsonColorConverter))]
+        [Newtonsoft.Json.JsonConverter(typeof(JsonColorConverter))]
         public Color Color
         {
             get => color;

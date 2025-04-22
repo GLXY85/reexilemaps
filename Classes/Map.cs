@@ -16,13 +16,13 @@ namespace ReExileMaps.Classes
         private bool drawLine = false;
         private bool highlight = true;
         
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         private int count = 0;
 
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         private int lockedCount = 0;
 
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         private int fogCount = 0;
         private float weight = 1.0f;
 
@@ -35,7 +35,7 @@ namespace ReExileMaps.Classes
 
         public string Name { get; set; } = "";
 
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         public string ID { get; set; } = ""; // deprecated, here so peoples imported settings dont break immediately
 
         public string[] IDs { get; set; } = [];
@@ -62,7 +62,7 @@ namespace ReExileMaps.Classes
             return string.Join(", ", Biomes.Where(x => !string.IsNullOrWhiteSpace(x)));
         }
         
-        [JsonConverter(typeof(JsonColorConverter))]
+        [Newtonsoft.Json.JsonConverter(typeof(JsonColorConverter))]
         public Color NameColor
         {
             get => nameColor;
@@ -76,7 +76,7 @@ namespace ReExileMaps.Classes
             }
         }
 
-        [JsonConverter(typeof(JsonColorConverter))]
+        [Newtonsoft.Json.JsonConverter(typeof(JsonColorConverter))]
         public Color BackgroundColor
         {
             get => backgroundColor;
@@ -90,7 +90,7 @@ namespace ReExileMaps.Classes
             }
         }
 
-        [JsonConverter(typeof(JsonColorConverter))]
+        [Newtonsoft.Json.JsonConverter(typeof(JsonColorConverter))]
         public Color NodeColor
         {
             get => nodeColor;

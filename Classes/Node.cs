@@ -9,6 +9,7 @@ using System.Text;
 using System.Linq;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace ReExileMaps.Classes;
 
@@ -17,48 +18,48 @@ public class Node
     public string Name { get; set; }
     public string Id { get; set; }
 
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public bool IsUnlocked;
     
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public bool IsVisible;
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public bool IsActive;
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public bool IsVisited;
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public bool IsWaypoint;
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public bool IsFailed => !IsUnlocked && IsVisited;
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public bool IsAttempted => !IsUnlocked && IsVisited;
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public bool IsTower => MapType.IsTower();
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public (Vector2i, Vector2i, Vector2i, Vector2i) NeighborCoordinates { get; set; } 
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public Vector2i Coordinates { get; set; }
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public Dictionary<Vector2i, Node> Neighbors { get; set; } = [];
     public Dictionary<string, Biome> Biomes { get; set; } = [];
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public Dictionary<string, Content> Content { get; set; } = [];
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public Map MapType { get; set; }
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public float Weight { get; set; }
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public Dictionary<string, Effect> Effects { get; set; } = [];
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public bool DrawTowers { get; set; }
 
     public long Address { get; set; }
     public long ParentAddress { get; set; }
 
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public string[] EffectText => [.. Effects.Select(x => x.Value.ToString())];
 
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public AtlasNodeDescription MapNode { get; set; }
 
     public bool MatchID(string id) {

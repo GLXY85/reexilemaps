@@ -8,6 +8,7 @@ using ExileCore2.Shared.Nodes;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.ComponentModel;
+using Newtonsoft.Json;
 
 namespace ReExileMaps.Classes
 {
@@ -56,7 +57,7 @@ namespace ReExileMaps.Classes
             }
         }
 
-        [JsonConverter(typeof(JsonColorConverter))]
+        [Newtonsoft.Json.JsonConverter(typeof(JsonColorConverter))]
         public Color Color
         {
             get => color;
