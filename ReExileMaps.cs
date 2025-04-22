@@ -1328,275 +1328,392 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
         ImGui.Spacing();
 
-        // larger font size
+        // Tab menu вверху панели
+        if (ImGui.BeginTabBar("WaypointsTabBar", ImGuiTabBarFlags.None))
+        {
+            // Вкладка управления вэйпоинтами
+            if (ImGui.BeginTabItem("Управление вэйпоинтами"))
+            {
+                DrawWaypointManagementTab();
+                ImGui.EndTabItem();
+            }
+            
+            // Вкладка поиска по карте атласа
+            if (ImGui.BeginTabItem("Поиск карт"))
+            {
+                DrawAtlasSearchTab();
+                ImGui.EndTabItem();
+            }
+            
+            ImGui.EndTabBar();
+        }
+        
+        ImGui.End();
+    }
+    
+    private void DrawWaypointManagementTab()
+    {
+        // Кнопка для добавления нового вэйпоинта из текущей позиции курсора
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.6f, 0.3f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.7f, 0.4f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.2f, 0.5f, 0.2f, 1.0f));
+        
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(20, 6));
+        if (ImGui.Button("Добавить вэйпоинт из текущей карты"))
+        {
+            var node = GetClosestNodeToCursor();
+            if (node != null)
+                AddWaypoint(node);
+        }
+        ImGui.PopStyleVar();
+        
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.BeginTooltip();
+            ImGui.Text("Добавляет вэйпоинт из карты в центре экрана");
+            ImGui.EndTooltip();
+        }
+        
+        ImGui.PopStyleColor(3);
+        
+        ImGui.Spacing();
+        ImGui.Separator();
+        
+        // Заголовок списка вэйпоинтов
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 10));
-        ImGui.Text("Waypoints");
-        ImGui.PopStyleVar();        
+        ImGui.Text($"Список вэйпоинтов ({Settings.Waypoints.Waypoints.Count})");
+        ImGui.PopStyleVar();
+        
+        ImGui.SameLine(ImGui.GetWindowWidth() - 160);
+        
+        // Кнопка для удаления всех вэйпоинтов
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.7f, 0.2f, 0.2f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.8f, 0.3f, 0.3f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.6f, 0.1f, 0.1f, 1.0f));
+        
+        if (ImGui.Button("Удалить все##waypoints"))
+        {
+            // Запрос подтверждения
+            if (ImGui.GetIO().KeyAlt || Settings.Waypoints.Waypoints.Count == 0)
+            {
+                Settings.Waypoints.Waypoints.Clear();
+            }
+            else
+            {
+                ImGui.OpenPopup("delete_all_waypoints_confirmation");
+            }
+        }
+        
+        ImGui.PopStyleColor(3);
+        
+        if (ImGui.IsItemHovered() && !ImGui.GetIO().KeyAlt)
+        {
+            ImGui.BeginTooltip();
+            ImGui.Text("Удерживайте Alt для удаления всех вэйпоинтов без подтверждения");
+            ImGui.EndTooltip();
+        }
+        
+        // Диалог подтверждения удаления всех вэйпоинтов
+        bool open = true;
+        if (ImGui.BeginPopupModal("delete_all_waypoints_confirmation", ref open, ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            ImGui.Text($"Вы уверены, что хотите удалить все вэйпоинты ({Settings.Waypoints.Waypoints.Count})?");
+            ImGui.Text("Это действие невозможно отменить!");
+            ImGui.Separator();
+            
+            if (ImGui.Button("Да, удалить все", new Vector2(120, 0)))
+            {
+                Settings.Waypoints.Waypoints.Clear();
+                ImGui.CloseCurrentPopup();
+            }
+            
+            ImGui.SameLine();
+            
+            if (ImGui.Button("Отмена", new Vector2(120, 0)))
+            {
+                ImGui.CloseCurrentPopup();
+            }
+            
+            ImGui.EndPopup();
+        }
+        
+        ImGui.Separator();
+        
+        // Фильтр для поиска вэйпоинтов
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("Поиск: ");
+        ImGui.SameLine();
+        
+        string waypointFilter = "";
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 10);
+        if (ImGui.InputText("##waypoint_filter", ref waypointFilter, 100))
+        {
+            // Фильтр в реальном времени
+        }
+        
+        ImGui.Spacing();
+        
+        // Таблица с вэйпоинтами
+        if (ImGui.BeginTable("waypoints_management_table", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable, new Vector2(0, ImGui.GetContentRegionAvail().Y - 10)))
+        {
+            ImGui.TableSetupColumn("Имя", ImGuiTableColumnFlags.WidthStretch, 200);
+            ImGui.TableSetupColumn("Координаты", ImGuiTableColumnFlags.WidthFixed, 100);
+            ImGui.TableSetupColumn("Видимость", ImGuiTableColumnFlags.WidthFixed, 80);
+            ImGui.TableSetupColumn("Цвет", ImGuiTableColumnFlags.WidthFixed, 60);
+            ImGui.TableSetupColumn("Действия", ImGuiTableColumnFlags.WidthFixed, 120);
+            
+            ImGui.TableSetupScrollFreeze(0, 1);
+            ImGui.TableHeadersRow();
+            
+            // Перебираем все вэйпоинты
+            foreach (var waypoint in Settings.Waypoints.Waypoints.Values)
+            {
+                string id = waypoint.ID ?? waypoint.Address.ToString();
+                
+                // Фильтрация, если есть поисковый запрос
+                if (!string.IsNullOrEmpty(waypointFilter) && 
+                    !waypoint.Name.Contains(waypointFilter, StringComparison.OrdinalIgnoreCase) && 
+                    !waypoint.CoordinatesString.Contains(waypointFilter))
+                {
+                    continue;
+                }
+                
+                ImGui.PushID(id);
+                ImGui.TableNextRow();
+                
+                // Имя вэйпоинта (с возможностью редактирования)
+                ImGui.TableNextColumn();
+                string waypointName = waypoint.Name;
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 10);
+                if (ImGui.InputText($"##name_{id}", ref waypointName, 50))
+                {
+                    waypoint.Name = waypointName;
+                }
+                
+                // Координаты
+                ImGui.TableNextColumn();
+                ImGui.Text(waypoint.CoordinatesString);
+                
+                // Видимость
+                ImGui.TableNextColumn();
+                bool isVisible = waypoint.Show;
+                if (ImGui.Checkbox($"##visible_{id}", ref isVisible))
+                {
+                    waypoint.Show = isVisible;
+                }
+                
+                // Цвет
+                ImGui.TableNextColumn();
+                Color waypointColor = waypoint.Color;
+                Vector4 colorVector = new Vector4(
+                    waypointColor.R / 255.0f, 
+                    waypointColor.G / 255.0f, 
+                    waypointColor.B / 255.0f, 
+                    waypointColor.A / 255.0f
+                );
+                
+                if (ImGui.ColorButton($"##color_{id}", colorVector))
+                {
+                    ImGui.OpenPopup($"color_picker_{id}");
+                }
+                
+                if (ImGui.BeginPopup($"color_picker_{id}"))
+                {
+                    if (ImGui.ColorPicker4("##picker", ref colorVector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreviewHalf))
+                    {
+                        waypoint.Color = Color.FromArgb(
+                            (int)(colorVector.W * 255), 
+                            (int)(colorVector.X * 255), 
+                            (int)(colorVector.Y * 255), 
+                            (int)(colorVector.Z * 255)
+                        );
+                    }
+                    ImGui.EndPopup();
+                }
+                
+                // Действия
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.7f, 0.2f, 0.2f, 1.0f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.8f, 0.3f, 0.3f, 1.0f));
+                
+                if (ImGui.Button($"Удалить##del_{id}"))
+                {
+                    RemoveWaypoint(waypoint);
+                }
+                
+                ImGui.PopStyleColor(2);
+                
+                // Показать на карте (перейти к координатам)
+                ImGui.SameLine();
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.4f, 0.7f, 1.0f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.5f, 0.8f, 1.0f));
+                
+                if (waypoint.MapNode() != null && ImGui.Button($"На карте##show_{id}", new Vector2(60, 0)))
+                {
+                    // Просто показать подсказку, что карта находится в поле зрения
+                    // Реальное центрирование на карте было бы сложно реализовать
+                    ImGui.SetTooltip("Карта находится в поле зрения");
+                }
+                
+                ImGui.PopStyleColor(2);
+                
+                ImGui.PopID();
+            }
+            
+            ImGui.EndTable();
+        }
+    }
+
+    private void DrawAtlasSearchTab()
+    {
+        // Заголовок и сортировка
+        ImGui.Text("Сортировка карт: ");
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(100);
+        string sortBy = Settings.Waypoints.WaypointPanelSortBy;
+        if (ImGui.BeginCombo("##sortByCombo", sortBy))
+        {
+            if (ImGui.Selectable("Name", sortBy == "Name")) 
+                sortBy = "Name";         
+            if (ImGui.Selectable("Weight", sortBy == "Weight")) 
+                sortBy = "Weight";                    
+   
+            Settings.Waypoints.WaypointPanelSortBy = sortBy;
+            ImGui.EndCombo();
+        }
+
+        ImGui.SameLine();
+        ImGui.Spacing();
+        ImGui.SameLine();
+
+        ImGui.Text("Макс. элементов: ");
+        ImGui.SameLine();
+        int maxItems = Settings.Waypoints.WaypointPanelMaxItems;
+        ImGui.SetNextItemWidth(100);
+        if (ImGui.InputInt("##maxItems", ref maxItems))
+            Settings.Waypoints.WaypointPanelMaxItems = maxItems; 
+
+        ImGui.SameLine();
+        ImGui.Spacing();
+        ImGui.SameLine();
+
+        bool unlockedOnly = Settings.Waypoints.ShowUnlockedOnly;
+        if (ImGui.Checkbox("Только разблокированные", ref unlockedOnly))
+            Settings.Waypoints.ShowUnlockedOnly = unlockedOnly;
+
         ImGui.Separator();
 
+        ImGui.Text("Поиск: ");
+        ImGui.SameLine();
+        string regex = Settings.Waypoints.WaypointPanelFilter;
+        ImGui.SetNextItemWidth(250);
+        if (ImGui.InputText("##search", ref regex, 32, ImGuiInputTextFlags.EnterReturnsTrue)) {
+            Settings.Waypoints.WaypointPanelFilter = regex;
+        } else if (ImGui.IsItemDeactivatedAfterEdit()) {
+            Settings.Waypoints.WaypointPanelFilter = regex;
+        } else if (ImGui.IsItemHovered()) {
+            ImGui.SetTooltip("Ищите по названию карты или модификатору. Нажмите Enter для поиска.");
+        }
 
-        #region Waypoints Table
-        // Collapse
-        if (ImGui.CollapsingHeader("Waypoints", ImGuiTreeNodeFlags.DefaultOpen))
-        {
-            var flags = ImGuiTableFlags.BordersInnerH;
-            ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0, 0, 0, 0));
-            if (ImGui.BeginTable("waypoint_list_table", 8, flags))//, new Vector2(-1, panelSize.Y/3)))
-            {
-                ImGui.TableSetupColumn("Enable", ImGuiTableColumnFlags.WidthFixed, 30);                                                               
-                ImGui.TableSetupColumn("Waypoint Name", ImGuiTableColumnFlags.WidthFixed, 300);     
-                ImGui.TableSetupColumn("X", ImGuiTableColumnFlags.WidthFixed, 40);                    
-                ImGui.TableSetupColumn("Y", ImGuiTableColumnFlags.WidthFixed, 40);     
-                ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthFixed, 30);     
-                ImGui.TableSetupColumn("Scale", ImGuiTableColumnFlags.WidthFixed, 100);     
-                ImGui.TableSetupColumn("Option", ImGuiTableColumnFlags.WidthFixed, 60); 
-                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch, 50);
-                ImGui.TableHeadersRow();                    
+        ImGui.SameLine();
+        ImGui.Spacing();
+        ImGui.SameLine();
+        bool useRegex = Settings.Waypoints.WaypointsUseRegex;
+        if (ImGui.Checkbox("Регулярное выражение", ref useRegex))
+            Settings.Waypoints.WaypointsUseRegex = useRegex;
+        
+        ImGui.Separator();
+    
+        var tempCache = mapCache.Where(x => !x.Value.IsVisited && (!Settings.Waypoints.ShowUnlockedOnly || x.Value.IsUnlocked)).AsParallel().ToDictionary(x => x.Key, x => x.Value);    
+        // if search isnt blank
+        if (!string.IsNullOrEmpty(Settings.Waypoints.WaypointPanelFilter)) {
+            if (useRegex) {
+                tempCache = tempCache.Where(x => Regex.IsMatch(x.Value.Name, Settings.Waypoints.WaypointPanelFilter, RegexOptions.IgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).AsParallel().ToDictionary(x => x.Key, x => x.Value);
+            } else {
+                tempCache = tempCache.Where(x => x.Value.Name.Contains(Settings.Waypoints.WaypointPanelFilter, StringComparison.CurrentCultureIgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).AsParallel().ToDictionary(x => x.Key, x => x.Value);
+            }
+        }
 
-                foreach (var waypoint in Settings.Waypoints.Waypoints.Values) {
-                    string id = waypoint.Address.ToString();
-                    ImGui.PushID(id);
-                    
+        var flags = ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.Hideable | ImGuiTableFlags.NoSavedSettings;
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2, 2)); // Adjust the padding values as needed
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(2, 2)); // A
+        if (ImGui.BeginTable("atlas_list_table", 8, flags))//, new Vector2(-1, panelSize.Y/3)))
+        {                                                            
+            ImGui.TableSetupColumn("Map Name", ImGuiTableColumnFlags.WidthFixed, 200);   
+            ImGui.TableSetupColumn("Content", ImGuiTableColumnFlags.WidthFixed, 60);     
+            ImGui.TableSetupColumn("Modifiers", ImGuiTableColumnFlags.WidthFixed, 100); 
+            ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 80);
+            ImGui.TableSetupColumn("Unlocked", ImGuiTableColumnFlags.WidthFixed, 28);
+            ImGui.TableSetupColumn("Way", ImGuiTableColumnFlags.WidthFixed, 32);
+            ImGui.TableHeadersRow();                    
+
+            Vector4 _colorVector;
+            Color _color;
+
+            if (tempCache != null) {
+                foreach (var (key, node) in tempCache) {
+                    string id = node.Address.ToString();
+                    ImGui.PushID(id);                        
                     ImGui.TableNextRow();
-
-                    // Enabled
-                    ImGui.TableNextColumn();
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 30.0f) / 2.0f);
-                    bool _show = waypoint.Show;
-                    if (ImGui.Checkbox($"##{id}_enabled", ref _show)) {
-                        waypoint.Show = _show;
-                    }
 
                     // Name
                     ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(300);
-                    string _name = waypoint.Name;                    
-                    if (ImGui.InputText($"##{id}_name", ref _name, 32)) {
-                        waypoint.Name = _name;
+                    ImGui.TextUnformatted(node.Name);
+
+                    ImGui.SetWindowFontScale(0.7f);            
+                    // Content
+                    ImGui.TableNextColumn();                        
+                    foreach (var (_, content) in node.Content) {
+                        _color = content.Color;
+                        _colorVector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
+                        ImGui.TextColored(_colorVector, content.ShortName);
                     }
-                    // Coordinates
-                    ImGui.TableNextColumn();                    
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 40.0f) / 2.0f);
-                    ImGui.Text(waypoint.Coordinates.X.ToString());
-
-                    ImGui.TableNextColumn();                    
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 40.0f) / 2.0f);
-                    ImGui.Text(waypoint.Coordinates.Y.ToString());
-
-
-                    // Color
-                    ImGui.TableNextColumn();
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 30.0f) / 2.0f);
-                    Color _color = waypoint.Color;
-                    Vector4 _vector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
-                    if(ImGui.ColorEdit4($"##{id}_nodecolor", ref _vector, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.NoInputs))                        
-                        waypoint.Color = Color.FromArgb((int)(_vector.W * 255), (int)(_vector.X * 255), (int)(_vector.Y * 255), (int)(_vector.Z * 255));
                     
-                    // Scale
                     ImGui.TableNextColumn();
-                    float _scale = waypoint.Scale;
-                    ImGui.SetNextItemWidth(100);
-                    if(ImGui.SliderFloat($"##{id}_weight", ref _scale, 0.1f, 2.0f, "%.2f"))                        
-                        waypoint.Scale = _scale;
-
-
-                    // Buttons
-                    ImGui.TableNextColumn();
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 50.0f) / 2.0f);
-                    ImGui.SetNextItemWidth(60);
-                    if (ImGui.Button("Delete")) {
-                        RemoveWaypoint(waypoint);
+                    foreach (var (_, effect) in node.Effects) {
+                        if (!effect.Enabled) continue;
+                        
+                        _color = Color.FromArgb(
+                            255,
+                            (byte)Math.Min(255, 255 * (effect.Value1 > 0 ? 1.0f : 0.2f)),
+                            (byte)Math.Min(255, 255 * (Math.Abs(effect.Value1) < 0.01 ? 1.0f : 0.2f)),
+                            (byte)Math.Min(255, 255 * (effect.Value1 < 0 ? 1.0f : 0.2f))
+                        );
+                        
+                        _colorVector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
+                        ImGui.TextColored(_colorVector, $"{effect.Name} {effect.Value1:+#;-#;0}");
                     }
+
+                    // Weight
+                    ImGui.TableNextColumn();
+                    _color = ColorUtils.InterpolateColor(Settings.MapTypes.BadNodeColor, Settings.MapTypes.GoodNodeColor, (node.Weight - minMapWeight) / (maxMapWeight - minMapWeight));
+                    _colorVector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
+                    ImGui.TextColored(_colorVector, $"{node.Weight:0.#}");   
+
+                    // Unlocked
+                    ImGui.TableNextColumn();
+                    if (ImGui.Checkbox("", ref node.IsUnlocked));
+                         
+                    // Waypoint
+                    ImGui.TableNextColumn();
+                    bool hasWaypoint = Settings.Waypoints.Waypoints.ContainsKey(node.Coordinates.ToString());
+                    if (ImGui.Checkbox("##", ref hasWaypoint))
+                    {
+                        if (hasWaypoint)                             
+                            AddWaypoint(node);
+                        else 
+                            RemoveWaypoint(node);
+                    }
+                    
+                    ImGui.SetWindowFontScale(1.0f);
                     ImGui.PopID();
                 }
-                ImGui.EndTable();
-                ImGui.PopStyleColor();
             }
-            #endregion
-            
-        }
-       
-        ImGui.Spacing();
-
-        #region Atlas Table
-        if (ImGui.CollapsingHeader("Atlas"))
-        {
-            
-
-            // Sort by Combobox
-            ImGui.Text("Sort: ");
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(100);
-            string sortBy = Settings.Waypoints.WaypointPanelSortBy;
-            if (ImGui.BeginCombo("##sortByCombo", sortBy))
-            {
-                if (ImGui.Selectable("Name", sortBy == "Name")) 
-                    sortBy = "Name";         
-                if (ImGui.Selectable("Weight", sortBy == "Weight")) 
-                    sortBy = "Weight";                    
-       
-                Settings.Waypoints.WaypointPanelSortBy = sortBy;
-                ImGui.EndCombo();
-            }
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.Text("Max Items: ");
-            ImGui.SameLine();
-            int maxItems = Settings.Waypoints.WaypointPanelMaxItems;
-            ImGui.SetNextItemWidth(100);
-            if (ImGui.InputInt("##maxItems", ref maxItems))
-                Settings.Waypoints.WaypointPanelMaxItems = maxItems; 
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            bool unlockedOnly = Settings.Waypoints.ShowUnlockedOnly;
-            if (ImGui.Checkbox("Show Unlocked Maps Only", ref unlockedOnly))
-                Settings.Waypoints.ShowUnlockedOnly = unlockedOnly;
-
-            ImGui.Separator();
-
-            ImGui.Text("Search: ");
-            ImGui.SameLine();
-            string regex = Settings.Waypoints.WaypointPanelFilter;
-            ImGui.SetNextItemWidth(250);
-            if (ImGui.InputText("##search", ref regex, 32, ImGuiInputTextFlags.EnterReturnsTrue)) {
-                Settings.Waypoints.WaypointPanelFilter = regex;
-            } else if (ImGui.IsItemDeactivatedAfterEdit()) {
-                Settings.Waypoints.WaypointPanelFilter = regex;
-            } else if (ImGui.IsItemHovered()) {
-                ImGui.SetTooltip("Searches for map names and/or mod text. Press enter to search.");
-            }
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-            bool useRegex = Settings.Waypoints.WaypointsUseRegex;
-            if (ImGui.Checkbox("Regex", ref useRegex))
-                Settings.Waypoints.WaypointsUseRegex = useRegex;
-            
-            ImGui.Separator();
-        
-            var tempCache = mapCache.Where(x => !x.Value.IsVisited && (!Settings.Waypoints.ShowUnlockedOnly || x.Value.IsUnlocked)).AsParallel().ToDictionary(x => x.Key, x => x.Value);    
-            // if search isnt blank
-            if (!string.IsNullOrEmpty(Settings.Waypoints.WaypointPanelFilter)) {
-                if (useRegex) {
-                    tempCache = tempCache.Where(x => Regex.IsMatch(x.Value.Name, Settings.Waypoints.WaypointPanelFilter, RegexOptions.IgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).AsParallel().ToDictionary(x => x.Key, x => x.Value);
-                } else {
-                    tempCache = tempCache.Where(x => x.Value.Name.Contains(Settings.Waypoints.WaypointPanelFilter, StringComparison.CurrentCultureIgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).AsParallel().ToDictionary(x => x.Key, x => x.Value);
-                }
-            }
-
-            tempCache = sortBy switch
-            {
-                "Name" => tempCache.OrderBy(x => x.Value.Name).ToDictionary(x => x.Key, x => x.Value),
-                "Weight" => tempCache.OrderByDescending(x => x.Value.Weight).ToDictionary(x => x.Key, x => x.Value),
-                _ => tempCache.OrderByDescending(x => x.Value.Weight).ToDictionary(x => x.Key, x => x.Value),
-            };
-            tempCache = tempCache.Take(maxItems).ToDictionary(x => x.Key, x => x.Value);
-
-            var flags = ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.Hideable | ImGuiTableFlags.NoSavedSettings;
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2, 2)); // Adjust the padding values as needed
-            ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(2, 2)); // A
-            if (ImGui.BeginTable("atlas_list_table", 8, flags))//, new Vector2(-1, panelSize.Y/3)))
-            {                                                            
-                ImGui.TableSetupColumn("Map Name", ImGuiTableColumnFlags.WidthFixed, 200);   
-                ImGui.TableSetupColumn("Content", ImGuiTableColumnFlags.WidthFixed, 60);     
-                ImGui.TableSetupColumn("Modifiers", ImGuiTableColumnFlags.WidthFixed, 100); 
-                ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 80);
-                ImGui.TableSetupColumn("Unlocked", ImGuiTableColumnFlags.WidthFixed, 28);
-                ImGui.TableSetupColumn("Way", ImGuiTableColumnFlags.WidthFixed, 32);
-                ImGui.TableHeadersRow();                    
-
-                Vector4 _colorVector;
-                Color _color;
-
-                if (tempCache != null) {
-                    foreach (var (key, node) in tempCache) {
-                        string id = node.Address.ToString();
-                        ImGui.PushID(id);                        
-                        ImGui.TableNextRow();
-
-                        // Name
-                        ImGui.TableNextColumn();
-                        ImGui.TextUnformatted(node.Name);
-
-                        ImGui.SetWindowFontScale(0.7f);            
-
-                        // Content
-                        ImGui.TableNextColumn();
-                        foreach(var (k,content) in node.Content) {
-                            _color = Settings.MapContent.ContentTypes[content.Name].Color;
-                            _colorVector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
-                            ImGui.PushStyleColor(ImGuiCol.Text, _colorVector);
-                            ImGui.TextUnformatted(content.Name);
-                            ImGui.PopStyleColor();
-                        }
-                        
-
-                        // Modifiers
-                        ImGui.TableNextColumn();
-                        foreach(var effect in node.Effects) {       
-                            _color = Settings.MapMods.MapModTypes[effect.Key].Color;
-                            _colorVector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
-                            ImGui.PushStyleColor(ImGuiCol.Text, _colorVector);
-                            ImGui.TextUnformatted(effect.Value.ToString());
-                            ImGui.PopStyleColor();
-                        }
-                        // reset font size
-                        ImGui.SetWindowFontScale(1.0f);
-
-                        // Weight
-                        ImGui.TableNextColumn();
-                        // set color
-                        float weight = (node.Weight - minMapWeight) / (maxMapWeight - minMapWeight);        
-                        _color = ColorUtils.InterpolateColor(Settings.MapTypes.BadNodeColor,Settings.MapTypes.GoodNodeColor, weight);
-                        _colorVector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
-                        ImGui.PushStyleColor(ImGuiCol.Text, _colorVector);
-                        ImGui.TextUnformatted(node.Weight.ToString("0.0"));
-                        ImGui.PopStyleColor();
-
-                        // Unlocked
-                        ImGui.TableNextColumn();
-                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X - 30.0f) / 2.0f);
-                        bool _unlocked = node.IsUnlocked;
-                        ImGui.BeginDisabled();                        
-                        ImGui.Checkbox($"##{id}_enabled", ref _unlocked);
-                        ImGui.EndDisabled();
-    //
-                        // Buttons
-                        ImGui.TableNextColumn();
-                        RectangleF icon = SpriteHelper.GetUV(MapIconsIndex.Waypoint);
-                        
-                        if (!node.IsWaypoint){
-                            ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(ImGuiCol.TableRowBg));
-                            if (ImGui.ImageButton($"$${id}_wp", iconsId, new Vector2(32,32), icon.TopLeft, icon.BottomRight)) {
-                                AddWaypoint(node);
-                            } else if (ImGui.IsItemHovered()) {
-                                ImGui.SetTooltip("Add Waypoint");
-                            }
-                            ImGui.PopStyleColor();
-                        }
-
-                        ImGui.PopID();
-                    }
-                }
-            }
-            ImGui.EndTable();
             ImGui.PopStyleVar(2);
-            #endregion
-            
+            ImGui.EndTable();
         }
-
-        ImGui.End();
     }
-    #endregion
 
-    #region Waypoint Functions
     private void DrawWaypoint(Waypoint waypoint) {
         if (!Settings.Waypoints.ShowWaypoints || waypoint.MapNode() == null || !waypoint.Show || !IsOnScreen(waypoint.MapNode().Element.GetClientRect().Center))
             return;
