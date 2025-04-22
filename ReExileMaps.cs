@@ -1687,7 +1687,10 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             IEnumerable<Node> query;
             
             if (isPropertySearch) {
-                query = mapCache.Values.Where(node => {
+                query = mapCache.Values
+                    // Exclude completed maps (visited and unlocked)
+                    .Where(node => !(node.IsVisited && node.IsUnlocked))
+                    .Where(node => {
                     // Search by property type
                     switch (propertyName) {
                         case "content":
@@ -1737,6 +1740,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             } else {
                 // Standard search (no property specified)
                 query = mapCache.Values
+                    // Exclude completed maps (visited and unlocked)
+                    .Where(node => !(node.IsVisited && node.IsUnlocked))
                     .Where(node => node.Name.ToLower().Contains(searchQuery) || 
                            (node.MapType?.Name?.ToLower()?.Contains(searchQuery) == true) ||
                            node.Effects.Any(e => (e.Value.Name.ToLower().Contains(searchQuery) || 
@@ -1780,10 +1785,11 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private void DrawSearchPanel() {
         if (!Settings.Search.PanelIsOpen || !AtlasPanel?.IsVisible == true) return;
 
-        var windowFlags = ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse;
+        // Разрешаем изменение размера окна и скроллинг
+        var windowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.HorizontalScrollbar;
         
         ImGui.SetNextWindowPos(searchPanelPosition, ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(600, 500), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(800, 500), ImGuiCond.FirstUseEver);
         
         bool isOpen = Settings.Search.PanelIsOpen;
         if (ImGui.Begin("Map Search###MapSearchPanel", ref isOpen, windowFlags)) {
