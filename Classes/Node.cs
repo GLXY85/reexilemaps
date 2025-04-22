@@ -1,12 +1,16 @@
+using System;
 using System.Collections.Generic;
-using ExileCore2.PoEMemory.Elements.AtlasElements;
-using System.Text;
+using System.Drawing;
+using System.Numerics;
 using GameOffsets2.Native;
+using ExileCore2.PoEMemory.Elements.AtlasElements;
+using ExileCore2.Shared.Enums;
+using System.Text;
 using System.Linq;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-namespace ExileMaps.Classes;
+namespace ReExileMaps.Classes;
 
 public class Node
 {

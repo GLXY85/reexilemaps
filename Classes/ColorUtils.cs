@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using ExileCore2.PoEMemory.Components;
 
-namespace ExileMaps.Classes
+namespace ReExileMaps.Classes
 {
     public static class ColorUtils
     {

@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Text.Json.Serialization;
 using System.Linq;
+using Newtonsoft.Json;
 
-namespace ExileMaps.Classes
+namespace ReExileMaps.Classes
 {
     public class Biome : INotifyPropertyChanged
     {

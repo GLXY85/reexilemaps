@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.ComponentModel;
 
-namespace ExileMaps.Classes
+namespace ReExileMaps.Classes
 {
     public class Content : INotifyPropertyChanged
     {

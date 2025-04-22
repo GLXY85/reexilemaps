@@ -3,8 +3,7 @@ using System.Drawing;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-
-namespace ExileMaps.Classes;
+namespace ReExileMaps.Classes;
 
 public class JsonColorConverter : JsonConverter<Color>
 {

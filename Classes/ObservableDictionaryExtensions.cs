@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ExileMaps.Classes
+namespace ReExileMaps.Classes
 {
     public static class ObservableDictionaryExtensions
     {

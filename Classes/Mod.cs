@@ -1,4 +1,4 @@
-    using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using ExileCore2;
@@ -8,8 +8,13 @@ using ExileCore2.Shared.Nodes;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.ComponentModel;
+using System.Numerics;
+using System.Text;
+using ExileCore2.PoEMemory.Components;
+using GameOffsets2.Native;
+using Newtonsoft.Json;
 
-namespace ExileMaps.Classes
+namespace ReExileMaps.Classes
 {
     public class Mod : INotifyPropertyChanged
     {

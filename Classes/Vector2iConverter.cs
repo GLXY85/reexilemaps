@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using GameOffsets2.Native;
 
-namespace ExileMaps.Classes
+namespace ReExileMaps.Classes
 {
     public class Vector2iConverter : JsonConverter<Vector2i>
     {
