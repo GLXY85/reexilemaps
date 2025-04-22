@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using GameOffsets2.Native;
-using static ExileMaps.ExileMapsCore;
+using static ExileMaps.ReExileMapsCore;
 
 namespace ExileMaps.Classes
 {
