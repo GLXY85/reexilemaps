@@ -1761,7 +1761,10 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     var centerNode = GetClosestNodeToCenterScreen();
                     if (centerNode != null) {
                         Vector2i centerCoords = centerNode.Coordinates;
-                        searchResults = query.OrderBy(n => Vector2i.Distance(ref centerCoords, ref n.Coordinates)).ToList();
+                        searchResults = query.OrderBy(n => {
+                            Vector2i nodeCoords = n.Coordinates;
+                            return Vector2i.Distance(ref centerCoords, ref nodeCoords);
+                        }).ToList();
                     } else {
                         searchResults = query.OrderByDescending(n => n.Weight).ToList();
                     }
