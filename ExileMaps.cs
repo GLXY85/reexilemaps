@@ -63,8 +63,6 @@ public class ReExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
     private bool WaypointPanelIsOpen = false;
     private bool ShowMinimap = false;
 
-    public override string Name => "Re:ExileMaps";
-
     #endregion
 
     #region ExileCore Methods
