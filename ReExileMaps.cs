@@ -1675,12 +1675,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                            node.Effects.Any(e => e.Value.Name.ToLower().Contains(searchQuery) || 
                                                e.Value.Description.ToLower().Contains(searchQuery)) ||
                            node.Content.Any(c => c.Value.Name.ToLower().Contains(searchQuery)) ||
-                           node.Biomes.Any(b => b.Value.Name.ToLower().Contains(searchQuery)))
-                    .Where(node => (Settings.Search.ShowUnlockedMaps && node.IsUnlocked) ||
-                                  (Settings.Search.ShowLockedMaps && !node.IsUnlocked && node.IsVisible) ||
-                                  (Settings.Search.ShowHiddenMaps && !node.IsVisible))
-                    .Where(node => !(Settings.Search.HideVisitedMaps && node.IsVisited && node.IsUnlocked))
-                    .Where(node => !(Settings.Search.HideFailedMaps && node.IsVisited && !node.IsUnlocked));
+                           node.Biomes.Any(b => b.Value.Name.ToLower().Contains(searchQuery)));
                 
                 // Apply sorting
                 switch (Settings.Search.SortBy) {
@@ -1758,58 +1753,6 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             }
             
             ImGui.EndGroup();
-            
-            // Filter options
-            if (ImGui.BeginTable("search_options_table", 2, ImGuiTableFlags.NoBordersInBody)) {
-                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 300);
-                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 300);
-                
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                bool showUnlocked = Settings.Search.ShowUnlockedMaps;
-                if (ImGui.Checkbox("Show Unlocked Maps", ref showUnlocked)) {
-                    Settings.Search.ShowUnlockedMaps = showUnlocked;
-                    UpdateSearchResults();
-                }
-                
-                ImGui.TableNextColumn();
-                bool hideVisited = Settings.Search.HideVisitedMaps;
-                if (ImGui.Checkbox("Hide Visited Maps", ref hideVisited)) {
-                    Settings.Search.HideVisitedMaps = hideVisited;
-                    UpdateSearchResults();
-                }
-                
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                bool showLocked = Settings.Search.ShowLockedMaps;
-                if (ImGui.Checkbox("Show Locked Maps", ref showLocked)) {
-                    Settings.Search.ShowLockedMaps = showLocked;
-                    UpdateSearchResults();
-                }
-                
-                ImGui.TableNextColumn();
-                bool hideFailed = Settings.Search.HideFailedMaps;
-                if (ImGui.Checkbox("Hide Failed Maps", ref hideFailed)) {
-                    Settings.Search.HideFailedMaps = hideFailed;
-                    UpdateSearchResults();
-                }
-                
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                bool showHidden = Settings.Search.ShowHiddenMaps;
-                if (ImGui.Checkbox("Show Hidden Maps", ref showHidden)) {
-                    Settings.Search.ShowHiddenMaps = showHidden;
-                    UpdateSearchResults();
-                }
-                
-                ImGui.TableNextColumn();
-                bool autoRemove = Settings.Search.AutoRemoveWaypointAfterVisit;
-                if (ImGui.Checkbox("Auto-remove Waypoints After Visit", ref autoRemove)) {
-                    Settings.Search.AutoRemoveWaypointAfterVisit = autoRemove;
-                }
-                
-                ImGui.EndTable();
-            }
             
             ImGui.Separator();
             
