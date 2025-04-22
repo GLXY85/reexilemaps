@@ -24,10 +24,10 @@ using ExileMaps.Classes;
 
 namespace ExileMaps;
 
-public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
+public class ReExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
 {
     #region Declarations
-    public static ExileMapsCore Main;
+    public static ReExileMapsCore Main;
 
     private const string defaultMapsPath = "json\\maps.json";
     private const string defaultModsPath = "json\\mods.json";
@@ -118,7 +118,7 @@ public class ExileMapsCore : BaseSettingsPlugin<ExileMapsSettings>
         
         if (refreshCache && !refreshingCache && (DateTime.Now.Subtract(lastRefresh).TotalSeconds > Settings.Graphics.MapCacheRefreshRate || mapCache.Count == 0))
         {
-            var job = new Job($"{nameof(ExileMaps)}RefreshCache", () =>
+            var job = new Job($"{nameof(ReExileMaps)}RefreshCache", () =>
             {
                 RefreshMapCache();
                 refreshCache = false;

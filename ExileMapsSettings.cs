@@ -11,7 +11,7 @@ using ImGuiNET;
 using Newtonsoft.Json;
 using GameOffsets2.Native;
 
-using static ExileMaps.ExileMapsCore;
+using static ExileMaps.ReExileMapsCore;
 
 namespace ExileMaps;
 
