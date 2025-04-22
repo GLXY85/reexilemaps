@@ -1704,7 +1704,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     foreach (var (_, content) in node.Content) {
                         _color = content.Color;
                         _colorVector = new Vector4(_color.R / 255.0f, _color.G / 255.0f, _color.B / 255.0f, _color.A / 255.0f);
-                        ImGui.TextColored(_colorVector, content.ShortName);
+                        ImGui.TextColored(_colorVector, content.Name);
                     }
                     
                     ImGui.TableNextColumn();
