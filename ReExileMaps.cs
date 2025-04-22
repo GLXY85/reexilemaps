@@ -1653,31 +1653,58 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     #region Map Search Panel
     private void UpdateSearchResults() {
+        if (!AtlasPanel?.IsVisible == true) {
+            searchResults.Clear();
+            return;
+        }
+        
         if (string.IsNullOrWhiteSpace(Settings.Search.SearchQuery)) {
             searchResults.Clear();
             return;
         }
 
         string searchQuery = Settings.Search.SearchQuery.ToLower();
-        if (searchQuery != previousSearchQuery) {
+        if (searchQuery != previousSearchQuery || true) { // Always refresh for now
             searchResults.Clear();
             previousSearchQuery = searchQuery;
 
             lock (mapCacheLock) {
-                searchResults = mapCache.Values
-                    .Where(node => node.Name.ToLower().Contains(searchQuery))
+                var query = mapCache.Values
+                    .Where(node => node.Name.ToLower().Contains(searchQuery) || 
+                           (node.MapType?.Name?.ToLower()?.Contains(searchQuery) == true) ||
+                           node.Effects.Any(e => e.Value.Name.ToLower().Contains(searchQuery) || 
+                                               e.Value.Description.ToLower().Contains(searchQuery)) ||
+                           node.Content.Any(c => c.Value.Name.ToLower().Contains(searchQuery)) ||
+                           node.Biomes.Any(b => b.Value.Name.ToLower().Contains(searchQuery)))
                     .Where(node => (Settings.Search.ShowUnlockedMaps && node.IsUnlocked) ||
                                   (Settings.Search.ShowLockedMaps && !node.IsUnlocked && node.IsVisible) ||
                                   (Settings.Search.ShowHiddenMaps && !node.IsVisible))
                     .Where(node => !(Settings.Search.HideVisitedMaps && node.IsVisited && node.IsUnlocked))
-                    .Where(node => !(Settings.Search.HideFailedMaps && node.IsVisited && !node.IsUnlocked))
-                    .ToList();
+                    .Where(node => !(Settings.Search.HideFailedMaps && node.IsVisited && !node.IsUnlocked));
+                
+                // Apply sorting
+                switch (Settings.Search.SortBy) {
+                    case "Name":
+                        searchResults = query.OrderBy(n => n.Name).ToList();
+                        break;
+                    case "Status":
+                        searchResults = query.OrderBy(n => n.IsVisited)
+                                           .ThenBy(n => !n.IsUnlocked)
+                                           .ThenBy(n => !n.IsVisible)
+                                           .ThenByDescending(n => n.Weight)
+                                           .ToList();
+                        break;
+                    case "Weight":
+                    default:
+                        searchResults = query.OrderByDescending(n => n.Weight).ToList();
+                        break;
+                }
             }
         }
     }
 
     private void DrawSearchPanel() {
-        if (!Settings.Search.PanelIsOpen) return;
+        if (!Settings.Search.PanelIsOpen || !AtlasPanel?.IsVisible == true) return;
 
         var windowFlags = ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse;
         
@@ -1690,7 +1717,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             searchPanelPosition = ImGui.GetWindowPos();
             
             // Search bar
-            ImGui.Text("Поиск карт:");
+            ImGui.Text("Search maps:");
             ImGui.SameLine();
             string searchQuery = Settings.Search.SearchQuery;
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
@@ -1698,6 +1725,39 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 Settings.Search.SearchQuery = searchQuery;
                 UpdateSearchResults();
             }
+            
+            // Search controls
+            ImGui.BeginGroup();
+            
+            // Sorting controls
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("Sort by:");
+            ImGui.SameLine();
+            
+            string[] sortOptions = new[] { "Weight", "Name", "Status" };
+            int sortIndex = Array.IndexOf(sortOptions, Settings.Search.SortBy);
+            if (sortIndex < 0) sortIndex = 0;
+            
+            ImGui.SetNextItemWidth(120);
+            if (ImGui.Combo("###SortBy", ref sortIndex, sortOptions, sortOptions.Length)) {
+                Settings.Search.SortBy = sortOptions[sortIndex];
+                UpdateSearchResults();
+            }
+            
+            ImGui.SameLine();
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("Max items:");
+            ImGui.SameLine();
+            
+            int maxItems = Settings.Search.SearchPanelMaxItems;
+            ImGui.SetNextItemWidth(80);
+            if (ImGui.InputInt("###MaxItems", ref maxItems, 5, 10)) {
+                if (maxItems < 5) maxItems = 5;
+                if (maxItems > 100) maxItems = 100;
+                Settings.Search.SearchPanelMaxItems = maxItems;
+            }
+            
+            ImGui.EndGroup();
             
             // Filter options
             if (ImGui.BeginTable("search_options_table", 2, ImGuiTableFlags.NoBordersInBody)) {
@@ -1707,14 +1767,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 bool showUnlocked = Settings.Search.ShowUnlockedMaps;
-                if (ImGui.Checkbox("Показывать разблокированные карты", ref showUnlocked)) {
+                if (ImGui.Checkbox("Show Unlocked Maps", ref showUnlocked)) {
                     Settings.Search.ShowUnlockedMaps = showUnlocked;
                     UpdateSearchResults();
                 }
                 
                 ImGui.TableNextColumn();
                 bool hideVisited = Settings.Search.HideVisitedMaps;
-                if (ImGui.Checkbox("Скрывать пройденные карты", ref hideVisited)) {
+                if (ImGui.Checkbox("Hide Visited Maps", ref hideVisited)) {
                     Settings.Search.HideVisitedMaps = hideVisited;
                     UpdateSearchResults();
                 }
@@ -1722,14 +1782,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 bool showLocked = Settings.Search.ShowLockedMaps;
-                if (ImGui.Checkbox("Показывать заблокированные карты", ref showLocked)) {
+                if (ImGui.Checkbox("Show Locked Maps", ref showLocked)) {
                     Settings.Search.ShowLockedMaps = showLocked;
                     UpdateSearchResults();
                 }
                 
                 ImGui.TableNextColumn();
                 bool hideFailed = Settings.Search.HideFailedMaps;
-                if (ImGui.Checkbox("Скрывать зафейленные карты", ref hideFailed)) {
+                if (ImGui.Checkbox("Hide Failed Maps", ref hideFailed)) {
                     Settings.Search.HideFailedMaps = hideFailed;
                     UpdateSearchResults();
                 }
@@ -1737,14 +1797,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 bool showHidden = Settings.Search.ShowHiddenMaps;
-                if (ImGui.Checkbox("Показывать скрытые карты", ref showHidden)) {
+                if (ImGui.Checkbox("Show Hidden Maps", ref showHidden)) {
                     Settings.Search.ShowHiddenMaps = showHidden;
                     UpdateSearchResults();
                 }
                 
                 ImGui.TableNextColumn();
                 bool autoRemove = Settings.Search.AutoRemoveWaypointAfterVisit;
-                if (ImGui.Checkbox("Автоудаление путевых точек после посещения", ref autoRemove)) {
+                if (ImGui.Checkbox("Auto-remove Waypoints After Visit", ref autoRemove)) {
                     Settings.Search.AutoRemoveWaypointAfterVisit = autoRemove;
                 }
                 
@@ -1755,12 +1815,12 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             
             // Results table
             if (ImGui.BeginTable("search_results_table", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
-                ImGui.TableSetupColumn("Название карты", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("Координаты", ImGuiTableColumnFlags.WidthFixed, 100);
-                ImGui.TableSetupColumn("Статус", ImGuiTableColumnFlags.WidthFixed, 120);
-                ImGui.TableSetupColumn("Тип", ImGuiTableColumnFlags.WidthFixed, 120);
-                ImGui.TableSetupColumn("Рейтинг", ImGuiTableColumnFlags.WidthFixed, 80);
-                ImGui.TableSetupColumn("Действия", ImGuiTableColumnFlags.WidthFixed, 100);
+                ImGui.TableSetupColumn("Map Name", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Coordinates", ImGuiTableColumnFlags.WidthFixed, 100);
+                ImGui.TableSetupColumn("Status", ImGuiTableColumnFlags.WidthFixed, 120);
+                ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 120);
+                ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 80);
+                ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 100);
                 ImGui.TableHeadersRow();
                 
                 int visibleRows = 0;
@@ -1780,23 +1840,23 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     // Status
                     ImGui.TableNextColumn();
                     if (node.IsVisited && node.IsUnlocked) {
-                        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1.0f), "Пройдена");
+                        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1.0f), "Completed");
                     } else if (node.IsVisited && !node.IsUnlocked) {
-                        ImGui.TextColored(new Vector4(0.9f, 0.3f, 0.3f, 1.0f), "Зафейлена");
+                        ImGui.TextColored(new Vector4(0.9f, 0.3f, 0.3f, 1.0f), "Failed");
                     } else if (node.IsUnlocked) {
-                        ImGui.TextColored(new Vector4(0.3f, 0.9f, 0.3f, 1.0f), "Разблокирована");
+                        ImGui.TextColored(new Vector4(0.3f, 0.9f, 0.3f, 1.0f), "Unlocked");
                     } else if (node.IsVisible) {
-                        ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.3f, 1.0f), "Заблокирована");
+                        ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.3f, 1.0f), "Locked");
                     } else {
-                        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.9f, 1.0f), "Скрытая");
+                        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.9f, 1.0f), "Hidden");
                     }
                     
                     // Type
                     ImGui.TableNextColumn();
                     if (node.IsTower) {
-                        ImGui.TextColored(new Vector4(0.8f, 0.6f, 0.2f, 1.0f), "Башня");
+                        ImGui.TextColored(new Vector4(0.8f, 0.6f, 0.2f, 1.0f), "Tower");
                     } else {
-                        ImGui.Text("Карта");
+                        ImGui.Text("Map");
                     }
                     
                     // Weight
@@ -1816,13 +1876,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     bool hasWaypoint = Settings.Waypoints.Waypoints.ContainsKey(node.Coordinates.ToString());
                     if (hasWaypoint) {
                         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.7f, 0.3f, 0.3f, 0.8f));
-                        if (ImGui.Button("Удалить WP")) {
+                        if (ImGui.Button("Remove WP")) {
                             RemoveWaypoint(node);
                         }
                         ImGui.PopStyleColor();
                     } else {
                         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.7f, 0.3f, 0.8f));
-                        if (ImGui.Button("Добавить WP")) {
+                        if (ImGui.Button("Add WP")) {
                             AddWaypoint(node);
                         }
                         ImGui.PopStyleColor();
@@ -1837,15 +1897,15 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             }
             
             // Status info
-            ImGui.Text($"Результатов: {searchResults.Count}");
+            ImGui.Text($"Results: {searchResults.Count}");
             if (searchResults.Count > Settings.Search.SearchPanelMaxItems) {
                 ImGui.SameLine();
-                ImGui.TextColored(new Vector4(0.9f, 0.6f, 0.1f, 1.0f), $"(показано {Settings.Search.SearchPanelMaxItems})");
+                ImGui.TextColored(new Vector4(0.9f, 0.6f, 0.1f, 1.0f), $"(showing {Settings.Search.SearchPanelMaxItems})");
             }
             
             ImGui.Separator();
             
-            if (ImGui.Button("Закрыть", new Vector2(120, 0))) {
+            if (ImGui.Button("Close", new Vector2(120, 0))) {
                 Settings.Search.PanelIsOpen = false;
             }
         }

@@ -841,6 +841,7 @@ public class SearchSettings
     public int SearchPanelMaxItems { get; set; } = 30;
     public bool AutoRemoveWaypointAfterVisit { get; set; } = true;
     public string SearchQuery { get; set; } = "";
+    public string SortBy { get; set; } = "Weight";
 
     public SearchSettings() {
         SearchPanel = new CustomNode
