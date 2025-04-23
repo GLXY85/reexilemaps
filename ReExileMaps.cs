@@ -1604,28 +1604,34 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     private void DrawAtlasSearchTab()
     {
-        // Заголовок и сортировка
-        ImGui.Text("Сортировка карт: ");
+        var panelSize = ImGui.GetContentRegionAvail();
+        string regex = Settings.Waypoints.WaypointPanelFilter;
+
+        // Выбор сортировки
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("Сортировка: ");
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(100);
-        string sortBy = Settings.Waypoints.WaypointPanelSortBy;
-        if (ImGui.BeginCombo("##sortByCombo", sortBy))
+        
+        var sortBy = Settings.Waypoints.WaypointPanelSortBy;
+        
+        if (ImGui.BeginCombo("##sort_by", sortBy))
         {
-            if (ImGui.Selectable("Distance", sortBy == "Distance")) 
-                sortBy = "Distance";         
-            if (ImGui.Selectable("Name", sortBy == "Name")) 
-                sortBy = "Name";         
-            if (ImGui.Selectable("Weight", sortBy == "Weight")) 
-                sortBy = "Weight";                    
-   
-            Settings.Waypoints.WaypointPanelSortBy = sortBy;
+            if (ImGui.Selectable("Weight", sortBy == "Weight"))
+                Settings.Waypoints.WaypointPanelSortBy = "Weight";
+                
+            if (ImGui.Selectable("Name", sortBy == "Name"))
+                Settings.Waypoints.WaypointPanelSortBy = "Name";
+                
+            if (ImGui.Selectable("Distance", sortBy == "Distance"))
+                Settings.Waypoints.WaypointPanelSortBy = "Distance";
+                
             ImGui.EndCombo();
         }
-
+        
         ImGui.SameLine();
         ImGui.Spacing();
         ImGui.SameLine();
-
+        
         ImGui.Text("Макс. элементов: ");
         ImGui.SameLine();
         int maxItems = Settings.Waypoints.WaypointPanelMaxItems;
@@ -1641,12 +1647,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         if (ImGui.Checkbox("Только разблокированные", ref unlockedOnly))
             Settings.Waypoints.ShowUnlockedOnly = unlockedOnly;
 
-        ImGui.Separator();
-
+        ImGui.Spacing();
+        
+        ImGui.AlignTextToFramePadding();
         ImGui.Text("Поиск: ");
         ImGui.SameLine();
-        string regex = Settings.Waypoints.WaypointPanelFilter;
-        ImGui.SetNextItemWidth(250);
+        
+        ImGui.SetNextItemWidth(panelSize.X - 120);
         if (ImGui.InputText("##search", ref regex, 32, ImGuiInputTextFlags.EnterReturnsTrue)) {
             Settings.Waypoints.WaypointPanelFilter = regex;
         } else if (ImGui.IsItemDeactivatedAfterEdit()) {
@@ -1664,13 +1671,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         
         ImGui.Separator();
     
-        var tempCache = mapCache.Where(x => !x.Value.IsVisited && (!Settings.Waypoints.ShowUnlockedOnly || x.Value.IsUnlocked)).AsParallel().ToDictionary(x => x.Key, x => x.Value);    
+        // Заменяем AsParallel().ToDictionary на обычный где возможно
+        var tempCache = mapCache.Where(x => !x.Value.IsVisited && (!Settings.Waypoints.ShowUnlockedOnly || x.Value.IsUnlocked)).ToDictionary(x => x.Key, x => x.Value);    
         // if search isnt blank
         if (!string.IsNullOrEmpty(Settings.Waypoints.WaypointPanelFilter)) {
             if (useRegex) {
-                tempCache = tempCache.Where(x => Regex.IsMatch(x.Value.Name, Settings.Waypoints.WaypointPanelFilter, RegexOptions.IgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).AsParallel().ToDictionary(x => x.Key, x => x.Value);
+                tempCache = tempCache.Where(x => Regex.IsMatch(x.Value.Name, Settings.Waypoints.WaypointPanelFilter, RegexOptions.IgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).ToDictionary(x => x.Key, x => x.Value);
             } else {
-                tempCache = tempCache.Where(x => x.Value.Name.Contains(Settings.Waypoints.WaypointPanelFilter, StringComparison.CurrentCultureIgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).AsParallel().ToDictionary(x => x.Key, x => x.Value);
+                tempCache = tempCache.Where(x => x.Value.Name.Contains(Settings.Waypoints.WaypointPanelFilter, StringComparison.CurrentCultureIgnoreCase) || x.Value.MatchEffect(Settings.Waypoints.WaypointPanelFilter) || x.Value.Content.Any(x => x.Value.Name == Settings.Waypoints.WaypointPanelFilter)).ToDictionary(x => x.Key, x => x.Value);
             }
         }
         
