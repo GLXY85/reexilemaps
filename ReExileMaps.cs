@@ -25,6 +25,22 @@ using ReExileMaps.Classes;
 
 namespace ReExileMaps;
 
+// Helper classes
+public class MapSearchItem
+{
+    public Node MapNode { get; set; }
+    public float Distance { get; set; }
+    public string Name => MapNode?.Name ?? "Unknown";
+    
+    public MapSearchItem(Node node, float distance)
+    {
+        MapNode = node;
+        Distance = distance;
+    }
+}
+
+#nullable enable
+// Main plugin class
 public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 {
     #region Declarations
@@ -71,7 +87,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     // Для сортировки по расстоянию
     private Dictionary<string, float> cachedDistances = new Dictionary<string, float>();
     private List<MapSearchItem> mapItems = new List<MapSearchItem>();
-    private string referencePositionText = "";
+    private string referencePositionText = "от центра экрана";
 
     #endregion
 
@@ -1853,149 +1869,172 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     #region Map Search Panel
     private void UpdateSearchResults() {
-        if (!AtlasPanel?.IsVisible == true) {
-            searchResults.Clear();
-            return;
-        }
-        
-        if (string.IsNullOrWhiteSpace(Settings.Search.SearchQuery)) {
-            searchResults.Clear();
-            return;
-        }
+        try {
+            if (!AtlasPanel?.IsVisible == true) {
+                searchResults.Clear();
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(Settings.Search.SearchQuery)) {
+                searchResults.Clear();
+                return;
+            }
 
-        string searchQuery = Settings.Search.SearchQuery.ToLower();
-        // Check for property search syntax: prop:value
-        bool isPropertySearch = false;
-        string propertyName = "";
-        string propertyValue = "";
-        
-        if (searchQuery.Contains(":")) {
-            var parts = searchQuery.Split(':', 2);
-            if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]) && !string.IsNullOrWhiteSpace(parts[1])) {
-                isPropertySearch = true;
-                propertyName = parts[0].Trim().ToLower();
-                propertyValue = parts[1].Trim().ToLower();
+            string searchQuery = Settings.Search.SearchQuery.ToLower();
+            // Check for property search syntax: prop:value
+            bool isPropertySearch = false;
+            string propertyName = "";
+            string propertyValue = "";
+            
+            if (searchQuery.Contains(":")) {
+                var parts = searchQuery.Split(':', 2);
+                if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]) && !string.IsNullOrWhiteSpace(parts[1])) {
+                    isPropertySearch = true;
+                    propertyName = parts[0].Trim().ToLower();
+                    propertyValue = parts[1].Trim().ToLower();
+                    
+                    LogMessage($"Property search: '{propertyName}' = '{propertyValue}'");
+                }
+            }
+
+            searchResults.Clear();
+            previousSearchQuery = searchQuery;
+
+            lock (mapCacheLock) {
+                IEnumerable<Node> query;
                 
-                LogMessage($"Property search: '{propertyName}' = '{propertyValue}'");
+                if (isPropertySearch) {
+                    query = mapCache.Values
+                        // Exclude completed maps (visited and unlocked)
+                        .Where(node => !(node.IsVisited && node.IsUnlocked))
+                        .Where(node => {
+                        // Search by property type
+                        switch (propertyName) {
+                            case "content":
+                            case "type":
+                                return node.Content != null && 
+                                       node.Content.Any(c => c.Value.Name.ToLower().Contains(propertyValue));
+                            
+                            case "effect":
+                            case "mod":
+                                return node.Effects != null && 
+                                       node.Effects.Any(e => e.Value.Name.ToLower().Contains(propertyValue) || 
+                                                           e.Value.Description.ToLower().Contains(propertyValue));
+                            
+                            case "biome":
+                                return node.Biomes != null && 
+                                       node.Biomes.Any(b => b.Value.Name.ToLower().Contains(propertyValue));
+                            
+                            case "name":
+                                return node.Name.ToLower().Contains(propertyValue) ||
+                                      (node.MapType?.Name?.ToLower()?.Contains(propertyValue) == true);
+                            
+                            case "status":
+                                if (propertyValue.Contains("visit"))
+                                    return node.IsVisited;
+                                else if (propertyValue.Contains("unlock"))
+                                    return node.IsUnlocked;
+                                else if (propertyValue.Contains("lock"))
+                                    return !node.IsUnlocked;
+                                else if (propertyValue.Contains("hidden"))
+                                    return !node.IsVisible;
+                                else if (propertyValue.Contains("tower"))
+                                    return node.IsTower;
+                                else if (propertyValue.Contains("fail"))
+                                    return node.IsVisited && !node.IsUnlocked;
+                                return false;
+                            
+                            default:
+                                // Try generic property search across all properties
+                                return node.Name.ToLower().Contains(propertyValue) ||
+                                      (node.MapType?.Name?.ToLower()?.Contains(propertyValue) == true) ||
+                                       node.Effects.Any(e => (e.Value.Name.ToLower().Contains(propertyValue) || 
+                                                           e.Value.Description.ToLower().Contains(propertyValue))) ||
+                                       node.Content.Any(c => c.Value.Name.ToLower().Contains(propertyValue)) ||
+                                       node.Biomes.Any(b => b.Value.Name.ToLower().Contains(propertyValue));
+                        }
+                    });
+                } else {
+                    // Standard search (no property specified)
+                    query = mapCache.Values
+                        // Exclude completed maps (visited and unlocked)
+                        .Where(node => !(node.IsVisited && node.IsUnlocked))
+                        .Where(node => node.Name.ToLower().Contains(searchQuery) || 
+                               (node.MapType?.Name?.ToLower()?.Contains(searchQuery) == true) ||
+                               node.Effects.Any(e => (e.Value.Name.ToLower().Contains(searchQuery) || 
+                                                   e.Value.Description.ToLower().Contains(searchQuery))) ||
+                               node.Content.Any(c => c.Value.Name.ToLower().Contains(searchQuery)) ||
+                               node.Biomes.Any(b => b.Value.Name.ToLower().Contains(searchQuery)));
+                }
+                
+                // Apply sorting
+                switch (Settings.Search.SortBy) {
+                    case "Distance":
+                        try {
+                            // Получаем положение курсора для сортировки
+                            var cursorNode = GetClosestNodeToCursor();
+                            Vector2 referencePos;
+                            
+                            if (cursorNode != null) {
+                                // Если курсор над картой, используем эту позицию
+                                referencePos = cursorNode.MapNode.Element.GetClientRect().Center;
+                                referencePositionText = $"от карты {cursorNode.Name}";
+                                LogMessage($"Sorting by distance from cursor position over {cursorNode.Name}");
+                            } else {
+                                // Если курсор не над картой, используем центр экрана
+                                referencePos = screenCenter;
+                                referencePositionText = "от центра экрана";
+                                LogMessage($"Sorting by distance from screen center");
+                            }
+                            
+                            // Сохраняем карты с их расстояниями для отображения
+                            mapItems.Clear();
+                            
+                            // Создаем список объектов MapSearchItem с расстояниями
+                            foreach (var node in query) {
+                                if (node == null || node.MapNode?.Element == null) continue;
+                                
+                                float distance = float.MaxValue;
+                                try {
+                                    distance = Vector2.Distance(referencePos, node.MapNode.Element.GetClientRect().Center);
+                                } catch {}
+                                
+                                mapItems.Add(new MapSearchItem(node, distance));
+                            }
+                            
+                            // Сортируем по возрастанию расстояния (ближние карты первыми)
+                            searchResults = mapItems.OrderBy(item => item.Distance)
+                                                   .Select(item => item.MapNode)
+                                                   .ToList();
+                        }
+                        catch (Exception ex) {
+                            try {
+                                LogError($"Error during distance sorting: {ex.Message}");
+                            }
+                            catch {}
+                            // Запасной вариант при ошибке - сортировка по весу
+                            searchResults = query.OrderByDescending(n => n.Weight).ToList();
+                        }
+                        break;
+                    case "Name":
+                        searchResults = query.OrderBy(n => n.Name).ToList();
+                        break;
+                    case "Status":
+                        searchResults = query.OrderBy(n => n.IsVisited)
+                                           .ThenBy(n => !n.IsUnlocked)
+                                           .ThenBy(n => !n.IsVisible)
+                                           .ThenByDescending(n => n.Weight)
+                                           .ToList();
+                        break;
+                    case "Weight":
+                    default:
+                        searchResults = query.OrderByDescending(n => n.Weight).ToList();
+                        break;
+                }
             }
         }
-
-        searchResults.Clear();
-        previousSearchQuery = searchQuery;
-
-        lock (mapCacheLock) {
-            IEnumerable<Node> query;
-            
-            if (isPropertySearch) {
-                query = mapCache.Values
-                    // Exclude completed maps (visited and unlocked)
-                    .Where(node => !(node.IsVisited && node.IsUnlocked))
-                    .Where(node => {
-                    // Search by property type
-                    switch (propertyName) {
-                        case "content":
-                        case "type":
-                            return node.Content != null && 
-                                   node.Content.Any(c => c.Value.Name.ToLower().Contains(propertyValue));
-                        
-                        case "effect":
-                        case "mod":
-                            return node.Effects != null && 
-                                   node.Effects.Any(e => e.Value.Name.ToLower().Contains(propertyValue) || 
-                                                       e.Value.Description.ToLower().Contains(propertyValue));
-                        
-                        case "biome":
-                            return node.Biomes != null && 
-                                   node.Biomes.Any(b => b.Value.Name.ToLower().Contains(propertyValue));
-                        
-                        case "name":
-                            return node.Name.ToLower().Contains(propertyValue) ||
-                                  (node.MapType?.Name?.ToLower()?.Contains(propertyValue) == true);
-                        
-                        case "status":
-                            if (propertyValue.Contains("visit"))
-                                return node.IsVisited;
-                            else if (propertyValue.Contains("unlock"))
-                                return node.IsUnlocked;
-                            else if (propertyValue.Contains("lock"))
-                                return !node.IsUnlocked;
-                            else if (propertyValue.Contains("hidden"))
-                                return !node.IsVisible;
-                            else if (propertyValue.Contains("tower"))
-                                return node.IsTower;
-                            else if (propertyValue.Contains("fail"))
-                                return node.IsVisited && !node.IsUnlocked;
-                            return false;
-                        
-                        default:
-                            // Try generic property search across all properties
-                            return node.Name.ToLower().Contains(propertyValue) ||
-                                  (node.MapType?.Name?.ToLower()?.Contains(propertyValue) == true) ||
-                                   node.Effects.Any(e => (e.Value.Name.ToLower().Contains(propertyValue) || 
-                                                       e.Value.Description.ToLower().Contains(propertyValue))) ||
-                                   node.Content.Any(c => c.Value.Name.ToLower().Contains(propertyValue)) ||
-                                   node.Biomes.Any(b => b.Value.Name.ToLower().Contains(propertyValue));
-                    }
-                });
-            } else {
-                // Standard search (no property specified)
-                query = mapCache.Values
-                    // Exclude completed maps (visited and unlocked)
-                    .Where(node => !(node.IsVisited && node.IsUnlocked))
-                    .Where(node => node.Name.ToLower().Contains(searchQuery) || 
-                           (node.MapType?.Name?.ToLower()?.Contains(searchQuery) == true) ||
-                           node.Effects.Any(e => (e.Value.Name.ToLower().Contains(searchQuery) || 
-                                               e.Value.Description.ToLower().Contains(searchQuery))) ||
-                           node.Content.Any(c => c.Value.Name.ToLower().Contains(searchQuery)) ||
-                           node.Biomes.Any(b => b.Value.Name.ToLower().Contains(searchQuery)));
-            }
-            
-            // Apply sorting
-            switch (Settings.Search.SortBy) {
-                case "Distance":
-                    // Используем центр экрана вместо положения курсора
-                    try {
-                        // Используем безопасное логирование
-                        LogMessage($"Sorting by distance from player position");
-                        
-                        // Сортируем сначала по возрастанию расстояния (ближние карты первыми)
-                        searchResults = query.OrderBy(n => {
-                            if (n == null) return float.MaxValue; // Защита от возможных null значений
-                            try {
-                                return Vector2.Distance(screenCenter, n.MapNode.Element.GetClientRect().Center);
-                            }
-                            catch {
-                                return float.MaxValue;
-                            }
-                        }).ToList();
-                    }
-                    catch (Exception ex) {
-                        // Используем безопасное логирование ошибок
-                        try {
-                            LogError($"Error during distance sorting: {ex.Message}");
-                        }
-                        catch {
-                            // Игнорируем ошибку в логировании ошибки
-                        }
-                        // Запасной вариант при ошибке - сортировка по весу
-                        searchResults = query.OrderByDescending(n => n.Weight).ToList();
-                    }
-                    break;
-                case "Name":
-                    searchResults = query.OrderBy(n => n.Name).ToList();
-                    break;
-                case "Status":
-                    searchResults = query.OrderBy(n => n.IsVisited)
-                                       .ThenBy(n => !n.IsUnlocked)
-                                       .ThenBy(n => !n.IsVisible)
-                                       .ThenByDescending(n => n.Weight)
-                                       .ToList();
-                    break;
-                case "Weight":
-                default:
-                    searchResults = query.OrderByDescending(n => n.Weight).ToList();
-                    break;
-            }
+        catch (Exception ex) {
+            LogError($"Error in UpdateSearchResults: {ex.Message}");
         }
     }
 
@@ -2060,13 +2099,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             }
             ImGui.PopStyleColor();
             
-            // Отображаем текущую позицию для измерения расстояния, если выбрана сортировка по расстоянию
+            // Отображаем текущую точку отсчета для измерения расстояния, если выбрана сортировка по расстоянию
             if (Settings.Search.SortBy == "Distance") {
                 ImGui.SameLine();
-                ImGui.TextColored(new Vector4(0.5f, 0.8f, 0.5f, 1.0f), "(от позиции игрока в центре экрана)");
+                ImGui.TextColored(new Vector4(0.5f, 0.8f, 0.5f, 1.0f), $"({referencePositionText})");
                 if (ImGui.IsItemHovered()) {
                     ImGui.BeginTooltip();
-                    ImGui.Text("Расстояние измеряется от текущего положения игрока в центре экрана");
+                    ImGui.Text("Расстояние измеряется от положения курсора на карте атласа.");
+                    ImGui.Text("Наведите курсор на другую карту, чтобы изменить точку отсчета.");
                     ImGui.EndTooltip();
                 }
             }
@@ -2105,10 +2145,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 // Показываем столбец с расстоянием, если выбрана сортировка по расстоянию
                 if (Settings.Search.SortBy == "Distance") {
                     ImGui.TableSetupColumn("Расстояние", ImGuiTableColumnFlags.WidthFixed, 90);
-                    ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 80);
-                } else {
-                    ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 80);
                 }
+                
+                ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 80);
                 
                 ImGui.TableSetupScrollFreeze(0, 1); // Freeze header row
                 ImGui.TableHeadersRow();
@@ -2120,17 +2159,18 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 foreach (var node in searchResults) {
                     if (visibleRows >= Settings.Search.SearchPanelMaxItems) break;
                     
-                    ImGui.TableNextRow();
+                    if (node == null) continue;
+                    visibleRows++;
                     
-                    // Name with tooltips for full name
+                    ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-                    ImGui.TextWrapped(node.Name);
-                    if (ImGui.IsItemHovered()) {
-                        ImGui.BeginTooltip();
-                        ImGui.Text(node.Name);
-                        ImGui.Text($"Node ID: {node.Id}");
-                        ImGui.EndTooltip();
-                    }
+                    
+                    // Map Name
+                    ImGui.TextColored(
+                        node.IsUnlocked 
+                            ? new Vector4(0.9f, 0.9f, 1.0f, 1.0f) 
+                            : new Vector4(0.6f, 0.6f, 0.7f, 1.0f), 
+                        node.Name);
                     
                     // Coordinates
                     ImGui.TableNextColumn();
@@ -2138,171 +2178,122 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     
                     // Status
                     ImGui.TableNextColumn();
-                    if (node.IsVisited && !node.IsUnlocked) {
-                        ImGui.TextColored(new Vector4(0.9f, 0.3f, 0.3f, 1.0f), "Failed");
-                    } else if (node.IsUnlocked) {
-                        ImGui.TextColored(new Vector4(0.3f, 0.9f, 0.3f, 1.0f), "Unlocked");
-                    } else if (node.IsVisible) {
-                        ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.3f, 1.0f), "Locked");
-                    } else {
-                        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.9f, 1.0f), "Hidden");
-                    }
+                    string status = node.IsVisited ? "Visited" : node.IsUnlocked ? "Unlocked" : node.IsVisible ? "Locked" : "Hidden";
+                    ImGui.TextColored(
+                        node.IsVisited 
+                            ? new Vector4(0.5f, 0.5f, 0.5f, 1.0f) 
+                            : node.IsUnlocked 
+                                ? new Vector4(0.2f, 0.8f, 0.2f, 1.0f) 
+                                : node.IsVisible 
+                                    ? new Vector4(0.8f, 0.2f, 0.2f, 1.0f) 
+                                    : new Vector4(0.8f, 0.8f, 0.2f, 1.0f), 
+                        status);
                     
-                    // Type
+                    // Type/Content - show icons or text for map content
                     ImGui.TableNextColumn();
-                    if (node.IsTower) {
-                        ImGui.TextColored(new Vector4(0.8f, 0.6f, 0.2f, 1.0f), "Tower");
+                    if (node.Content.Count > 0) {
+                        string contentTypes = string.Join(", ", node.Content.Select(c => c.Value.Name));
+                        ImGui.TextWrapped(contentTypes);
+                        if (ImGui.IsItemHovered() && contentTypes.Length > 10) {
+                            ImGui.BeginTooltip();
+                            ImGui.Text(contentTypes);
+                            ImGui.EndTooltip();
+                        }
                     } else {
-                        ImGui.Text("Map");
+                        ImGui.Text("-");
                     }
                     
                     // Weight
                     ImGui.TableNextColumn();
                     float normalizedWeight = (node.Weight - minMapWeight) / (maxMapWeight - minMapWeight);
-                    Vector4 weightColor = ColorUtils.InterpolateColor(
-                        Settings.MapTypes.BadNodeColor, 
-                        Settings.MapTypes.GoodNodeColor, 
-                        normalizedWeight
-                    ).ToVector4();
-                    ImGui.TextColored(weightColor, $"{node.Weight:F1}");
-                    
-                    // Distance column (if Distance sorting is active)
+                    ImGui.TextColored(
+                        ColorHelper.GetColorForWeight(normalizedWeight),
+                        $"{node.Weight:0.#}");
+                        
+                    // Distance column (only shown if sorting by distance)
                     if (Settings.Search.SortBy == "Distance") {
                         ImGui.TableNextColumn();
-                        try {
-                            float distance = Vector2.Distance(screenCenter, node.MapNode.Element.GetClientRect().Center);
+                        
+                        // Находим соответствующий элемент с информацией о расстоянии
+                        float distance = mapItems.FirstOrDefault(i => i.MapNode == node)?.Distance ?? float.MaxValue;
+                        
+                        if (distance < float.MaxValue) {
+                            // Нормализуем расстояние для цветов (максимум 50 для карты атласа)
+                            float normalizedDistance = Math.Min(distance / 50f, 1.0f);
+                            // Инвертируем для цвета (близкие - зеленые, далекие - красные)
+                            Vector4 distanceColor = ColorHelper.GetColorForDistance(1.0f - normalizedDistance);
                             
-                            // Цвет зависит от расстояния: зеленый для близких, красный для дальних
-                            float distanceNormalized = Math.Min(distance / 2000.0f, 1.0f); // Нормализуем, считая 2000 расстояний максимумом
-                            Vector4 distanceColor = ColorUtils.InterpolateColor(
-                                Color.LightGreen, 
-                                Color.OrangeRed, 
-                                distanceNormalized
-                            ).ToVector4();
-                            
-                            ImGui.TextColored(distanceColor, $"{distance:F0} ед.");
-                        }
-                        catch {
-                            // При любой ошибке вычисления расстояния показываем прочерк
+                            // Отображаем расстояние с цветовой индикацией
+                            ImGui.TextColored(distanceColor, $"{distance:0}");
+                        } else {
                             ImGui.Text("-");
                         }
                     }
                     
-                    // Actions with improved buttons
+                    // Actions
                     ImGui.TableNextColumn();
-                    ImGui.PushID($"actions_{node.Id}");
                     
+                    string buttonId = $"waypoint_{node.Coordinates}";
                     bool hasWaypoint = Settings.Waypoints.Waypoints.ContainsKey(node.Coordinates.ToString());
+                    
+                    // Show add/remove waypoint button
                     if (hasWaypoint) {
-                        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.7f, 0.3f, 0.3f, 0.8f));
-                        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.8f, 0.4f, 0.4f, 0.9f));
-                        if (ImGui.Button("Remove")) {
+                        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.7f, 0.2f, 0.2f, 1.0f));
+                        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.8f, 0.3f, 0.3f, 1.0f));
+                        if (ImGui.Button($"Remove##{buttonId}")) {
                             RemoveWaypoint(node);
                         }
                         ImGui.PopStyleColor(2);
                     } else {
-                        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.7f, 0.3f, 0.8f));
-                        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.8f, 0.4f, 0.9f));
-                        if (ImGui.Button("Add WP")) {
+                        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.6f, 0.2f, 1.0f));
+                        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.7f, 0.3f, 1.0f));
+                        if (ImGui.Button($"Add##{buttonId}")) {
                             AddWaypoint(node);
                         }
                         ImGui.PopStyleColor(2);
                     }
-                    
-                    ImGui.PopID();
-                    
-                    visibleRows++;
                 }
                 
-                ImGui.PopStyleColor(2); // Pop table row colors
+                ImGui.PopStyleColor(2); // Pop the TableRow colors
                 ImGui.EndTable();
             }
             
-            // Status info
-            ImGui.Text($"Results: {searchResults.Count}");
-            if (searchResults.Count > Settings.Search.SearchPanelMaxItems) {
-                ImGui.SameLine();
-                ImGui.TextColored(new Vector4(0.9f, 0.6f, 0.1f, 1.0f), $"(showing {Settings.Search.SearchPanelMaxItems})");
-            }
-            
-            // NEXT COLUMN - Search help panel
+            // RIGHT COLUMN - Help section and filters
             ImGui.NextColumn();
-            
-            // Help panel with better styling
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.17f, 0.17f, 0.2f, 0.8f));
-            ImGui.BeginChild("SearchHelpPanel", new Vector2(-1, -40), ImGuiChildFlags.None);
+            ImGui.BeginChild("HelpPanel", new Vector2(0, ImGui.GetContentRegionAvail().Y), ImGuiChildFlags.None);
             
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.9f, 0.9f, 0.9f, 1.0f));
-            ImGui.PushFont(ImGui.GetFont()); // You might want to use a larger font if available
-            ImGui.Text("Search Syntax Guide");
-            ImGui.PopFont();
-            ImGui.PopStyleColor();
-            
+            ImGui.TextWrapped("Поисковые запросы:");
             ImGui.Separator();
-            ImGui.TextWrapped("Use simple text or property search with format:");
+            
+            ImGui.TextWrapped("Используйте обычный текст для поиска по названию карты, эффектам или содержимому.");
             ImGui.Spacing();
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 1.0f, 0.8f, 1.0f));
-            ImGui.Text("property:value");
+            ImGui.TextWrapped("Для специального поиска используйте формат [тип]:[значение]:");
+            ImGui.Spacing();
+            
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.7f, 0.9f, 0.7f, 1.0f));
+            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("name:beach - поиск карт с 'beach' в названии");
+            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("content:breach - поиск карт с контентом 'breach'");
+            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("effect:ritual - поиск карт с эффектом 'ritual'");
+            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("biome:cave - поиск карт с биомом 'cave'");
+            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("status:locked - поиск заблокированных карт");
             ImGui.PopStyleColor();
-            ImGui.Spacing();
-            
-            ImGui.TextColored(new Vector4(0.9f, 0.7f, 0.3f, 1.0f), "Examples:");
             
             ImGui.Spacing();
-            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), "Content search:");
-            ImGui.Indent(10);
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "content:delirium");
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "content:ritual");
-            ImGui.Unindent(10);
-            
+            ImGui.TextWrapped("Сортировка по расстоянию:");
+            ImGui.Separator();
+            ImGui.TextWrapped("При сортировке по расстоянию расчет происходит от положения вашего курсора на атласе.");
             ImGui.Spacing();
-            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), "Effect search:");
-            ImGui.Indent(10);
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "effect:coalesced");
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "effect:corruption");
-            ImGui.Unindent(10);
-            
-            ImGui.Spacing();
-            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), "Biome search:");
-            ImGui.Indent(10);
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "biome:forest");
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "biome:mountain");
-            ImGui.Unindent(10);
-            
-            ImGui.Spacing();
-            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), "Name search:");
-            ImGui.Indent(10);
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "name:tower");
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "name:strand");
-            ImGui.Unindent(10);
-            
-            ImGui.Spacing();
-            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), "Status search:");
-            ImGui.Indent(10);
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "status:unlocked");
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "status:locked");
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "status:hidden");
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 0.8f), "status:tower");
-            ImGui.Unindent(10);
+            ImGui.TextWrapped("Наведите курсор на любую карту атласа, чтобы использовать её как точку отсчета.");
+            ImGui.PopStyleColor();
             
             ImGui.EndChild();
             ImGui.PopStyleColor();
             
-            // Reset columns
             ImGui.Columns(1);
-            
-            ImGui.Separator();
-            
-            // Button with better styling
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.4f, 0.4f, 0.5f, 0.8f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.5f, 0.5f, 0.6f, 0.9f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.3f, 0.3f, 0.4f, 1.0f));
-            if (ImGui.Button("Close", new Vector2(120, 30))) {
-                Settings.Search.PanelIsOpen = false;
-            }
-            ImGui.PopStyleColor(3);
+            ImGui.End();
         }
-        ImGui.End();
         ImGui.PopStyleVar(3);
     }
     #endregion
@@ -2389,5 +2380,28 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 // Игнорируем ошибки в самом логировании
             }
         }
+    }
+}
+
+public static class ColorHelper
+{
+    public static Vector4 GetColorForWeight(float normalizedValue)
+    {
+        return new Vector4(
+            (1 - normalizedValue) * 0.8f + 0.2f,  // От красного к зеленому
+            normalizedValue * 0.8f + 0.2f,
+            0.2f,
+            1.0f
+        );
+    }
+    
+    public static Vector4 GetColorForDistance(float normalizedValue)
+    {
+        return new Vector4(
+            (1 - normalizedValue) * 0.8f + 0.2f,  // От красного к зеленому
+            normalizedValue * 0.8f + 0.2f,
+            0.2f,
+            1.0f
+        );
     }
 }
