@@ -2312,7 +2312,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 if (AtlasPanel?.Descriptions != null) {
                     var nodeDesc = AtlasPanel.Descriptions.FirstOrDefault(x => 
                         x != null && x.Element != null && 
-                        GetMapNameFromDescription(x.Text).Equals(closestNode.Name, StringComparison.OrdinalIgnoreCase));
+                        GetMapNameFromDescription(x).Equals(closestNode.Name, StringComparison.OrdinalIgnoreCase));
                         
                     if (nodeDesc?.Element != null) {
                         referencePos = nodeDesc.Element.GetClientRect().Center;
@@ -2350,7 +2350,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     if (AtlasPanel?.Descriptions != null) {
                         var nodeDesc = AtlasPanel.Descriptions.FirstOrDefault(x => 
                             x != null && x.Element != null && 
-                            GetMapNameFromDescription(x.Text).Equals(mapItem.Name, StringComparison.OrdinalIgnoreCase));
+                            GetMapNameFromDescription(x).Equals(mapItem.Name, StringComparison.OrdinalIgnoreCase));
                             
                         if (nodeDesc?.Element != null) {
                             distance = Vector2.Distance(referencePos, nodeDesc.Element.GetClientRect().Center);
@@ -2380,6 +2380,20 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 // Игнорируем ошибки в самом логировании
             }
         }
+    }
+
+    /// <summary>
+    /// Извлекает имя карты из элемента AtlasNodeDescription
+    /// </summary>
+    /// <param name="description">Элемент описания карты</param>
+    /// <returns>Имя карты</returns>
+    private string GetMapNameFromDescription(AtlasNodeDescription description)
+    {
+        if (description == null || description.Element == null)
+            return string.Empty;
+            
+        // Используем Element.Area.Name вместо Text
+        return description.Element.Area.Name;
     }
 }
 
