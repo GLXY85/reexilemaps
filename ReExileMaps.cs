@@ -2584,7 +2584,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     }
 
     #region Map Search Panel
-// ... existing code ...
+    // ... existing code ...
+    #endregion
 }
 
 public static class ColorHelper
