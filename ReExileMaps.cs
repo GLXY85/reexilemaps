@@ -147,10 +147,12 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             AtlasHasBeenClosed = false;
 
             cacheTicks++;
-            if (cacheTicks % 100 != 0) 
+            // Проверяем необходимость обновления кэша каждые 30 тиков, а не 100
+            if (cacheTicks % 30 == 0) {
                 if (AtlasPanel.Descriptions != null && AtlasPanel.Descriptions.Count > mapCache.Count)
                     refreshCache = true;
-            cacheTicks = 0;
+                cacheTicks = 0;
+            }
             
             if (GameController?.Window?.GetWindowRectangle() == null) return;
             screenCenter = GameController.Window.GetWindowRectangle().Center - GameController.Window.GetWindowRectangle().Location;
@@ -185,7 +187,16 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         TickCount = 0;
 
         if (!AtlasPanel.IsVisible) return;
-        if (mapCache.Count == 0) RefreshMapCache();
+        
+        // Автоматически обновляем кэш, если он пуст
+        if (mapCache.Count == 0) {
+            var job = new Job($"{nameof(ReExileMapsCore)}InitialRefreshCache", () => {
+                RefreshMapCache();
+                refreshCache = false;
+            });
+            job.Start();
+            return; // Пропускаем этот кадр, отрисуем в следующем
+        }
         
         // Filter out nodes based on settings.
         List<Node> selectedNodes;
@@ -280,7 +291,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 return;
 
             if (Settings?.Keybinds?.RefreshMapCacheHotkey?.PressedOnce() == true) {  
-                RefreshMapCache();
+                // Запускаем обновление кэша в отдельном потоке, чтобы избежать зависания
+                var job = new Job($"{nameof(ReExileMapsCore)}RefreshCache", () =>
+                {
+                    RefreshMapCache();
+                    refreshCache = false;
+                });
+                job.Start();
             }
 
             if (Settings?.Keybinds?.DebugKey?.PressedOnce() == true) {

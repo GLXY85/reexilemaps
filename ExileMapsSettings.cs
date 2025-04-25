@@ -122,7 +122,7 @@ public class GraphicSettings
     public RangeNode<int> RenderNTicks { get; set; } = new RangeNode<int>(5, 1, 20);
 
     [Menu("Map Cache Refresh Rate", "Throttle the map cache refresh rate. Default is 5 seconds.")]
-    public RangeNode<int> MapCacheRefreshRate { get; set; } = new RangeNode<int>(5, 1, 60);
+    public RangeNode<int> MapCacheRefreshRate { get; set; } = new RangeNode<int>(2, 1, 60);
 
     [Menu("Font Color", "Color of the text on the Atlas")]
     public ColorNode FontColor { get; set; } = new ColorNode(Color.White);
