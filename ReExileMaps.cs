@@ -1342,7 +1342,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 2);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(15, 15));
         
-        if (!ImGui.Begin("Управление пунктами назначения##waypoint_panel", ref window_open, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoFolding | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoScrollbar))
+        if (!ImGui.Begin("Управление пунктами назначения##waypoint_panel", ref window_open, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoScrollbar))
         {
             ImGui.End();
             ImGui.PopStyleVar(3);
