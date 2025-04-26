@@ -16,8 +16,8 @@ using ExileCore2.Shared.Helpers;
 using ExileCore2.Shared.Nodes;
 using ExileCore2.Shared.Enums;
 using ExileCore2.Shared.Attributes;
-using ExileCore2.Shared; // Для RectangleF
-using GameOffsets2.Native; // Для Vector2i
+using ExileCore2.Shared; // ��� RectangleF
+using GameOffsets2.Native; // ��� Vector2i
 
 using ImGuiNET;
 
@@ -26,7 +26,7 @@ using ReExileMaps.Classes;
 
 namespace ReExileMaps;
 
-// Интерфейс для компонента с позицией, если его нет в библиотеке
+// ��������� ��� ���������� � ��������, ���� ��� ��� � ����������
 public interface IPositioned
 {
     Vector2i? GridPos { get; }
@@ -53,7 +53,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     #region Declarations
     public static ReExileMapsCore Main;
 
-    // Константы для путей к файлам и ресурсам
+    // ��������� ��� ����� � ������ � ��������
     private const string defaultMapsPath = "json\\maps.json";
     private const string defaultModsPath = "json\\mods.json";
     private const string defaultBiomesPath = "json\\biomes.json";
@@ -92,21 +92,21 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private List<Node> searchResults = [];
     private string previousSearchQuery = "";
 
-    // Фильтрованный кеш для ускорения отображения
+    // ������������� ��� ��� ��������� �����������
     private Dictionary<Vector2i, Node> filteredMapCache = new Dictionary<Vector2i, Node>();
     private DateTime lastSearchUpdate = DateTime.MinValue;
     private DateTime lastWaypointUpdate = DateTime.MinValue;
     private bool needSearchUpdate = true;
     private bool needWaypointUpdate = true;
 
-    // Для расстояния по координатам
+    // ��� ���������� �� �����������
     private Dictionary<string, float> cachedDistances = new Dictionary<string, float>();
     private List<MapSearchItem> mapItems = new List<MapSearchItem>();
     private string referencePositionText = "from screen center";
     private Vector2 manualReferencePosition = Vector2.Zero;
     private bool useManualReferencePosition = false;
     
-    // Для поиска
+    // ��� ������
     private Dictionary<string, List<Node>> nodesByName = new Dictionary<string, List<Node>>();
     private List<MapSearchItem> currentItems = new List<MapSearchItem>();
     private string query = "";
@@ -129,8 +129,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         
         Graphics.InitImage(IconsFile);
         iconsId = Graphics.GetTextureId(IconsFile);
-        Graphics.InitImage("arrow.png", Path.Combine(DirectoryFullName, ArrowTexturePath));
-        arrowId = Graphics.GetTextureId("arrow.png");
+        Graphics.InitImage(ArrowTexturePath, Path.Combine(DirectoryFullName, ArrowTexturePath));
+        arrowId = Graphics.GetTextureId(ArrowTexturePath);
 
         CanUseMultiThreading = true;
 
@@ -164,7 +164,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             AtlasHasBeenClosed = false;
 
             cacheTicks++;
-            // ��������� ������������� ���������� ���� ������ 30 �����, � �� 100
+            // ????????? ????????????? ?????????? ???? ?????? 30 ?????, ? ?? 100
             if (cacheTicks % 30 == 0) {
                 if (AtlasPanel.Descriptions != null && AtlasPanel.Descriptions.Count > mapCache.Count)
                     refreshCache = true;
@@ -197,9 +197,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
         if (WaypointPanelIsOpen) DrawWaypointPanel();
         
-        // ��������� ������ ��� ����������� ���������� ������
+        // ????????? ?????? ??? ??????????? ?????????? ??????
         if (Settings.Search.PanelIsOpen) {
-            // ���� ���� ������������� �������� �����, � ������ ������� � ���������� �����
+            // ???? ???? ????????????? ???????? ?????, ? ?????? ??????? ? ?????????? ?????
             if (needSearchUpdate && DateTime.Now.Subtract(lastSearchUpdate).TotalSeconds > 0.75) {
                 UpdateSearchResults();
             }
@@ -213,14 +213,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
         if (!AtlasPanel.IsVisible) return;
         
-        // ������������� ��������� ���, ���� �� ����
+        // ????????????? ????????? ???, ???? ?? ????
         if (mapCache.Count == 0) {
             var job = new Job($"{nameof(ReExileMapsCore)}InitialRefreshCache", () => {
                 RefreshMapCache();
                 refreshCache = false;
             });
             job.Start();
-            return; // ���������� ���� ����, �������� � ���������
+            return; // ?????????? ???? ????, ???????? ? ?????????
         }
         
         // Filter out nodes based on settings.
@@ -316,7 +316,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 return;
 
             if (Settings?.Keybinds?.RefreshMapCacheHotkey?.PressedOnce() == true) {  
-                // ��������� ���������� ���� � ��������� ������, ����� �������� ���������
+                // ????????? ?????????? ???? ? ????????? ??????, ????? ???????? ?????????
                 var job = new Job($"{nameof(ReExileMapsCore)}RefreshCache", () =>
                 {
                     RefreshMapCache();
@@ -561,24 +561,24 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             if (AtlasPanel?.Descriptions == null || AtlasPanel.Descriptions.Count == 0)
                 return null;
                 
-            // �������� ������� ��������� ������� ������������ �������� ����
+            // ???????? ??????? ????????? ??????? ???????????? ???????? ????
             Vector2 cursorPos = Vector2.Zero;
             try {
-                // ���������� ��������� ������� ���� ����� ������� ����������
+                // ?????????? ????????? ??????? ???? ????? ??????? ??????????
                 if (GameController?.Game?.IngameState?.UIHoverElement != null)
                     cursorPos = GameController.Game.IngameState.UIHoverElement.Tooltip.GetClientRect().Center;
                 else
-                    cursorPos = screenCenter; // �������� ������� - ����� ������
+                    cursorPos = screenCenter; // ???????? ??????? - ????? ??????
                 
-                // ����������� ��� �������
-                LogMessage($"������ ��������� � �������: X={cursorPos.X}, Y={cursorPos.Y}");
+                // ??????????? ??? ???????
+                LogMessage($"?????? ????????? ? ???????: X={cursorPos.X}, Y={cursorPos.Y}");
             }
             catch (Exception ex) {
-                LogError($"������ ��� ��������� ������� �������: {ex.Message}");
-                cursorPos = screenCenter; // �������� ������� - ����� ������
+                LogError($"?????? ??? ????????? ??????? ???????: {ex.Message}");
+                cursorPos = screenCenter; // ???????? ??????? - ????? ??????
             }
             
-            // ���� ��������� ���� � ������� �������
+            // ???? ????????? ???? ? ??????? ???????
             var closestNode = AtlasPanel.Descriptions
                 .Where(x => x != null && x.Element != null)
                 .OrderBy(x => {
@@ -605,7 +605,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 LogError($"Error in GetClosestNodeToCursor: {ex.Message}");
             }
             catch {
-                // ���������� ������ � ����� �����������
+                // ?????????? ?????? ? ????? ???????????
             }
             return null;
         }
@@ -1384,7 +1384,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 2);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(15, 15));
         
-        if (!ImGui.Begin("���������� �������� ����������##waypoint_panel", ref window_open, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoScrollbar))
+        if (!ImGui.Begin("?????????? ???????? ??????????##waypoint_panel", ref window_open, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoScrollbar))
         {
             ImGui.End();
             ImGui.PopStyleVar(3);
@@ -1394,17 +1394,17 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         
         WaypointPanelIsOpen = window_open;
 
-        // ���������
+        // ?????????
         ImGui.PushStyleColor(ImGuiCol.Header, new Vector4(0.2f, 0.2f, 0.2f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.HeaderActive, new Vector4(0.25f, 0.25f, 0.25f, 1.0f));
         
-        if (ImGui.CollapsingHeader("��������� �����������", ImGuiTreeNodeFlags.DefaultOpen))
+        if (ImGui.CollapsingHeader("????????? ???????????", ImGuiTreeNodeFlags.DefaultOpen))
         {
-            // ��������� ���������� ��������� � ������� ��� ����� ����������� �����������
+            // ????????? ?????????? ????????? ? ??????? ??? ????? ??????????? ???????????
             if (ImGui.BeginTable("waypoint_settings_table", 2, ImGuiTableFlags.None, new Vector2(0, 0)))
             {
-                // ��������� ���������� �� ����������
+                // ????????? ?????????? ?? ??????????
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 bool _showWaypoints = Settings.Waypoints.ShowWaypoints;
@@ -1431,20 +1431,20 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.PopStyleColor(3);
         ImGui.Spacing();
 
-        // Tab menu ������ ������
+        // Tab menu ?????? ??????
         if (ImGui.BeginTabBar("WaypointsTabBar", ImGuiTabBarFlags.None))
         {
-            // ������� ���������� �����������
-            if (ImGui.BeginTabItem("���������� �����������"))
+            // ??????? ?????????? ???????????
+            if (ImGui.BeginTabItem("?????????? ???????????"))
             {
                 DrawWaypointManagementTab();
                 ImGui.EndTabItem();
             }
             
-            // ������� ������ �� ����� ������
-            if (ImGui.BeginTabItem("����� ����"))
+            // ??????? ?????? ?? ????? ??????
+            if (ImGui.BeginTabItem("????? ????"))
             {
-                // ��������� ������������� ���������� ������ (�� ���� ��� ��� � 0.5 �������)
+                // ????????? ????????????? ?????????? ?????? (?? ???? ??? ??? ? 0.5 ???????)
                 if (needWaypointUpdate || DateTime.Now.Subtract(lastWaypointUpdate).TotalSeconds > 0.5)
                 {
                     DrawAtlasSearchTab();
@@ -1453,14 +1453,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 }
                 else
                 {
-                    // ���������� ������������ ������ ��� ���������� ��� ���������� ������� ��������
+                    // ?????????? ???????????? ?????? ??? ?????????? ??? ?????????? ??????? ????????
                     DrawAtlasSearchTabCached();
                 }
                 ImGui.EndTabItem();
             }
             else
             {
-                // ���� ������� �� �������, �������� ��� ��� ��������� �������� ����� �������� ������
+                // ???? ??????? ?? ???????, ???????? ??? ??? ????????? ???????? ????? ???????? ??????
                 needWaypointUpdate = true;
             }
             
@@ -1471,15 +1471,15 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.PopStyleVar(3);
     }
     
-    // ���������� ������ DrawAtlasSearchTab, ������������ ������������ ������
+    // ?????????? ?????? DrawAtlasSearchTab, ???????????? ???????????? ??????
     private void DrawAtlasSearchTabCached()
     {
         var panelSize = ImGui.GetContentRegionAvail();
         string regex = Settings.Waypoints.WaypointPanelFilter;
 
-        // ����� ���������� - �������� UI �������� ��� ���������� ������� ��������
+        // ????? ?????????? - ???????? UI ???????? ??? ?????????? ??????? ????????
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("����������: ");
+        ImGui.Text("??????????: ");
         ImGui.SameLine();
         
         var sortBy = Settings.Waypoints.WaypointPanelSortBy;
@@ -1514,7 +1514,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.Spacing();
         ImGui.SameLine();
         
-        ImGui.Text("����. ���������: ");
+        ImGui.Text("????. ?????????: ");
         ImGui.SameLine();
         int maxItems = Settings.Waypoints.WaypointPanelMaxItems;
         ImGui.SetNextItemWidth(100);
@@ -1528,7 +1528,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.SameLine();
 
         bool unlockedOnly = Settings.Waypoints.ShowUnlockedOnly;
-        if (ImGui.Checkbox("������ ����������������", ref unlockedOnly)) {
+        if (ImGui.Checkbox("?????? ????????????????", ref unlockedOnly)) {
             Settings.Waypoints.ShowUnlockedOnly = unlockedOnly;
             needWaypointUpdate = true;
         }
@@ -1536,7 +1536,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.Spacing();
         
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("�����: ");
+        ImGui.Text("?????: ");
         ImGui.SameLine();
         
         ImGui.SetNextItemWidth(panelSize.X - 120);
@@ -1548,14 +1548,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             Settings.Waypoints.WaypointPanelFilter = regex;
             searchChanged = true;
         } else if (ImGui.IsItemHovered()) {
-            ImGui.SetTooltip("����� �� �������� ����� ��� ������������. ������� Enter ��� ������.");
+            ImGui.SetTooltip("????? ?? ???????? ????? ??? ????????????. ??????? Enter ??? ??????.");
         }
 
         ImGui.SameLine();
         ImGui.Spacing();
         ImGui.SameLine();
         bool useRegex = Settings.Waypoints.WaypointsUseRegex;
-        if (ImGui.Checkbox("���������� ���������", ref useRegex)) {
+        if (ImGui.Checkbox("?????????? ?????????", ref useRegex)) {
             Settings.Waypoints.WaypointsUseRegex = useRegex;
             searchChanged = true;
         }
@@ -1566,7 +1566,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         
         ImGui.Separator();
     
-        // ���������� ������������ ������� ��� ���������� ������� �������� ���������� � ����������
+        // ?????????? ???????????? ??????? ??? ?????????? ??????? ???????? ?????????? ? ??????????
         var flags = ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.Hideable | ImGuiTableFlags.NoSavedSettings;
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2, 2));
         ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(2, 2));
@@ -1580,7 +1580,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             ImGui.TableSetupColumn("Way", ImGuiTableColumnFlags.WidthFixed, 32);
             ImGui.TableHeadersRow();                    
 
-            // ���������� ������������ ������
+            // ?????????? ???????????? ??????
             RenderFilteredMapTable(filteredMapCache);
             
             ImGui.PopStyleVar(2);
@@ -1588,7 +1588,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         }
     }
     
-    // ����������� ������� ���� ��� ��������� ���������� � ����������
+    // ??????????? ??????? ???? ??? ????????? ?????????? ? ??????????
     private void RenderFilteredMapTable(Dictionary<Vector2i, Node> tempCache)
     {
         Vector4 _colorVector;
@@ -1661,9 +1661,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         var panelSize = ImGui.GetContentRegionAvail();
         string regex = Settings.Waypoints.WaypointPanelFilter;
 
-        // ����� ����������
+        // ????? ??????????
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("����������: ");
+        ImGui.Text("??????????: ");
         ImGui.SameLine();
         
         var sortBy = Settings.Waypoints.WaypointPanelSortBy;
@@ -1686,7 +1686,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.Spacing();
         ImGui.SameLine();
         
-        ImGui.Text("����. ���������: ");
+        ImGui.Text("????. ?????????: ");
         ImGui.SameLine();
         int maxItems = Settings.Waypoints.WaypointPanelMaxItems;
         ImGui.SetNextItemWidth(100);
@@ -1698,13 +1698,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.SameLine();
 
         bool unlockedOnly = Settings.Waypoints.ShowUnlockedOnly;
-        if (ImGui.Checkbox("������ ����������������", ref unlockedOnly))
+        if (ImGui.Checkbox("?????? ????????????????", ref unlockedOnly))
             Settings.Waypoints.ShowUnlockedOnly = unlockedOnly;
 
         ImGui.Spacing();
         
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("�����: ");
+        ImGui.Text("?????: ");
         ImGui.SameLine();
         
         ImGui.SetNextItemWidth(panelSize.X - 120);
@@ -1713,19 +1713,19 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         } else if (ImGui.IsItemDeactivatedAfterEdit()) {
             Settings.Waypoints.WaypointPanelFilter = regex;
         } else if (ImGui.IsItemHovered()) {
-            ImGui.SetTooltip("����� �� �������� ����� ��� ������������. ������� Enter ��� ������.");
+            ImGui.SetTooltip("????? ?? ???????? ????? ??? ????????????. ??????? Enter ??? ??????.");
         }
 
         ImGui.SameLine();
         ImGui.Spacing();
         ImGui.SameLine();
         bool useRegex = Settings.Waypoints.WaypointsUseRegex;
-        if (ImGui.Checkbox("���������� ���������", ref useRegex))
+        if (ImGui.Checkbox("?????????? ?????????", ref useRegex))
             Settings.Waypoints.WaypointsUseRegex = useRegex;
         
         ImGui.Separator();
     
-        // �������� AsParallel().ToDictionary �� ������� ��� ��������
+        // ???????? AsParallel().ToDictionary ?? ??????? ??? ????????
         var tempCache = mapCache.Where(x => !x.Value.IsVisited && (!Settings.Waypoints.ShowUnlockedOnly || x.Value.IsUnlocked)).ToDictionary(x => x.Key, x => x.Value);    
         // if search isnt blank
         if (!string.IsNullOrEmpty(Settings.Waypoints.WaypointPanelFilter)) {
@@ -1736,20 +1736,20 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             }
         }
         
-        // ��������� ���������� �� ���������� ������
+        // ????????? ?????????? ?? ?????????? ??????
         switch (sortBy)
         {
             case "Distance":
                 try 
                 {
-                    // Всегда используем центр экрана (определенную точку)
+                    // ������ ���������� ����� ������ (������������ �����)
                     Vector2 referencePos = screenCenter;
                     referencePositionText = "from geographic center";
                     
-                    // Обновляем массив с их расстояниями для сортировки
+                    // ��������� ������ � �� ������������ ��� ����������
                     mapItems.Clear();
                     
-                    // Создаем список объектов MapSearchItem с расстояниями
+                    // ������� ������ �������� MapSearchItem � ������������
                     foreach (var kvp in tempCache) {
                         var node = kvp.Value;
                         if (node == null || node.MapNode?.Element == null) continue;
@@ -1762,14 +1762,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                         mapItems.Add(new MapSearchItem(node, distance));
                     }
                     
-                    // Сортируем по возрастанию расстояния (ближние карты первыми)
+                    // ��������� �� ����������� ���������� (������� ����� �������)
                     results = mapItems.OrderBy(item => item.Distance)
                                                .Select(item => item.MapNode)
                                                .ToList();
                 }
                 catch 
                 {
-                    // При ошибке сортируем по весу
+                    // ��� ������ ��������� �� ����
                     results = tempCache.Values.OrderByDescending(x => x.Weight).ToList();
                 }
                 break;
@@ -1803,7 +1803,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             ImGui.TableSetupColumn("Way", ImGuiTableColumnFlags.WidthFixed, 32);
             ImGui.TableHeadersRow();                    
 
-            // �������� ��������� ������� � ��������� �����
+            // ???????? ????????? ??????? ? ????????? ?????
             RenderFilteredMapTable(tempCache);
             
             ImGui.PopStyleVar(2);
@@ -1811,10 +1811,10 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         }
     }
     
-    // ������������ ����� ���������� ����������� ������
+    // ???????????? ????? ?????????? ??????????? ??????
     private void UpdateSearchResults() {
         try {
-            // ��������� ������������� ���������� ������
+            // ????????? ????????????? ?????????? ??????
             if (!needSearchUpdate && DateTime.Now.Subtract(lastSearchUpdate).TotalSeconds <= 0.5 && 
                 Settings.Search.SearchQuery == previousSearchQuery) {
                 return;
@@ -1928,24 +1928,24 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     switch (Settings.Search.SortBy) {
                         case "Distance":
                             try {
-                                // �������� ��������� ������� ��� ����������
+                                // ???????? ????????? ??????? ??? ??????????
                                 var cursorNode = GetClosestNodeToCursor();
                                 Vector2 referencePos;
                                 
                                 if (cursorNode != null) {
-                                    // ���� ������ ��� ������, ���������� ��� �������
+                                    // ???? ?????? ??? ??????, ?????????? ??? ???????
                                     referencePos = cursorNode.MapNode.Element.GetClientRect().Center;
-                                    referencePositionText = $"�� ����� {cursorNode.Name}";
+                                    referencePositionText = $"?? ????? {cursorNode.Name}";
                                 } else {
-                                    // ���� ������ �� ��� ������, ���������� ����� ������
+                                    // ???? ?????? ?? ??? ??????, ?????????? ????? ??????
                                     referencePos = screenCenter;
-                                    referencePositionText = "�� ������ ������";
+                                    referencePositionText = "?? ?????? ??????";
                                 }
                                 
-                                // ��������� ����� � �� ������������ ��� �����������
+                                // ????????? ????? ? ?? ???????????? ??? ???????????
                                 mapItems.Clear();
                                 
-                                // ������� ������ �������� MapSearchItem � ������������
+                                // ??????? ?????? ???????? MapSearchItem ? ????????????
                                 foreach (var node in query) {
                                     if (node == null || node.MapNode?.Element == null) continue;
                                     
@@ -1957,13 +1957,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                                     mapItems.Add(new MapSearchItem(node, distance));
                                 }
                                 
-                                // ��������� �� ����������� ���������� (������� ����� �������)
+                                // ????????? ?? ??????????? ?????????? (??????? ????? ???????)
                                 results = mapItems.OrderBy(item => item.Distance)
                                                        .Select(item => item.MapNode)
                                                        .ToList();
                             }
                             catch (Exception) {
-                                // �������� ������� ��� ������ - ���������� �� ����
+                                // ???????? ??????? ??? ?????? - ?????????? ?? ????
                                 results = query.OrderByDescending(n => n.Weight).ToList();
                             }
                             break;
@@ -1987,7 +1987,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 return results;
             });
             
-            // ������������ ����� �������� ����������� ������
+            // ???????????? ????? ???????? ??????????? ??????
             if (searchTask.Wait(500)) {
                 searchResults = searchTask.Result;
             }
@@ -2000,7 +2000,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private void DrawSearchPanel() {
         if (!Settings.Search.PanelIsOpen || !AtlasPanel?.IsVisible == true) return;
 
-        // ��������� ��������� ������� ���� � ���������
+        // ????????? ????????? ??????? ???? ? ?????????
         var windowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.HorizontalScrollbar;
         
         ImGui.SetNextWindowPos(searchPanelPosition, ImGuiCond.FirstUseEver);
@@ -2026,12 +2026,12 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             string searchQuery = Settings.Search.SearchQuery;
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 80);
             
-            // �������� ��������� ����� � ���� ������, ��������� ���������� �����
+            // ???????? ????????? ????? ? ???? ??????, ????????? ?????????? ?????
             if (ImGui.InputText("###SearchQuery", ref searchQuery, 100, ImGuiInputTextFlags.None))
             {
-                // ������ ��������� ��������� �����, �� �� ���������� �����
+                // ?????? ????????? ????????? ?????, ?? ?? ?????????? ?????
                 Settings.Search.SearchQuery = searchQuery;
-                // ��������, ��� ����� ����� ��������, �� ������ ��� � ���������
+                // ????????, ??? ????? ????? ????????, ?? ?????? ??? ? ?????????
                 needSearchUpdate = true;
             }
             
@@ -2039,7 +2039,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.5f, 0.7f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.6f, 0.8f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.2f, 0.4f, 0.6f, 1.0f));
-            // ������������ ����� ��� ������� �� ������ ��� �� �������
+            // ???????????? ????? ??? ??????? ?? ?????? ??? ?? ???????
             if (ImGui.Button("Search", new Vector2(75, 0))) {
                 UpdateSearchResults();
             }
@@ -2066,13 +2066,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             }
             ImGui.PopStyleColor();
             
-            // ���������� ������� ����� ������� ��� ��������� ����������, ���� ������� ���������� �� ����������
+            // ?????????? ??????? ????? ??????? ??? ????????? ??????????, ???? ??????? ?????????? ?? ??????????
             if (Settings.Search.SortBy == "Distance") {
                 ImGui.SameLine();
                 ImGui.TextColored(new Vector4(0.5f, 0.8f, 0.5f, 1.0f), $"({referencePositionText})");
                 if (ImGui.IsItemHovered()) {
                     ImGui.BeginTooltip();
-                    ImGui.Text("���������� ���������� �� �������������� ������ (����� ������).");
+                    ImGui.Text("?????????? ?????????? ?? ?????????????? ?????? (????? ??????).");
                     ImGui.EndTooltip();
                 }
             }
@@ -2108,9 +2108,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 80);
                 ImGui.TableSetupColumn("Weight", ImGuiTableColumnFlags.WidthFixed, 60);
                 
-                // ���������� ������� � �����������, ���� ������� ���������� �� ����������
+                // ?????????? ??????? ? ???????????, ???? ??????? ?????????? ?? ??????????
                 if (Settings.Search.SortBy == "Distance") {
-                    ImGui.TableSetupColumn("����������", ImGuiTableColumnFlags.WidthFixed, 90);
+                    ImGui.TableSetupColumn("??????????", ImGuiTableColumnFlags.WidthFixed, 90);
                 }
                 
                 ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 80);
@@ -2180,16 +2180,16 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     if (Settings.Search.SortBy == "Distance") {
                         ImGui.TableNextColumn();
                         
-                        // ������� ��������������� ������� � ����������� � ����������
+                        // ??????? ??????????????? ??????? ? ??????????? ? ??????????
                         float distance = mapItems.FirstOrDefault(i => i.MapNode == node)?.Distance ?? float.MaxValue;
                         
                         if (distance < float.MaxValue) {
-                            // ����������� ���������� ��� ������ (�������� 50 ��� ����� ������)
+                            // ??????????? ?????????? ??? ?????? (???????? 50 ??? ????? ??????)
                             float normalizedDistance = Math.Min(distance / 50f, 1.0f);
-                            // ����������� ��� ����� (������� - �������, ������� - �������)
+                            // ??????????? ??? ????? (??????? - ???????, ??????? - ???????)
                             Vector4 distanceColor = ColorHelper.GetColorForDistance(1.0f - normalizedDistance);
                             
-                            // ���������� ���������� � �������� ����������
+                            // ?????????? ?????????? ? ???????? ??????????
                             ImGui.TextColored(distanceColor, $"{distance:0}");
                         } else {
                             ImGui.Text("-");
@@ -2230,28 +2230,28 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             ImGui.BeginChild("HelpPanel", new Vector2(0, ImGui.GetContentRegionAvail().Y), ImGuiChildFlags.None);
             
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.9f, 0.9f, 0.9f, 1.0f));
-            ImGui.TextWrapped("��������� �������:");
+            ImGui.TextWrapped("????????? ???????:");
             ImGui.Separator();
             
-            ImGui.TextWrapped("����������� ������� ����� ��� ������ �� �������� �����, �������� ��� �����������.");
+            ImGui.TextWrapped("??????????? ??????? ????? ??? ?????? ?? ???????? ?????, ???????? ??? ???????????.");
             ImGui.Spacing();
-            ImGui.TextWrapped("��� ������������ ������ ����������� ������ [���]:[��������]:");
+            ImGui.TextWrapped("??? ???????????? ?????? ??????????? ?????? [???]:[????????]:");
             ImGui.Spacing();
             
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.7f, 0.9f, 0.7f, 1.0f));
-            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("name:beach - ����� ���� � 'beach' � ��������");
-            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("content:breach - ����� ���� � ��������� 'breach'");
-            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("effect:ritual - ����� ���� � �������� 'ritual'");
-            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("biome:cave - ����� ���� � ������ 'cave'");
-            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("status:locked - ����� ��������������� ����");
+            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("name:beach - ????? ???? ? 'beach' ? ????????");
+            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("content:breach - ????? ???? ? ????????? 'breach'");
+            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("effect:ritual - ????? ???? ? ???????? 'ritual'");
+            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("biome:cave - ????? ???? ? ?????? 'cave'");
+            ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped("status:locked - ????? ??????????????? ????");
             ImGui.PopStyleColor();
             
             ImGui.Spacing();
-            ImGui.TextWrapped("���������� �� ����������:");
+            ImGui.TextWrapped("?????????? ?? ??????????:");
             ImGui.Separator();
-            ImGui.TextWrapped("��� ���������� �� ���������� ������ ���������� �� ��������� ������ ������� �� ������.");
+            ImGui.TextWrapped("??? ?????????? ?? ?????????? ?????? ?????????? ?? ????????? ?????? ??????? ?? ??????.");
             ImGui.Spacing();
-            ImGui.TextWrapped("�������� ������ �� ����� ����� ������, ����� ������������ � ��� ����� �������.");
+            ImGui.TextWrapped("???????? ?????? ?? ????? ????? ??????, ????? ???????????? ? ??? ????? ???????.");
             ImGui.PopStyleColor();
             
             ImGui.EndChild();
@@ -2268,13 +2268,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     {
         try
         {
-            // Получаем позицию игрока для расчета расстояния
+            // �������� ������� ������ ��� ������� ����������
             Vector2 referencePosition = GetPlayerPositionForDistance();
             
-            // Словарь для хранения расстояний до карт
+            // ������� ��� �������� ���������� �� ����
             var cachedDistances = new Dictionary<string, float>();
             
-            // Рассчитываем расстояние для каждой карты
+            // ������������ ���������� ��� ������ �����
             foreach (var mapItem in currentItems)
             {
                 try
@@ -2282,13 +2282,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     string mapItemName = mapItem.Name;
                     if (string.IsNullOrEmpty(mapItemName)) continue;
                     
-                    float distance = float.MaxValue; // Значение по умолчанию
+                    float distance = float.MaxValue; // �������� �� ���������
                     
-                    // Ищем по названию карты в словаре узлов
+                    // ���� �� �������� ����� � ������� �����
                     if (nodesByName.TryGetValue(mapItemName, out var matchingNodes) && 
                         matchingNodes != null && matchingNodes.Count > 0)
                     {
-                        // Берем первый подходящий узел
+                        // ����� ������ ���������� ����
                         var node = matchingNodes.FirstOrDefault();
                         if (node?.MapNode?.Element != null)
                         {
@@ -2297,25 +2297,25 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                         }
                     }
                     
-                    // Сохраняем расстояние в кэше
+                    // ��������� ���������� � ����
                     cachedDistances[mapItemName] = distance;
                 }
                 catch (Exception ex)
                 {
-                    // Если произошла ошибка при расчете расстояния для карты, устанавливаем максимальное расстояние
+                    // ���� ��������� ������ ��� ������� ���������� ��� �����, ������������� ������������ ����������
                     try
                     {
-                        LogError($"Ошибка при расчете расстояния для карты: {ex.Message}");
+                        LogError($"������ ��� ������� ���������� ��� �����: {ex.Message}");
                         cachedDistances[mapItem.Name] = float.MaxValue;
                     }
                     catch
                     {
-                        // Игнорируем ошибки в обработчике ошибок
+                        // ���������� ������ � ����������� ������
                     }
                 }
             }
             
-            // Сортируем карты по расстоянию (ближайшие первыми)
+            // ��������� ����� �� ���������� (��������� �������)
             currentItems.Sort((a, b) => 
             {
                 float distA = cachedDistances.TryGetValue(a.Name, out float dA) ? dA : float.MaxValue;
@@ -2327,23 +2327,23 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         {
             try
             {
-                LogError($"Ошибка при сортировке карт по расстоянию: {ex.Message}");
+                LogError($"������ ��� ���������� ���� �� ����������: {ex.Message}");
             }
             catch
             {
-                // Игнорируем ошибки в обработчике ошибок
+                // ���������� ������ � ����������� ������
             }
         }
     }
 
     /// <summary>
-    /// Получает позицию игрока для расчета расстояния в картах
+    /// �������� ������� ������ ��� ������� ���������� � ������
     /// </summary>
     private Vector2 GetPlayerPositionForDistance()
     {
         try
         {
-            // Проверяем, используется ли ручная точка отсчета
+            // ���������, ������������ �� ������ ����� �������
             if (useManualReferencePosition && manualReferencePosition != Vector2.Zero)
             {
                 referencePositionText = "from custom point";
@@ -2351,23 +2351,23 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 return manualReferencePosition;
             }
             
-            // Приоритет - позиция игрока
+            // ��������� - ������� ������
             if (GameController?.Game?.IngameState?.Data?.LocalPlayer != null)
             {
                 try {
-                    // Пытаемся получить позицию игрока из доступных компонентов
+                    // �������� �������� ������� ������ �� ��������� �����������
                     var player = GameController.Game.IngameState.Data.LocalPlayer;
                     var playerPos = Vector2.Zero;
                     
-                    // Пробуем разные способы получить позицию игрока
+                    // ������� ������ ������� �������� ������� ������
                     try {
-                        // Метод 1: получаем позицию через адрес игрока
+                        // ����� 1: �������� ������� ����� ����� ������
                         if (player != null && player.Address != IntPtr.Zero) {
                             try {
-                                // Самый простой вариант - прямой доступ к Pos
+                                // ����� ������� ������� - ������ ������ � Pos
                                 var pos = player.Pos;
                                 if (pos != null) {
-                                    // Преобразуем координаты в Vector2
+                                    // ����������� ���������� � Vector2
                                     playerPos = new Vector2(pos.X, pos.Y);
                                     LogMessage($"Player position obtained: {playerPos}");
                                 }
@@ -2387,7 +2387,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                         LogError($"Error accessing player data: {ex.Message}");
                     }
                     
-                    // Если позиция все еще не получена, используем последнюю известную позицию
+                    // ���� ������� ��� ��� �� ��������, ���������� ��������� ��������� �������
                     if (playerPos == Vector2.Zero) {
                         playerPos = screenCenter;
                     }
@@ -2408,11 +2408,11 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             }
             catch
             {
-                // Игнорируем ошибки в обработчике ошибок
+                // ���������� ������ � ����������� ������
             }
         }
         
-        // Используем центр экрана как запасной вариант
+        // ���������� ����� ������ ��� �������� �������
         referencePositionText = "from screen center";
         LogMessage($"Distance is calculated from screen center: {screenCenter}");
         return screenCenter;
@@ -2420,16 +2420,16 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     private void DrawExtraMapSearch()
     {
-        // Проверяем, нужно ли отображать панель поиска
+        // ���������, ����� �� ���������� ������ ������
         if (!Settings.Search.ShowMapSearch) return;
         
-        // Получаем состояние кнопки сортировки по расстоянию
+        // �������� ��������� ������ ���������� �� ����������
         if (distanceHeaderClicked) {
             SortDistanceColumn();
             distanceHeaderClicked = false;
         }
         
-        // Отрисовываем панель поиска карт
+        // ������������ ������ ������ ����
         Vector2 panelPos = new Vector2(GameController.Window.GetWindowRectangle().Width - 350, 100);
         ImGui.SetNextWindowPos(panelPos, ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(300, 400), ImGuiCond.FirstUseEver);
@@ -2437,15 +2437,15 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         bool showMapSearch = Settings.Search.ShowMapSearch;
         if (ImGui.Begin("Quick Map Search##quick_map_search", ref showMapSearch))
         {
-            // Обновляем значение в настройках
+            // ��������� �������� � ����������
             Settings.Search.ShowMapSearch = showMapSearch;
             
-            // Поле поиска
+            // ���� ������
             ImGui.InputText("Search", ref query, 128);
             
             if (ImGui.Button("Find") || ImGui.IsKeyPressed(ImGuiKey.Enter))
             {
-                // Выполняем поиск
+                // ��������� �����
                 UpdateSearchResults();
             }
             
@@ -2457,7 +2457,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 results.Clear();
             }
             
-            // Отображаем результаты
+            // ���������� ����������
             if (results.Count > 0)
             {
                 ImGui.Separator();
@@ -2499,7 +2499,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.End();
     }
 
-    // Добавляем недостающие методы для работы с путевыми точками
+    // ��������� ����������� ������ ��� ������ � �������� �������
     private void DrawWaypoint(Waypoint waypoint)
     {
         if (!Settings.Waypoints.ShowWaypoints || !waypoint.Show) return;
@@ -2508,13 +2508,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             Vector2 position = new Vector2(waypoint.Coordinates.X, waypoint.Coordinates.Y);
             float size = 25.0f * waypoint.Scale;
             
-            // Рисуем иконку маркера на карте
+            // ������ ������ ������� �� �����
             var rect = new RectangleF(position.X - size/2, position.Y - size/2, size, size);
-            // Используем угол как RectangleF (в API ExileCore2 ожидается RectangleF для угла)
+            // ���������� ���� ��� RectangleF (� API ExileCore2 ��������� RectangleF ��� ����)
             var angleRect = new RectangleF(0, 0, 0, 0);
             Graphics.DrawImage(ArrowTexturePath, rect, angleRect, waypoint.Color);
             
-            // Рисуем название, если оно есть
+            // ������ ��������, ���� ��� ����
             if (!string.IsNullOrEmpty(waypoint.Name)) {
                 Vector2 textPos = position + new Vector2(0, size / 2 + 5);
                 DrawCenteredTextWithBackground(waypoint.Name, textPos, waypoint.Color, 
@@ -2534,27 +2534,35 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             Vector2 position = new Vector2(waypoint.Coordinates.X, waypoint.Coordinates.Y);
             Vector2 direction = position - screenCenter;
             
-            // Если точка слишком близко или уже на экране, не рисуем стрелку
+            // ���� ����� ������� ������ ��� ��� �� ������, �� ������ �������
             if (direction.Length() < 100 || IsOnScreen(position)) return;
             
-            // Вычисляем угол для направления стрелки
+            // ��������� ���� ��� ����������� �������
             float angle = (float)Math.Atan2(direction.Y, direction.X);
             
-            // Смещаем стрелку на край экрана
+            // ������� ������� �� ���� ������
             float screenWidth = GameController.Window.GetWindowRectangle().Width;
             float screenHeight = GameController.Window.GetWindowRectangle().Height;
             
-            // Находим точку пересечения с краем экрана
+            // ������� ����� ����������� � ����� ������
             Vector2 edgePoint = CalculateScreenEdgePoint(screenCenter, direction, screenWidth, screenHeight);
             
-            // Рисуем стрелку
+            // ������ �������
             float arrowSize = 30.0f;
             var rect = new RectangleF(edgePoint.X - arrowSize/2, edgePoint.Y - arrowSize/2, arrowSize, arrowSize);
-            // Создаем RectangleF для угла, как требуется в API
+            // ������� RectangleF ��� ����, ��� ��������� � API
             var angleRect = new RectangleF(angle, 0, 0, 0);
-            Graphics.DrawImage(ArrowTexturePath, rect, angleRect, waypoint.Color);
+            try {
+                if (arrowId != IntPtr.Zero) {
+                    DrawRotatedImage(arrowId, new Vector2(rect.X, rect.Y), new Vector2(rect.Width, rect.Height), angle, waypoint.Color);
+                } else {
+                    Graphics.DrawImage(ArrowTexturePath, rect, angleRect, waypoint.Color);
+                }
+            } catch (Exception ex) {
+                LogError($"Error drawing arrow: {ex.Message}");
+            }
             
-            // Рисуем расстояние до точки
+            // ������ ���������� �� �����
             Vector2 distancePos = edgePoint + new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * (arrowSize + 5);
             int distance = (int)Vector2.Distance(screenCenter, position);
             DrawCenteredTextWithBackground($"{waypoint.Name} - {distance}", distancePos, waypoint.Color, 
@@ -2567,23 +2575,23 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     private Vector2 CalculateScreenEdgePoint(Vector2 center, Vector2 direction, float width, float height)
     {
-        // Нормализуем направление
+        // ����������� �����������
         Vector2 normalizedDir = Vector2.Normalize(direction);
         
-        // Находим расстояние до краев экрана
+        // ������� ���������� �� ����� ������
         float distanceToTop = (0 - center.Y) / normalizedDir.Y;
         float distanceToBottom = (height - center.Y) / normalizedDir.Y;
         float distanceToLeft = (0 - center.X) / normalizedDir.X;
         float distanceToRight = (width - center.X) / normalizedDir.X;
         
-        // Выбираем кратчайшее положительное расстояние
+        // �������� ���������� ������������� ����������
         float distance = float.MaxValue;
         if (distanceToTop > 0 && distanceToTop < distance) distance = distanceToTop;
         if (distanceToBottom > 0 && distanceToBottom < distance) distance = distanceToBottom;
         if (distanceToLeft > 0 && distanceToLeft < distance) distance = distanceToLeft;
         if (distanceToRight > 0 && distanceToRight < distance) distance = distanceToRight;
         
-        // Вычисляем точку на краю экрана
+        // ��������� ����� �� ���� ������
         return center + normalizedDir * distance;
     }
 
@@ -2594,13 +2602,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             
             string waypointId = $"waypoint_{node.Coordinates.X}_{node.Coordinates.Y}";
             
-            // Проверяем, существует ли уже эта путевая точка
+            // ���������, ���������� �� ��� ��� ������� �����
             if (Settings.Waypoints.Waypoints.ContainsKey(waypointId)) {
                 LogMessage($"Waypoint already exists: {node.Name}");
                 return;
             }
             
-            // Создаем новую путевую точку
+            // ������� ����� ������� �����
             var waypoint = new Waypoint
             {
                 ID = waypointId,
@@ -2613,7 +2621,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 Color = Color.Yellow
             };
             
-            // Добавляем путевую точку
+            // ��������� ������� �����
             Settings.Waypoints.Waypoints.Add(waypointId, waypoint);
             LogMessage($"Added waypoint: {node.Name}");
         }
@@ -2629,9 +2637,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             
             string waypointId = $"waypoint_{node.Coordinates.X}_{node.Coordinates.Y}";
             
-            // Проверяем, существует ли путевая точка
+            // ���������, ���������� �� ������� �����
             if (!Settings.Waypoints.Waypoints.ContainsKey(waypointId)) {
-                // Ищем путевую точку по координатам узла
+                // ���� ������� ����� �� ����������� ����
                 var matchingWaypoint = Settings.Waypoints.Waypoints
                     .FirstOrDefault(w => w.Value.Coordinates.X == node.Coordinates.X && 
                                        w.Value.Coordinates.Y == node.Coordinates.Y);
@@ -2645,7 +2653,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 }
             }
             
-            // Удаляем путевую точку
+            // ������� ������� �����
             Settings.Waypoints.Waypoints.Remove(waypointId);
             LogMessage($"Removed waypoint: {node.Name}");
         }
@@ -2659,7 +2667,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.Text("Current waypoints:");
         ImGui.Spacing();
         
-        // Таблица путевых точек
+        // ������� ������� �����
         if (ImGui.BeginTable("waypoints_table", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
         {
             ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
@@ -2670,12 +2678,12 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 100);
             ImGui.TableHeadersRow();
             
-            // Отображаем все путевые точки
+            // ���������� ��� ������� �����
             foreach (var (id, waypoint) in Settings.Waypoints.Waypoints)
             {
                 ImGui.TableNextRow();
                 
-                // Название
+                // ��������
                 ImGui.TableNextColumn();
                 string name = waypoint.Name ?? "Unnamed";
                 ImGui.InputText($"##name_{id}", ref name, 128);
@@ -2683,7 +2691,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     waypoint.Name = name;
                 }
                 
-                // Координата X
+                // ���������� X
                 ImGui.TableNextColumn();
                 int x = waypoint.Coordinates.X;
                 if (ImGui.InputInt($"##x_{id}", ref x, 0, 0))
@@ -2691,7 +2699,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     waypoint.Coordinates = new Vector2i(x, waypoint.Coordinates.Y);
                 }
                 
-                // Координата Y
+                // ���������� Y
                 ImGui.TableNextColumn();
                 int y = waypoint.Coordinates.Y;
                 if (ImGui.InputInt($"##y_{id}", ref y, 0, 0))
@@ -2699,7 +2707,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     waypoint.Coordinates = new Vector2i(waypoint.Coordinates.X, y);
                 }
                 
-                // Показать
+                // ��������
                 ImGui.TableNextColumn();
                 bool show = waypoint.Show;
                 if (ImGui.Checkbox($"##show_{id}", ref show))
@@ -2707,7 +2715,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     waypoint.Show = show;
                 }
                 
-                // Цвет
+                // ����
                 ImGui.TableNextColumn();
                 Vector4 color = waypoint.Color.ToImguiVec4();
                 if (ImGui.ColorEdit4($"##color_{id}", ref color, ImGuiColorEditFlags.NoInputs))
@@ -2720,13 +2728,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     );
                 }
                 
-                // Действия
+                // ��������
                 ImGui.TableNextColumn();
                 if (ImGui.Button($"Delete##remove_{id}"))
                 {
-                    // Помечаем для удаления
+                    // �������� ��� ��������
                     Settings.Waypoints.Waypoints.Remove(id);
-                    break; // Прерываем цикл, т.к. коллекция изменилась
+                    break; // ��������� ����, �.�. ��������� ����������
                 }
             }
             
@@ -2735,7 +2743,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         
         ImGui.Spacing();
         
-        // Кнопки для управления всеми путевыми точками
+        // ������ ��� ���������� ����� �������� �������
         if (ImGui.Button("Delete All Waypoints"))
         {
             if (ImGui.BeginPopupModal("Delete Confirmation", ref WaypointPanelIsOpen, ImGuiWindowFlags.AlwaysAutoResize))
@@ -2763,18 +2771,18 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         }
     }
 
-    // Вспомогательный метод для парсинга HTML-цвета
+    // ��������������� ����� ��� �������� HTML-�����
     private Vector4 ParseHtmlColor(string htmlColor)
     {
         try {
             if (string.IsNullOrEmpty(htmlColor)) return new Vector4(1, 1, 1, 1);
             
-            // Удаляем символ # в начале, если он есть
+            // ������� ������ # � ������, ���� �� ����
             if (htmlColor.StartsWith("#")) {
                 htmlColor = htmlColor.Substring(1);
             }
             
-            // Парсим цвет из шестнадцатеричной записи
+            // ������ ���� �� ����������������� ������
             int r = Convert.ToInt32(htmlColor.Substring(0, 2), 16);
             int g = Convert.ToInt32(htmlColor.Substring(2, 2), 16);
             int b = Convert.ToInt32(htmlColor.Substring(4, 2), 16);
@@ -2782,22 +2790,22 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             return new Vector4(r / 255f, g / 255f, b / 255f, 1.0f);
         }
         catch {
-            return new Vector4(1, 1, 1, 1); // Белый цвет по умолчанию
+            return new Vector4(1, 1, 1, 1); // ����� ���� �� ���������
         }
     }
 
-    // Для поиска
+    // ��� ������
     private string GetMapNameFromDescription(AtlasNodeDescription nodeDesc)
     {
         try {
             if (nodeDesc == null) return string.Empty;
             
-            // Пытаемся получить имя из объекта AtlasNodeDescription
+            // �������� �������� ��� �� ������� AtlasNodeDescription
             string name = nodeDesc.ToString();
             
-            // Проверяем различные свойства, в которых может быть имя
+            // ��������� ��������� ��������, � ������� ����� ���� ���
             if (string.IsNullOrEmpty(name) || name.Contains("Unknown")) {
-                // Пробуем получить имя из координат
+                // ������� �������� ��� �� ���������
                 if (nodeDesc.Coordinate != null) {
                     name = $"Map #{nodeDesc.Coordinate.X}_{nodeDesc.Coordinate.Y}";
                 }
@@ -2820,7 +2828,7 @@ public static class ColorHelper
     public static Vector4 GetColorForWeight(float normalizedValue)
     {
         return new Vector4(
-            (1 - normalizedValue) * 0.8f + 0.2f,  // �� �������� � ��������
+            (1 - normalizedValue) * 0.8f + 0.2f,  // ?? ???????? ? ????????
             normalizedValue * 0.8f + 0.2f,
             0.2f,
             1.0f
@@ -2830,11 +2838,12 @@ public static class ColorHelper
     public static Vector4 GetColorForDistance(float normalizedValue)
     {
         return new Vector4(
-            (1 - normalizedValue) * 0.8f + 0.2f,  // �� �������� � ��������
+            (1 - normalizedValue) * 0.8f + 0.2f,  // ?? ???????? ? ????????
             normalizedValue * 0.8f + 0.2f,
             0.2f,
             1.0f
         );
     }
 }
+
 

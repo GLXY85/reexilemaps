@@ -20,7 +20,10 @@ git commit -m "Major updates to ExileMaps plugin:
 - Added comprehensive bilingual (English/Russian) README with plugin features
 - Added detailed installation instructions and feature descriptions
 - Improved error handling in key rendering methods
-- Fixed file encoding issues to UTF-8 for proper display of Russian characters"
+- Fixed file encoding issues to UTF-8 for proper display of Russian characters
+- Fixed arrow texture loading in Initialise method for waypoint indicators
+- Added fallback rendering mechanism for waypoint arrows
+- Extended DrawWaypointArrow with additional error handling"
 echo === Pushing to remote repository ===
 git push origin local-changes
 echo === Done! ===

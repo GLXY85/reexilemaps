@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
@@ -148,3 +148,4 @@ public class Node
         return [NeighborCoordinates.Item1, NeighborCoordinates.Item2, NeighborCoordinates.Item3, NeighborCoordinates.Item4];
     }
 }
+

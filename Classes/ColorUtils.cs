@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using ExileCore2.PoEMemory.Components;
 using System.Numerics;

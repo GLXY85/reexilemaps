@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using ExileCore2;
@@ -85,3 +85,4 @@ namespace ReExileMaps.Classes
         }
     }
 }
+
