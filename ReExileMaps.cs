@@ -2360,10 +2360,10 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     
                     // Пробуем разные способы получить позицию игрока
                     try {
-                        // Метод 1: через GridPosition, если доступен
-                        var gridPos = player.GetComponent<IPositioned>()?.GridPos;
-                        if (gridPos.HasValue && gridPos.Value != Vector2i.Zero) {
-                            playerPos = new Vector2(gridPos.Value.X, gridPos.Value.Y);
+                        // Метод 1: через Positioned компонент, если доступен
+                        var positioned = player.GetComponent<Positioned>();
+                        if (positioned != null && positioned.GridPosition != Vector2i.Zero) {
+                            playerPos = new Vector2(positioned.GridPosition.X, positioned.GridPosition.Y);
                         }
                     } 
                     catch { /* Игнорируем ошибку и пробуем следующий метод */ }
@@ -2490,7 +2490,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             float size = 25.0f * waypoint.Scale;
             
             // Рисуем иконку маркера на карте
-            Graphics.DrawImage("arrow.png", new RectangleF(position.X, position.Y, size, size), 0, waypoint.Color);
+            var rect = new RectangleF(position.X - size/2, position.Y - size/2, size, size);
+            Graphics.DrawImage("arrow.png", rect, 0, waypoint.Color);
             
             // Рисуем название, если оно есть
             if (!string.IsNullOrEmpty(waypoint.Name)) {
@@ -2527,7 +2528,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             
             // Рисуем стрелку
             float arrowSize = 30.0f;
-            Graphics.DrawImage("arrow.png", new RectangleF(edgePoint.X, edgePoint.Y, arrowSize, arrowSize), angle, waypoint.Color);
+            var rect = new RectangleF(edgePoint.X - arrowSize/2, edgePoint.Y - arrowSize/2, arrowSize, arrowSize);
+            Graphics.DrawImage("arrow.png", rect, angle, waypoint.Color);
             
             // Рисуем расстояние до точки
             Vector2 distancePos = edgePoint + new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * (arrowSize + 5);
@@ -2773,8 +2775,12 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             // Проверяем различные свойства, в которых может быть имя
             if (string.IsNullOrEmpty(name) || name.Contains("Unknown")) {
                 // Пробуем получить имя из дополнительных свойств
-                if (nodeDesc.IsVisited && !string.IsNullOrEmpty(nodeDesc.Text)) {
-                    name = nodeDesc.Text;
+                if (!string.IsNullOrEmpty(nodeDesc.Name)) {
+                    name = nodeDesc.Name;
+                }
+                // Если есть идентификатор карты
+                else if (!string.IsNullOrEmpty(nodeDesc.Id)) {
+                    name = $"Map {nodeDesc.Id}";
                 }
                 // Если не удалось получить имя, используем координаты
                 else {
