@@ -18,6 +18,7 @@ using ExileCore2.Shared.Enums;
 using ExileCore2.Shared.Attributes;
 using ExileCore2.Shared; // For RectangleF
 using GameOffsets2.Native; // For Vector2i
+using ReExileMaps.Classes; // For Node and Waypoint classes
 
 using ImGuiNET;
 using Vector2 = System.Numerics.Vector2;
