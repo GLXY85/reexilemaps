@@ -2443,20 +2443,19 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     // Добавляем недостающие методы для работы с путевыми точками
     private void DrawWaypoint(Waypoint waypoint)
     {
-        if (!Settings.Waypoints.ShowWaypoints) return;
+        if (!Settings.Waypoints.ShowWaypoints || !waypoint.Show) return;
         
         try {
-            Vector2 position = new Vector2(waypoint.Position.X, waypoint.Position.Y);
-            float size = 25.0f;
+            Vector2 position = new Vector2(waypoint.Coordinates.X, waypoint.Coordinates.Y);
+            float size = 25.0f * waypoint.Scale;
             
             // Рисуем иконку маркера на карте
-            Color color = System.Drawing.ColorTranslator.FromHtml(waypoint.Color);
-            Graphics.DrawImage(arrowId, position, new Vector2(size, size), 0, color);
+            Graphics.DrawImage(arrowId, position, new Vector2(size, size), 0, waypoint.Color.ToImguiVec4());
             
             // Рисуем название, если оно есть
             if (!string.IsNullOrEmpty(waypoint.Name)) {
                 Vector2 textPos = position + new Vector2(0, size / 2 + 5);
-                DrawCenteredTextWithBackground(waypoint.Name, textPos, color, 
+                DrawCenteredTextWithBackground(waypoint.Name, textPos, waypoint.Color, 
                     Color.FromArgb(200, 0, 0, 0), true, 10, 5);
             }
         }
@@ -2467,10 +2466,10 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     private void DrawWaypointArrow(Waypoint waypoint)
     {
-        if (!Settings.Waypoints.ShowWaypointArrows) return;
+        if (!Settings.Waypoints.ShowWaypointArrows || !waypoint.Arrow) return;
         
         try {
-            Vector2 position = new Vector2(waypoint.Position.X, waypoint.Position.Y);
+            Vector2 position = new Vector2(waypoint.Coordinates.X, waypoint.Coordinates.Y);
             Vector2 direction = position - screenCenter;
             
             // Если точка слишком близко или уже на экране, не рисуем стрелку
@@ -2488,13 +2487,12 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             
             // Рисуем стрелку
             float arrowSize = 30.0f;
-            Color color = System.Drawing.ColorTranslator.FromHtml(waypoint.Color);
-            Graphics.DrawImage(arrowId, edgePoint, new Vector2(arrowSize, arrowSize), angle, color);
+            Graphics.DrawImage(arrowId, edgePoint, new Vector2(arrowSize, arrowSize), angle, waypoint.Color.ToImguiVec4());
             
             // Рисуем расстояние до точки
             Vector2 distancePos = edgePoint + new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * (arrowSize + 5);
             int distance = (int)Vector2.Distance(screenCenter, position);
-            DrawCenteredTextWithBackground($"{waypoint.Name} - {distance}", distancePos, color, 
+            DrawCenteredTextWithBackground($"{waypoint.Name} - {distance}", distancePos, waypoint.Color, 
                 Color.FromArgb(200, 0, 0, 0), true, 10, 5);
         }
         catch (Exception e) {
@@ -2540,13 +2538,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             // Создаем новую путевую точку
             var waypoint = new Waypoint
             {
+                ID = waypointId,
                 Name = node.Name,
-                Position = new Vector2i(
-                    (int)node.MapNode.Element.GetClientRect().Center.X,
-                    (int)node.MapNode.Element.GetClientRect().Center.Y
-                ),
-                Color = "#FFFF00", // Желтый цвет по умолчанию
-                NodeCoordinates = node.Coordinates
+                Coordinates = node.Coordinates,
+                Show = true,
+                Line = true,
+                Arrow = true,
+                Scale = 1.0f,
+                Color = Color.Yellow
             };
             
             // Добавляем путевую точку
@@ -2569,8 +2568,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             if (!Settings.Waypoints.Waypoints.ContainsKey(waypointId)) {
                 // Ищем путевую точку по координатам узла
                 var matchingWaypoint = Settings.Waypoints.Waypoints
-                    .FirstOrDefault(w => w.Value.NodeCoordinates.X == node.Coordinates.X && 
-                                       w.Value.NodeCoordinates.Y == node.Coordinates.Y);
+                    .FirstOrDefault(w => w.Value.Coordinates.X == node.Coordinates.X && 
+                                       w.Value.Coordinates.Y == node.Coordinates.Y);
                 
                 if (matchingWaypoint.Value != null) {
                     waypointId = matchingWaypoint.Key;
@@ -2596,12 +2595,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.Spacing();
         
         // Таблица путевых точек
-        if (ImGui.BeginTable("waypoints_table", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+        if (ImGui.BeginTable("waypoints_table", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
         {
             ImGui.TableSetupColumn("Название", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Цвет", ImGuiTableColumnFlags.WidthFixed, 100);
             ImGui.TableSetupColumn("X", ImGuiTableColumnFlags.WidthFixed, 60);
             ImGui.TableSetupColumn("Y", ImGuiTableColumnFlags.WidthFixed, 60);
+            ImGui.TableSetupColumn("Показать", ImGuiTableColumnFlags.WidthFixed, 80);
+            ImGui.TableSetupColumn("Цвет", ImGuiTableColumnFlags.WidthFixed, 60);
             ImGui.TableSetupColumn("Действия", ImGuiTableColumnFlags.WidthFixed, 100);
             ImGui.TableHeadersRow();
             
@@ -2618,29 +2618,41 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     waypoint.Name = name;
                 }
                 
-                // Цвет
-                ImGui.TableNextColumn();
-                Vector4 color = ParseHtmlColor(waypoint.Color);
-                if (ImGui.ColorEdit4($"##color_{id}", ref color, ImGuiColorEditFlags.NoInputs))
-                {
-                    // Обновляем цвет в формате HTML
-                    waypoint.Color = $"#{(int)(color.X * 255):X2}{(int)(color.Y * 255):X2}{(int)(color.Z * 255):X2}";
-                }
-                
                 // Координата X
                 ImGui.TableNextColumn();
-                int x = waypoint.Position.X;
+                int x = waypoint.Coordinates.X;
                 if (ImGui.InputInt($"##x_{id}", ref x, 0, 0))
                 {
-                    waypoint.Position = new Vector2i(x, waypoint.Position.Y);
+                    waypoint.Coordinates = new Vector2i(x, waypoint.Coordinates.Y);
                 }
                 
                 // Координата Y
                 ImGui.TableNextColumn();
-                int y = waypoint.Position.Y;
+                int y = waypoint.Coordinates.Y;
                 if (ImGui.InputInt($"##y_{id}", ref y, 0, 0))
                 {
-                    waypoint.Position = new Vector2i(waypoint.Position.X, y);
+                    waypoint.Coordinates = new Vector2i(waypoint.Coordinates.X, y);
+                }
+                
+                // Показать
+                ImGui.TableNextColumn();
+                bool show = waypoint.Show;
+                if (ImGui.Checkbox($"##show_{id}", ref show))
+                {
+                    waypoint.Show = show;
+                }
+                
+                // Цвет
+                ImGui.TableNextColumn();
+                Vector4 color = waypoint.Color.ToImguiVec4();
+                if (ImGui.ColorEdit4($"##color_{id}", ref color, ImGuiColorEditFlags.NoInputs))
+                {
+                    waypoint.Color = Color.FromArgb(
+                        (int)(color.W * 255),
+                        (int)(color.X * 255),
+                        (int)(color.Y * 255),
+                        (int)(color.Z * 255)
+                    );
                 }
                 
                 // Действия
@@ -2715,7 +2727,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         try {
             if (nodeDesc == null) return "Unknown";
             
-            string name = nodeDesc.Name.ToString();
+            // Используем метод ToString() для получения имени, так как у AtlasNodeDescription нет свойства Name
+            string name = nodeDesc.ToString();
             if (string.IsNullOrEmpty(name)) {
                 name = "Unknown Map";
             }
