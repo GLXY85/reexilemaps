@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Re:ExileMaps - плагин для отображения карт в Path of Exile")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d0389a546fba15595b661a5a41c6db072ac7692a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8062b949caa5e144ce1f02d444bae9381afefc35")]
 [assembly: System.Reflection.AssemblyProductAttribute("Re:ExileMaps")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ReExileMaps")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
