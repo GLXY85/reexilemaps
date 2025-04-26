@@ -9,7 +9,12 @@ git commit -m "Исправлены ошибки в ReExileMaps.cs:
 - Удалены дублирующиеся определения переменных cachedDistances, mapItems и referencePositionText
 - Добавлены недостающие методы для работы с путевыми точками
 - Добавлены свойства для работы с поиском карт
-- Исправлены пути к зависимостям в файле проекта"
+- Исправлены пути к зависимостям в файле проекта
+- Исправлены ошибки типов в методах работы с картами
+- Исправлен метод GetPlayerPositionForDistance с использованием ExileCore2.Shared.Interfaces.Positioned
+- Исправлен метод DrawImage с использованием RectangleF
+- Исправлена работа с коллекцией nodesByName в SortDistanceColumn
+- Исправлена работа с ImGui при открытии панели поиска"
 echo === Pushing to remote repository ===
 git push origin local-changes
 echo === Done! ===
