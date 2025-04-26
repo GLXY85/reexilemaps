@@ -2363,16 +2363,48 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                         // Метод 1: получаем позицию через адрес игрока
                         if (player.Address != IntPtr.Zero) {
                             try {
-                                // Используем GridPos из компонента Positioned, если он есть
-                                if (player.TryGetComponent(out var positioned)) {
-                                    var pos = positioned.GetFieldValue<Vector2i>("GridPos");
-                                    if (pos != Vector2i.Zero) {
-                                        playerPos = new Vector2(pos.X, pos.Y);
+                                // Используем компоненты Entity для получения позиции
+                                var components = player.GetComponents();
+                                if (components != null && components.Count > 0) {
+                                    foreach (var component in components) {
+                                        if (component != null) {
+                                            try {
+                                                // Проверяем разные поля, которые могут содержать позицию
+                                                var properties = component.GetType().GetProperties();
+                                                foreach (var prop in properties) {
+                                                    if (prop.Name.Contains("Pos") || prop.Name.Contains("Grid")) {
+                                                        var value = prop.GetValue(component);
+                                                        if (value != null) {
+                                                            if (value is Vector2i vec2i && vec2i != Vector2i.Zero) {
+                                                                playerPos = new Vector2(vec2i.X, vec2i.Y);
+                                                                break;
+                                                            }
+                                                            else if (value is Vector2 vec2 && vec2 != Vector2.Zero) {
+                                                                playerPos = vec2;
+                                                                break;
+                                                            }
+                                                            else if (value is Vector3 vec3 && vec3 != Vector3.Zero) {
+                                                                playerPos = new Vector2(vec3.X, vec3.Y);
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            catch {
+                                                // Игнорируем ошибки при обработке компонента
+                                            }
+                                        }
                                     }
                                 }
-                                // Если не получилось, используем просто Entity.Pos
-                                else if (player.Pos != Vector2i.Zero) {
-                                    playerPos = new Vector2(player.Pos.X, player.Pos.Y);
+                                
+                                // Если не удалось получить позицию из компонентов, используем Pos напрямую
+                                if (playerPos == Vector2.Zero) {
+                                    // Проверяем, что Pos у Entity это Vector3
+                                    var pos = player.Pos;
+                                    if (pos != Vector3.Zero) {
+                                        playerPos = new Vector2(pos.X, pos.Y);
+                                    }
                                 }
                             }
                             catch (Exception ex) {
