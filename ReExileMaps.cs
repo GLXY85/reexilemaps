@@ -11,24 +11,29 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Security;
-using ExileCore2.Shared.Abstract;
-using ExileCore2.Shared.Helpers;
-using ExileCore2.Shared.Interfaces;
-using ExileCore2.Shared.Enums;
-using ExileCore2.Shared.Attributes;
-using ExileCore2.Shared; // For RectangleF
+using ExileCore2.Core.PoEMemory; // Вместо ExileCore2.Shared.Abstract
+using ExileCore2.Core.Shared.Helpers;
+using ExileCore2.Core.Shared.Interfaces;
+using ExileCore2.Core.Shared.Enums;
+using ExileCore2.Core.Shared.Attributes;
+using ExileCore2.Core.Shared; // For RectangleF
 using GameOffsets2.Native; // For Vector2i
 using ReExileMaps.Classes; // For Node and Waypoint classes
-using ExileCore2.PoEMemory.Components; // Для компонентного доступа
-using ExileCore2.PoEMemory.MemoryObjects; // Для доступа к объектам памяти
-using ExileCore2.PoEMemory.Elements; // Для доступа к UI элементам
-using ExileCore2.PoEMemory.Elements.Atlas; // Для доступа к Atlas элементам
-using ExileCore2.PoEMemory.FilesInMemory; // Для доступа к файлам в памяти
+using ExileCore2.Core.PoEMemory.Components; // Для компонентного доступа
+using ExileCore2.Core.PoEMemory.MemoryObjects; // Для доступа к объектам памяти
+using ExileCore2.Core.PoEMemory.Elements; // Для доступа к UI элементам
+using ExileCore2.Core.PoEMemory.Elements.AtlasElements; // Для доступа к Atlas элементам и классу AtlasNode
+using ExileCore2.Core.PoEMemory.FilesInMemory; // Для доступа к файлам в памяти
+using System.Diagnostics; // Для использования Stopwatch
+
+// Использование псевдонима для решения конфликта имен
+using AtlasNodeDescription = ExileCore2.Core.PoEMemory.Elements.AtlasElements.AtlasNode;
 
 using ImGuiNET;
 using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
 using Vector4 = System.Numerics.Vector4;
+using CoreRectangleF = ExileCore2.Core.Shared.RectangleF; // Явно указываем, что будем использовать RectangleF из ExileCore2
 
 namespace ReExileMaps;
 
@@ -54,7 +59,7 @@ public class MapSearchItem
 
 #nullable enable
 // Main plugin class
-public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
+public class ReExileMapsCore : PluginBase<ReExileMapsSettings>
 {
     #region Declarations
     public static ReExileMapsCore Main;
@@ -67,8 +72,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private const string ArrowTexturePath = "textures\\arrow.png";
     private const string IconsFile = "Icons.png";
     
-    public IngameUIElements UI;
-    public AtlasPanel AtlasPanel;
+    public IngameUI UI;
+    public AtlasPanelElement AtlasPanel;
 
     private Vector2 screenCenter;
     private Dictionary<Vector2i, Node> mapCache = [];
@@ -162,7 +167,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
         return true;
     }
-    public override void AreaChange(AreaInstance area)
+    
+    public override void AreaChange(GameArea area)
     {
         refreshCache = true;
     }
@@ -331,7 +337,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         RegisterHotkey(Settings.Keybinds.SearchPanelHotkey);
     }
     
-    private static void RegisterHotkey(HotkeyNode hotkey)
+    private static void RegisterHotkey(KeyboardHotkey hotkey)
     {
         Input.RegisterKey(hotkey);
         hotkey.OnValueChanged += () => { Input.RegisterKey(hotkey); };
@@ -511,7 +517,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         }
 
         var ringCount = 0;           
-        RectangleF nodeCurrentPosition = cachedNode.MapNode.Element.GetClientRect();
+        CoreRectangleF nodeCurrentPosition = cachedNode.MapNode.Element.GetClientRect();
 
         try {
             ringCount += DrawContentRings(cachedNode, nodeCurrentPosition, ringCount, "Breach");
@@ -662,39 +668,44 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 mapCache.Clear();
 
         if (AtlasPanel?.Descriptions == null || AtlasPanel.Descriptions.Count == 0) {
+            LogError("Atlas panel descriptions not available");
+            return;
+        }
+        
+        lock (mapCacheLock) {
+            if (clearCache) {
+                LogMessage("Clearing map cache");
+                mapCache.Clear();
+            }
+            
+            int count = 0;
+            List<AtlasNodeDescription> atlasNodes = [.. AtlasPanel.Descriptions];
+            
+            // Start timer
+            var timer = new Stopwatch();
+            timer.Start();
+            foreach (var node in atlasNodes) {
+                if (mapCache.TryGetValue(node.Coordinate, out Node cachedNode))
+                    count += RefreshCachedMapNode(node, cachedNode);
+                else
+                    count += CacheNewMapNode(node);
+
+                CacheMapConnections(mapCache[node.Coordinate]);
+
+            }
+            // stop timer
+            timer.Stop();
+            long time = timer.ElapsedMilliseconds;
+            float average = (float)time / count;
+            //LogMessage($"Map cache refreshed in {time}ms, {count} nodes processed, average time per node: {average:0.00}ms");
+
+            RecalculateWeights();
+            //LogMessage($"Max Map Weight: {maxMapWeight}, Min Map Weight: {minMapWeight}");
+
             refreshingCache = false;
             refreshCache = false;
             lastRefresh = DateTime.Now;
-            return;
         }
-
-        List<AtlasNodeDescription> atlasNodes = [.. AtlasPanel.Descriptions];
-
-        // Start timer
-        var timer = new Stopwatch();
-        timer.Start();
-        long count = 0;
-        foreach (var node in atlasNodes) {
-            if (mapCache.TryGetValue(node.Coordinate, out Node cachedNode))
-                count += RefreshCachedMapNode(node, cachedNode);
-            else
-                count += CacheNewMapNode(node);
-
-            CacheMapConnections(mapCache[node.Coordinate]);
-
-        }
-        // stop timer
-        timer.Stop();
-        long time = timer.ElapsedMilliseconds;
-        float average = (float)time / count;
-        //LogMessage($"Map cache refreshed in {time}ms, {count} nodes processed, average time per node: {average:0.00}ms");
-
-        RecalculateWeights();
-        //LogMessage($"Max Map Weight: {maxMapWeight}, Min Map Weight: {minMapWeight}");
-
-        refreshingCache = false;
-        refreshCache = false;
-        lastRefresh = DateTime.Now;
     }
     
     private void RecalculateWeights() {
@@ -920,7 +931,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     /// <param name="WorldMap">The atlas panel containing the map nodes and their connections.</param>
     /// <param name="cachedNode">The map node for which connections are to be drawn.</param>
     /// 
-    private void DrawConnections(Node cachedNode, RectangleF nodeCurrentPosition)
+    private void DrawConnections(Node cachedNode, CoreRectangleF nodeCurrentPosition)
     {       
          foreach (Vector2i coordinates in cachedNode.GetNeighborCoordinates())
         {
@@ -975,7 +986,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     /// <param name="Draw">A boolean indicating whether to draw the circle or not.</param>
     /// <param name="color">The color of the circle to be drawn.</param>
     /// <returns>Returns 1 if the circle is drawn, otherwise returns 0.</returns>
-    private int DrawContentRings(Node cachedNode, RectangleF nodeCurrentPosition, int Count, string Content)
+    private int DrawContentRings(Node cachedNode, CoreRectangleF nodeCurrentPosition, int Count, string Content)
     {
         if ((cachedNode.IsVisited && !cachedNode.IsAttempted) || 
             (!Settings.MapContent.ShowRingsOnLockedNodes && !cachedNode.IsUnlocked) || 
@@ -1006,7 +1017,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         if (cachedNode.IsVisited || cachedNode.IsAttempted || !cachedNode.MapType.DrawLine || !Settings.Features.DrawLines)
             return;
 
-        RectangleF nodeCurrentPosition = cachedNode.MapNode.Element.GetClientRect();
+        CoreRectangleF nodeCurrentPosition = cachedNode.MapNode.Element.GetClientRect();
         var distance = Vector2.Distance(screenCenter, nodeCurrentPosition.Center);
 
         if (distance < 400)
@@ -1035,7 +1046,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     /// Draws a highlighted circle around a map node on the atlas if the node is configured to be highlighted.
     /// </summary>
     /// <param name="mapNode">The atlas node description containing information about the map node to be drawn.</param>   
-    private void DrawMapNode(Node cachedNode, RectangleF nodeCurrentPosition)
+    private void DrawMapNode(Node cachedNode, CoreRectangleF nodeCurrentPosition)
     {
         if (!Settings.MapTypes.HighlightMapNodes || cachedNode.IsVisited || !cachedNode.MapType.Highlight)
             return;
@@ -1047,7 +1058,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     }
 
     //DrawMapNode
-    private void DrawWeight(Node cachedNode, RectangleF nodeCurrentPosition)
+    private void DrawWeight(Node cachedNode, CoreRectangleF nodeCurrentPosition)
     {
         if (!Settings.MapTypes.DrawWeightOnMap ||
             (!cachedNode.IsVisible && !Settings.MapTypes.ShowMapNamesOnHiddenNodes) ||
@@ -1068,7 +1079,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     /// Draws the name of the map on the atlas.
     /// </summary>
     /// <param name="cachedNode">The atlas node description containing information about the map.</param>
-    private void DrawMapName(Node cachedNode, RectangleF nodeCurrentPosition)
+    private void DrawMapName(Node cachedNode, CoreRectangleF nodeCurrentPosition)
     {
         if (!Settings.MapTypes.ShowMapNames ||
             (!cachedNode.IsVisible && !Settings.MapTypes.ShowMapNamesOnHiddenNodes) ||
@@ -1088,7 +1099,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         DrawCenteredTextWithBackground(cachedNode.Name.ToUpper(), nodeCurrentPosition.Center, fontColor, backgroundColor, true, 10, 3);
     }
 
-    private void DrawTowerMods(Node cachedNode, RectangleF nodeCurrentPosition)
+    private void DrawTowerMods(Node cachedNode, CoreRectangleF nodeCurrentPosition)
     {
         if ((cachedNode.IsTower && !Settings.MapMods.ShowOnTowers) || (!cachedNode.IsTower && !Settings.MapMods.ShowOnMaps) || !cachedNode.MapType.Highlight)    
             return; 
@@ -1398,7 +1409,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     private bool IsOnScreen(Vector2 position)
     {
-        var screen = new RectangleF
+        var screen = new CoreRectangleF
         {
             X = 0,
             Y = 0,
@@ -1415,9 +1426,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         if (UI.OpenLeftPanel.IsVisible || WaypointPanelIsOpen)
             left += Math.Max(UI.OpenLeftPanel.GetClientRect().Width, UI.SettingsPanel.GetClientRect().Width);
 
-        RectangleF screenRect = new RectangleF(left, screen.Top, right - left, screen.Height);
+        CoreRectangleF screenRect = new CoreRectangleF(left, screen.Top, right - left, screen.Height);
         if (UI.WorldMap.GetChildAtIndex(9).IsVisible) {
-            RectangleF mapTooltip = UI.WorldMap.GetChildAtIndex(9).GetClientRect();                
+            CoreRectangleF mapTooltip = UI.WorldMap.GetChildAtIndex(9).GetClientRect();                
             mapTooltip.Inflate(mapTooltip.Width * 0.1f, mapTooltip.Height * 0.1f);
 
             if (mapTooltip.Contains(position))
@@ -2573,9 +2584,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             float size = 25.0f * waypoint.Scale;
             
             // ?????? ?????? ??????? ?? ?????
-            var rect = new RectangleF(position.X - size/2, position.Y - size/2, size, size);
-            // ?????????? ???? ??? RectangleF (? API ExileCore2 ????????? RectangleF ??? ????)
-            var angleRect = new RectangleF(0, 0, 0, 0);
+            var rect = new CoreRectangleF(position.X - size/2, position.Y - size/2, size, size);
+            // ?????????? ???? ??? CoreRectangleF (? API ExileCore2 ????????? CoreRectangleF ??? ????)
+            var angleRect = new CoreRectangleF(0, 0, 0, 0);
             Graphics.DrawImage(ArrowTexturePath, rect, angleRect, waypoint.Color);
             
             // ?????? ????????, ???? ??? ????
@@ -2614,7 +2625,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             
             // Set arrow size and create rectangle for rendering
             float arrowSize = 30.0f;
-            RectangleF rect = new RectangleF(
+            CoreRectangleF rect = new CoreRectangleF(
                 edgePoint.X - arrowSize/2, 
                 edgePoint.Y - arrowSize/2, 
                 arrowSize, 
@@ -2622,7 +2633,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             );
             
             // Create rotation rectangle (angle stored in X component)
-            RectangleF angleRect = new RectangleF(angle, 0, 0, 0);
+            CoreRectangleF angleRect = new CoreRectangleF(angle, 0, 0, 0);
             
             // Draw arrow using the most reliable method available
             try {
@@ -2634,7 +2645,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 } 
                 // Second preference: Use texture path
                 else {
-                    // Fallback to regular Graphics.DrawImage with angle in RectangleF
+                    // Fallback to regular Graphics.DrawImage with angle in CoreRectangleF
                     Graphics.DrawImage(ArrowTexturePath, rect, angleRect, waypoint.Color);
                     LogMessage($"Drew arrow using texture path at {edgePoint.X}, {edgePoint.Y}");
                 }
@@ -2918,29 +2929,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     // ??? ??????
     private string GetMapNameFromDescription(AtlasNodeDescription nodeDesc)
     {
-        try {
-            if (nodeDesc == null) return string.Empty;
-            
-            // ???????? ???????? ??? ?? ??????? AtlasNodeDescription
-            string name = nodeDesc.ToString();
-            
-            // ????????? ????????? ????????, ? ??????? ????? ???? ???
-            if (string.IsNullOrEmpty(name) || name.Contains("Unknown")) {
-                // ??????? ???????? ??? ?? ?????????
-                if (nodeDesc.Coordinate != null) {
-                    name = $"Map #{nodeDesc.Coordinate.X}_{nodeDesc.Coordinate.Y}";
-                }
-                else {
-                    name = "Unknown Map";
-                }
-            }
-            
-            return name;
-        }
-        catch (Exception e) {
-            LogError($"Error getting map name: {e.Message}");
-            return "Unknown Map";
-        }
+        return nodeDesc?.Element?.Area?.Name ?? "Unknown";
     }
 
     /// <summary>

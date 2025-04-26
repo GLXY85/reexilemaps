@@ -3,13 +3,16 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using GameOffsets2.Native;
-using ExileCore2.PoEMemory.Elements.AtlasElements;
-using ExileCore2.Shared.Enums;
+using ExileCore2.Core.PoEMemory.Elements.AtlasElements;
+using ExileCore2.Core.Shared.Enums;
 using System.Text;
 using System.Linq;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+
+// Использование псевдонима для решения конфликта имен
+using AtlasNodeDescription = ExileCore2.Core.PoEMemory.Elements.AtlasElements.AtlasNode;
 
 namespace ReExileMaps.Classes;
 
