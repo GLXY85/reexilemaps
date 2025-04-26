@@ -98,6 +98,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private string referencePositionText = "от центра экрана";
     private Vector2 manualReferencePosition = Vector2.Zero;
     private bool useManualReferencePosition = false;
+    
+    // Для поиска
+    private Dictionary<string, List<Node>> nodesByName = new Dictionary<string, List<Node>>();
+    private List<MapSearchItem> currentItems = new List<MapSearchItem>();
+    private string query = "";
+    private List<Node> results = new List<Node>();
+    private bool distanceHeaderClicked = false;
 
     #endregion
 
@@ -2358,31 +2365,366 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     private void DrawExtraMapSearch()
     {
-        try
-        {
-            if (!Settings.ShowMapSearch) return;
-            
-            // ... existing code ...
-            if (distanceHeaderClicked)
-            {
-                SortDistanceColumn();
-                // Показываем информацию о том, откуда измеряется расстояние
-                ImGui.SameLine();
-                ImGui.TextColored(Color.Yellow.ToImguiVec4(), $"({referencePositionText})");
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.BeginTooltip();
-                    ImGui.Text("Для измерения расстояния используется позиция игрока.");
-                    ImGui.Text("Нажмите Alt+ПКМ на карте, чтобы установить свою точку отсчёта.");
-                    ImGui.EndTooltip();
-                }
-                ImGui.SameLine();
-            }
-            // ... existing code ...
+        // Проверяем, нужно ли отображать панель поиска
+        if (!Settings.Search.ShowMapSearch) return;
+        
+        // Получаем состояние кнопки сортировки по расстоянию
+        if (distanceHeaderClicked) {
+            SortDistanceColumn();
+            distanceHeaderClicked = false;
         }
-        catch (Exception ex)
+        
+        // Отрисовываем панель поиска карт
+        Vector2 panelPos = new Vector2(GameController.Window.GetWindowRectangle().Width - 350, 100);
+        ImGui.SetNextWindowPos(panelPos, ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(300, 400), ImGuiCond.FirstUseEver);
+        
+        if (ImGui.Begin("Быстрый поиск карт##quick_map_search", ref Settings.Search.ShowMapSearch))
         {
-            LogError($"Ошибка при отображении поиска карт: {ex.Message}");
+            // Поле поиска
+            ImGui.InputText("Поиск", ref query, 128);
+            
+            if (ImGui.Button("Найти") || ImGui.IsKeyPressed(ImGuiKey.Enter))
+            {
+                // Выполняем поиск
+                UpdateSearchResults();
+            }
+            
+            ImGui.SameLine();
+            
+            if (ImGui.Button("Очистить"))
+            {
+                query = "";
+                results.Clear();
+            }
+            
+            // Отображаем результаты
+            if (results.Count > 0)
+            {
+                ImGui.Separator();
+                
+                if (ImGui.BeginTable("search_results", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+                {
+                    ImGui.TableSetupColumn("Название", ImGuiTableColumnFlags.WidthStretch);
+                    ImGui.TableSetupColumn("Расстояние", ImGuiTableColumnFlags.WidthFixed, 80);
+                    ImGui.TableSetupColumn("Действие", ImGuiTableColumnFlags.WidthFixed, 80);
+                    ImGui.TableHeadersRow();
+                    
+                    foreach (var node in results.Take(Settings.Search.SearchPanelMaxItems))
+                    {
+                        ImGui.TableNextRow();
+                        
+                        ImGui.TableNextColumn();
+                        ImGui.Text(node.Name);
+                        
+                        ImGui.TableNextColumn();
+                        float distance = Vector2.Distance(screenCenter, node.MapNode.Element.GetClientRect().Center);
+                        ImGui.Text($"{distance:F0}");
+                        
+                        ImGui.TableNextColumn();
+                        if (ImGui.Button($"Метка##add_{node.Coordinates.X}_{node.Coordinates.Y}"))
+                        {
+                            AddWaypoint(node);
+                        }
+                    }
+                    
+                    ImGui.EndTable();
+                }
+            }
+            else if (!string.IsNullOrEmpty(query))
+            {
+                ImGui.TextColored(new Vector4(1, 0.5f, 0, 1), "По запросу ничего не найдено");
+            }
+        }
+        
+        ImGui.End();
+    }
+
+    // Добавляем недостающие методы для работы с путевыми точками
+    private void DrawWaypoint(Waypoint waypoint)
+    {
+        if (!Settings.Waypoints.ShowWaypoints) return;
+        
+        try {
+            Vector2 position = new Vector2(waypoint.Position.X, waypoint.Position.Y);
+            float size = 25.0f;
+            
+            // Рисуем иконку маркера на карте
+            Color color = System.Drawing.ColorTranslator.FromHtml(waypoint.Color);
+            Graphics.DrawImage(arrowId, position, new Vector2(size, size), 0, color);
+            
+            // Рисуем название, если оно есть
+            if (!string.IsNullOrEmpty(waypoint.Name)) {
+                Vector2 textPos = position + new Vector2(0, size / 2 + 5);
+                DrawCenteredTextWithBackground(waypoint.Name, textPos, color, 
+                    Color.FromArgb(200, 0, 0, 0), true, 10, 5);
+            }
+        }
+        catch (Exception e) {
+            LogError($"Error drawing waypoint: {e.Message}\n{e.StackTrace}");
+        }
+    }
+
+    private void DrawWaypointArrow(Waypoint waypoint)
+    {
+        if (!Settings.Waypoints.ShowWaypointArrows) return;
+        
+        try {
+            Vector2 position = new Vector2(waypoint.Position.X, waypoint.Position.Y);
+            Vector2 direction = position - screenCenter;
+            
+            // Если точка слишком близко или уже на экране, не рисуем стрелку
+            if (direction.Length() < 100 || IsOnScreen(position)) return;
+            
+            // Вычисляем угол для направления стрелки
+            float angle = (float)Math.Atan2(direction.Y, direction.X);
+            
+            // Смещаем стрелку на край экрана
+            float screenWidth = GameController.Window.GetWindowRectangle().Width;
+            float screenHeight = GameController.Window.GetWindowRectangle().Height;
+            
+            // Находим точку пересечения с краем экрана
+            Vector2 edgePoint = CalculateScreenEdgePoint(screenCenter, direction, screenWidth, screenHeight);
+            
+            // Рисуем стрелку
+            float arrowSize = 30.0f;
+            Color color = System.Drawing.ColorTranslator.FromHtml(waypoint.Color);
+            Graphics.DrawImage(arrowId, edgePoint, new Vector2(arrowSize, arrowSize), angle, color);
+            
+            // Рисуем расстояние до точки
+            Vector2 distancePos = edgePoint + new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * (arrowSize + 5);
+            int distance = (int)Vector2.Distance(screenCenter, position);
+            DrawCenteredTextWithBackground($"{waypoint.Name} - {distance}", distancePos, color, 
+                Color.FromArgb(200, 0, 0, 0), true, 10, 5);
+        }
+        catch (Exception e) {
+            LogError($"Error drawing waypoint arrow: {e.Message}\n{e.StackTrace}");
+        }
+    }
+
+    private Vector2 CalculateScreenEdgePoint(Vector2 center, Vector2 direction, float width, float height)
+    {
+        // Нормализуем направление
+        Vector2 normalizedDir = Vector2.Normalize(direction);
+        
+        // Находим расстояние до краев экрана
+        float distanceToTop = (0 - center.Y) / normalizedDir.Y;
+        float distanceToBottom = (height - center.Y) / normalizedDir.Y;
+        float distanceToLeft = (0 - center.X) / normalizedDir.X;
+        float distanceToRight = (width - center.X) / normalizedDir.X;
+        
+        // Выбираем кратчайшее положительное расстояние
+        float distance = float.MaxValue;
+        if (distanceToTop > 0 && distanceToTop < distance) distance = distanceToTop;
+        if (distanceToBottom > 0 && distanceToBottom < distance) distance = distanceToBottom;
+        if (distanceToLeft > 0 && distanceToLeft < distance) distance = distanceToLeft;
+        if (distanceToRight > 0 && distanceToRight < distance) distance = distanceToRight;
+        
+        // Вычисляем точку на краю экрана
+        return center + normalizedDir * distance;
+    }
+
+    private void AddWaypoint(Node node)
+    {
+        try {
+            if (node == null) return;
+            
+            string waypointId = $"waypoint_{node.Coordinates.X}_{node.Coordinates.Y}";
+            
+            // Проверяем, существует ли уже эта путевая точка
+            if (Settings.Waypoints.Waypoints.ContainsKey(waypointId)) {
+                LogMessage($"Waypoint already exists: {node.Name}");
+                return;
+            }
+            
+            // Создаем новую путевую точку
+            var waypoint = new Waypoint
+            {
+                Name = node.Name,
+                Position = new Vector2i(
+                    (int)node.MapNode.Element.GetClientRect().Center.X,
+                    (int)node.MapNode.Element.GetClientRect().Center.Y
+                ),
+                Color = "#FFFF00", // Желтый цвет по умолчанию
+                NodeCoordinates = node.Coordinates
+            };
+            
+            // Добавляем путевую точку
+            Settings.Waypoints.Waypoints.Add(waypointId, waypoint);
+            LogMessage($"Added waypoint: {node.Name}");
+        }
+        catch (Exception e) {
+            LogError($"Error adding waypoint: {e.Message}\n{e.StackTrace}");
+        }
+    }
+
+    private void RemoveWaypoint(Node node)
+    {
+        try {
+            if (node == null) return;
+            
+            string waypointId = $"waypoint_{node.Coordinates.X}_{node.Coordinates.Y}";
+            
+            // Проверяем, существует ли путевая точка
+            if (!Settings.Waypoints.Waypoints.ContainsKey(waypointId)) {
+                // Ищем путевую точку по координатам узла
+                var matchingWaypoint = Settings.Waypoints.Waypoints
+                    .FirstOrDefault(w => w.Value.NodeCoordinates.X == node.Coordinates.X && 
+                                       w.Value.NodeCoordinates.Y == node.Coordinates.Y);
+                
+                if (matchingWaypoint.Value != null) {
+                    waypointId = matchingWaypoint.Key;
+                }
+                else {
+                    LogMessage($"No waypoint found for: {node.Name}");
+                    return;
+                }
+            }
+            
+            // Удаляем путевую точку
+            Settings.Waypoints.Waypoints.Remove(waypointId);
+            LogMessage($"Removed waypoint: {node.Name}");
+        }
+        catch (Exception e) {
+            LogError($"Error removing waypoint: {e.Message}\n{e.StackTrace}");
+        }
+    }
+
+    private void DrawWaypointManagementTab()
+    {
+        ImGui.Text("Текущие путевые точки:");
+        ImGui.Spacing();
+        
+        // Таблица путевых точек
+        if (ImGui.BeginTable("waypoints_table", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+        {
+            ImGui.TableSetupColumn("Название", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("Цвет", ImGuiTableColumnFlags.WidthFixed, 100);
+            ImGui.TableSetupColumn("X", ImGuiTableColumnFlags.WidthFixed, 60);
+            ImGui.TableSetupColumn("Y", ImGuiTableColumnFlags.WidthFixed, 60);
+            ImGui.TableSetupColumn("Действия", ImGuiTableColumnFlags.WidthFixed, 100);
+            ImGui.TableHeadersRow();
+            
+            // Отображаем все путевые точки
+            foreach (var (id, waypoint) in Settings.Waypoints.Waypoints)
+            {
+                ImGui.TableNextRow();
+                
+                // Название
+                ImGui.TableNextColumn();
+                string name = waypoint.Name ?? "Без названия";
+                ImGui.InputText($"##name_{id}", ref name, 128);
+                if (name != waypoint.Name) {
+                    waypoint.Name = name;
+                }
+                
+                // Цвет
+                ImGui.TableNextColumn();
+                Vector4 color = ParseHtmlColor(waypoint.Color);
+                if (ImGui.ColorEdit4($"##color_{id}", ref color, ImGuiColorEditFlags.NoInputs))
+                {
+                    // Обновляем цвет в формате HTML
+                    waypoint.Color = $"#{(int)(color.X * 255):X2}{(int)(color.Y * 255):X2}{(int)(color.Z * 255):X2}";
+                }
+                
+                // Координата X
+                ImGui.TableNextColumn();
+                int x = waypoint.Position.X;
+                if (ImGui.InputInt($"##x_{id}", ref x, 0, 0))
+                {
+                    waypoint.Position = new Vector2i(x, waypoint.Position.Y);
+                }
+                
+                // Координата Y
+                ImGui.TableNextColumn();
+                int y = waypoint.Position.Y;
+                if (ImGui.InputInt($"##y_{id}", ref y, 0, 0))
+                {
+                    waypoint.Position = new Vector2i(waypoint.Position.X, y);
+                }
+                
+                // Действия
+                ImGui.TableNextColumn();
+                if (ImGui.Button($"Удалить##remove_{id}"))
+                {
+                    // Помечаем для удаления
+                    Settings.Waypoints.Waypoints.Remove(id);
+                    break; // Прерываем цикл, т.к. коллекция изменилась
+                }
+            }
+            
+            ImGui.EndTable();
+        }
+        
+        ImGui.Spacing();
+        
+        // Кнопки для управления всеми путевыми точками
+        if (ImGui.Button("Удалить все путевые точки"))
+        {
+            if (ImGui.BeginPopupModal("Подтверждение удаления", ref WaypointPanelIsOpen, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                ImGui.Text("Вы уверены, что хотите удалить все путевые точки?");
+                ImGui.Spacing();
+                
+                if (ImGui.Button("Да", new Vector2(120, 0)))
+                {
+                    Settings.Waypoints.Waypoints.Clear();
+                    ImGui.CloseCurrentPopup();
+                }
+                
+                ImGui.SameLine();
+                
+                if (ImGui.Button("Нет", new Vector2(120, 0)))
+                {
+                    ImGui.CloseCurrentPopup();
+                }
+                
+                ImGui.EndPopup();
+            }
+            
+            ImGui.OpenPopup("Подтверждение удаления");
+        }
+    }
+
+    // Вспомогательный метод для парсинга HTML-цвета
+    private Vector4 ParseHtmlColor(string htmlColor)
+    {
+        try {
+            if (string.IsNullOrEmpty(htmlColor)) return new Vector4(1, 1, 1, 1);
+            
+            // Удаляем символ # в начале, если он есть
+            if (htmlColor.StartsWith("#")) {
+                htmlColor = htmlColor.Substring(1);
+            }
+            
+            // Парсим цвет из шестнадцатеричной записи
+            int r = Convert.ToInt32(htmlColor.Substring(0, 2), 16);
+            int g = Convert.ToInt32(htmlColor.Substring(2, 2), 16);
+            int b = Convert.ToInt32(htmlColor.Substring(4, 2), 16);
+            
+            return new Vector4(r / 255f, g / 255f, b / 255f, 1.0f);
+        }
+        catch {
+            return new Vector4(1, 1, 1, 1); // Белый цвет по умолчанию
+        }
+    }
+
+    // Для поиска
+    private string GetMapNameFromDescription(AtlasNodeDescription nodeDesc)
+    {
+        try {
+            if (nodeDesc == null) return "Unknown";
+            
+            string name = nodeDesc.Name.ToString();
+            if (string.IsNullOrEmpty(name)) {
+                name = "Unknown Map";
+            }
+            
+            return name;
+        }
+        catch (Exception e) {
+            LogError($"Error getting map name: {e.Message}");
+            return "Error";
         }
     }
 }

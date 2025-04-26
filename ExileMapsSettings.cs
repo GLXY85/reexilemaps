@@ -842,6 +842,7 @@ public class SearchSettings
     public bool AutoRemoveWaypointAfterVisit { get; set; } = true;
     public string SearchQuery { get; set; } = "";
     public string SortBy { get; set; } = "Weight";
+    public bool ShowMapSearch { get; set; } = false;
 
     public SearchSettings() {
         SearchPanel = new CustomNode
