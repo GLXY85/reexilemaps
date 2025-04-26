@@ -97,6 +97,13 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private bool needSearchUpdate = true;
     private bool needWaypointUpdate = true;
 
+    // Для расстояния по координатам
+    private Dictionary<string, float> cachedDistances = new Dictionary<string, float>();
+    private List<MapSearchItem> mapItems = new List<MapSearchItem>();
+    private string referencePositionText = "от центра экрана";
+    private Vector2 manualReferencePosition = Vector2.Zero;
+    private bool useManualReferencePosition = false;
+
     #endregion
 
     #region ExileCore Methods
@@ -2251,7 +2258,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     {
         try
         {
-            Vector2 referencePosition = GetReferencePositionForDistance();
+            Vector2 referencePosition = GetPlayerPositionForDistance();
             LogMessage($"Сортировка карт по расстоянию: {referencePosition}");
             
             cachedDistances.Clear();
@@ -2313,14 +2320,75 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     }
 
     /// <summary>
-    ///      AtlasNodeDescription
+    /// Получает позицию игрока для расчета расстояния в картах
     /// </summary>
+    private Vector2 GetPlayerPositionForDistance()
+    {
+        try
+        {
+            // Проверяем, используется ли ручная точка отсчета
+            if (useManualReferencePosition && manualReferencePosition != Vector2.Zero)
+            {
+                referencePositionText = "от заданной точки";
+                LogMessage($"Расстояние рассчитывается от ручной точки: {manualReferencePosition}");
+                return manualReferencePosition;
+            }
+            
+            // Приоритет - позиция игрока
+            if (GameController?.Game?.IngameState?.Data?.LocalPlayer != null)
+            {
+                Vector2 playerPos = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Render>().Pos;
+                referencePositionText = "от позиции игрока";
+                LogMessage($"Расстояние рассчитывается от позиции игрока: {playerPos}");
+                return playerPos;
+            }
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                LogError($"Ошибка при получении позиции для расчета расстояния: {ex.Message}");
+            }
+            catch
+            {
+                // Игнорируем ошибки в обработчике ошибок
+            }
         }
         
         // Используем центр экрана как запасной вариант
         referencePositionText = "от центра экрана";
         LogMessage($"Расстояние рассчитывается от центра экрана: {screenCenter}");
         return screenCenter;
+    }
+
+    private void DrawExtraMapSearch()
+    {
+        try
+        {
+            if (!Settings.ShowMapSearch) return;
+            
+            // ... existing code ...
+            if (distanceHeaderClicked)
+            {
+                SortDistanceColumn();
+                // Показываем информацию о том, откуда измеряется расстояние
+                ImGui.SameLine();
+                ImGui.TextColored(Color.Yellow.ToImguiVec4(), $"({referencePositionText})");
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.Text("Для измерения расстояния используется позиция игрока.");
+                    ImGui.Text("Нажмите Alt+ПКМ на карте, чтобы установить свою точку отсчёта.");
+                    ImGui.EndTooltip();
+                }
+                ImGui.SameLine();
+            }
+            // ... existing code ...
+        }
+        catch (Exception ex)
+        {
+            LogError($"Ошибка при отображении поиска карт: {ex.Message}");
+        }
     }
 }
 
