@@ -1,0 +1,1482 @@
+{
+  "MapAbyss": {
+    "Name": "Abyss",
+    "IDs": [
+      "MapAbyss",
+      "MapAbyss_NoBoss"
+    ],
+    "ShortestId": "MapAbyss",
+    "Biomes": [
+      "Desert",
+      "Mountain",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": -10
+  },
+  "MapAlpineRidge": {
+    "Name": "Alpine Ridge",
+    "IDs": [
+      "MapAlpineRidge"
+    ],
+    "ShortestId": "MapAlpineRidge",
+    "Biomes": [
+      "Mountain",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapAugury_NoBoss": {
+    "Name": "Augury",
+    "IDs": [
+      "MapAugury_NoBoss"
+    ],
+    "ShortestId": "MapAugury_NoBoss",
+    "Biomes": [
+      "Forest",
+      "Forest",
+      "Swamp"
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": -10
+  },
+  "MapBackwash": {
+    "Name": "Backwash",
+    "IDs": [
+      "MapBackwash",
+      "MapBackwash_NoBoss"
+    ],
+    "ShortestId": "MapBackwash",
+    "Biomes": [
+      "Swamp",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "Bastille": {
+    "Name": "Bastille",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "Mountain",
+      "Grass",
+      "Desert"
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "Bloodbowl": {
+    "Name": "Bloodbowl",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "Desert",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapBloodwood_NoBoss": {
+    "Name": "Bloodwood",
+    "IDs": [
+      "MapBloodwood_NoBoss"
+    ],
+    "ShortestId": "MapBloodwood_NoBoss",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapBloomingField": {
+    "Name": "Blooming Field",
+    "IDs": [
+      "MapBloomingField_NoBoss",
+      "MapBloomingField"
+    ],
+    "ShortestId": "MapBloomingField",
+    "Biomes": [
+      "Forest",
+      "Grass",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "MapBluff": {
+    "Name": "Bluff",
+    "IDs": [
+      "MapBluff"
+    ],
+    "ShortestId": "MapBluff",
+    "Biomes": [],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapBurialBog": {
+    "Name": "Burial Bog",
+    "IDs": [
+      "MapBurialBog_NoBoss",
+      "MapBurialBog"
+    ],
+    "ShortestId": "MapBurialBog",
+    "Biomes": [
+      "Swamp",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapHideoutCanal_Claimable": {
+    "Name": "Canal Hideout",
+    "IDs": [
+      "MapHideoutCanal_Claimable"
+    ],
+    "ShortestId": "MapHideoutCanal_Claimable",
+    "Biomes": [
+      "Grass",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "Castaway": {
+    "Name": "Castaway",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapCenotes_NoBoss": {
+    "Name": "Cenotes",
+    "IDs": [
+      "MapCenotes_NoBoss"
+    ],
+    "ShortestId": "MapCenotes_NoBoss",
+    "Biomes": [
+      "Mountain",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapChannel": {
+    "Name": "Channel",
+    "IDs": [
+      "MapChannel",
+      "MapChannel_NoBoss"
+    ],
+    "ShortestId": "MapChannel",
+    "Biomes": [
+      "Desert",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": -10
+  },
+  "MapCreek": {
+    "Name": "Creek",
+    "IDs": [
+      "MapCreek_NoBoss",
+      "MapCreek"
+    ],
+    "ShortestId": "MapCreek",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "MapCrimsonShores_NoBoss": {
+    "Name": "Crimson Shores",
+    "IDs": [
+      "MapCrimsonShores_NoBoss"
+    ],
+    "ShortestId": "MapCrimsonShores_NoBoss",
+    "Biomes": [
+      "Water",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapCrypt": {
+    "Name": "Crypt",
+    "IDs": [
+      "MapCrypt",
+      "MapCrypt_NoBoss"
+    ],
+    "ShortestId": "MapCrypt",
+    "Biomes": [
+      "Mountain",
+      "Grass",
+      "Desert"
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapDecay": {
+    "Name": "Decay",
+    "IDs": [
+      "MapDecay_NoBoss",
+      "MapDecay"
+    ],
+    "ShortestId": "MapDecay",
+    "Biomes": [
+      "Forest",
+      "Forest",
+      "Swamp"
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": -10
+  },
+  "DerelictMansion": {
+    "Name": "Derelict Mansion",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "Grass",
+      "Forest",
+      "Desert"
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapDeserted_NoBoss": {
+    "Name": "Deserted",
+    "IDs": [
+      "MapDeserted_NoBoss"
+    ],
+    "ShortestId": "MapDeserted_NoBoss",
+    "Biomes": [
+      "Desert",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "MapHideoutFelled_Claimable": {
+    "Name": "Felled Hideout",
+    "IDs": [
+      "MapHideoutFelled_Claimable"
+    ],
+    "ShortestId": "MapHideoutFelled_Claimable",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapForge": {
+    "Name": "Forge",
+    "IDs": [
+      "MapForge",
+      "MapForge_NoBoss"
+    ],
+    "ShortestId": "MapForge",
+    "Biomes": [
+      "Mountain",
+      "Desert",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapFortress": {
+    "Name": "Fortress",
+    "IDs": [
+      "MapFortress",
+      "MapFortress_NoBoss"
+    ],
+    "ShortestId": "MapFortress",
+    "Biomes": [
+      "Desert",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "GothicCity": {
+    "Name": "Gothic City",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "Grass",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapGrimhaven": {
+    "Name": "Grimhaven",
+    "IDs": [
+      "MapGrimhaven",
+      "MapGrimhaven_NoBoss"
+    ],
+    "ShortestId": "MapGrimhaven",
+    "Biomes": [],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "216, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapHeadland": {
+    "Name": "Headland",
+    "IDs": [
+      "MapHeadland",
+      "MapHeadland_NoBoss"
+    ],
+    "ShortestId": "MapHeadland",
+    "Biomes": [
+      "Mountain",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapHiddenGrotto_NoBoss": {
+    "Name": "Hidden Grotto",
+    "IDs": [
+      "MapHiddenGrotto_NoBoss"
+    ],
+    "ShortestId": "MapHiddenGrotto_NoBoss",
+    "Biomes": [
+      "Forest",
+      "Swamp",
+      "Swamp"
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapHive_NoBoss": {
+    "Name": "Hive",
+    "IDs": [
+      "MapHive_NoBoss"
+    ],
+    "ShortestId": "MapHive_NoBoss",
+    "Biomes": [
+      "Desert",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "Inferno": {
+    "Name": "Inferno",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapHideoutLimestone_Claimable": {
+    "Name": "Limestone Hideout",
+    "IDs": [
+      "MapHideoutLimestone_Claimable"
+    ],
+    "ShortestId": "MapHideoutLimestone_Claimable",
+    "Biomes": [
+      "Water",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapLoftySummit": {
+    "Name": "Lofty Summit",
+    "IDs": [
+      "MapLoftySummit_NoBoss",
+      "MapLoftySummit"
+    ],
+    "ShortestId": "MapLoftySummit",
+    "Biomes": [
+      "Mountain",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapLostTowers": {
+    "Name": "Lost Towers",
+    "IDs": [
+      "MapLostTowers"
+    ],
+    "ShortestId": "MapLostTowers",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 50
+  },
+  "MerchantsCampsite": {
+    "Name": "Merchant\u0027s Campsite",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 100
+  },
+  "MapMesa": {
+    "Name": "Mesa",
+    "IDs": [
+      "MapMesa"
+    ],
+    "ShortestId": "MapMesa",
+    "Biomes": [],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "217, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapMineshaft": {
+    "Name": "Mineshaft",
+    "IDs": [
+      "MapMineshaft"
+    ],
+    "ShortestId": "MapMineshaft",
+    "Biomes": [
+      "Mountain",
+      "Desert",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapMire": {
+    "Name": "Mire",
+    "IDs": [
+      "MapMire",
+      "MapMire_NoBoss"
+    ],
+    "ShortestId": "MapMire",
+    "Biomes": [
+      "Swamp",
+      "Forest",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": -10
+  },
+  "MapUniqueMerchant03_Raft": {
+    "Name": "Moment of Zen",
+    "IDs": [
+      "MapUniqueMerchant03_Raft"
+    ],
+    "ShortestId": "MapUniqueMerchant03_Raft",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 100
+  },
+  "MapNecropolis": {
+    "Name": "Necropolis",
+    "IDs": [
+      "MapNecropolis_NoBoss",
+      "MapNecropolis"
+    ],
+    "ShortestId": "MapNecropolis",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": -10
+  },
+  "MapOasis_NoBoss": {
+    "Name": "Oasis",
+    "IDs": [
+      "MapOasis_NoBoss"
+    ],
+    "ShortestId": "MapOasis_NoBoss",
+    "Biomes": [
+      "Desert",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "Outlands": {
+    "Name": "Outlands",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "Desert",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapPenitentiary": {
+    "Name": "Penitentiary",
+    "IDs": [
+      "MapPenitentiary_NoBoss",
+      "MapPenitentiary"
+    ],
+    "ShortestId": "MapPenitentiary",
+    "Biomes": [
+      "Grass",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapRavine_NoBoss": {
+    "Name": "Ravine",
+    "IDs": [
+      "MapRavine_NoBoss"
+    ],
+    "ShortestId": "MapRavine_NoBoss",
+    "Biomes": [
+      "Mountain",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapRiverside": {
+    "Name": "Riverside",
+    "IDs": [
+      "MapRiverside",
+      "MapRiverside_NoBoss"
+    ],
+    "ShortestId": "MapRiverside",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "Rockpools": {
+    "Name": "Rockpools",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "Swamp",
+      "Swamp",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapRustbowl": {
+    "Name": "Rustbowl",
+    "IDs": [
+      "MapRustbowl",
+      "MapRustbowl_NoBoss"
+    ],
+    "ShortestId": "MapRustbowl",
+    "Biomes": [
+      "Desert",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapSandspit_NoBoss": {
+    "Name": "Sandspit",
+    "IDs": [
+      "MapSandspit_NoBoss"
+    ],
+    "ShortestId": "MapSandspit_NoBoss",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapSavanna": {
+    "Name": "Savannah",
+    "IDs": [
+      "MapSavanna_NoBoss",
+      "MapSavanna"
+    ],
+    "ShortestId": "MapSavanna",
+    "Biomes": [
+      "Grass",
+      "Desert",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "MapSeepage": {
+    "Name": "Seepage",
+    "IDs": [
+      "MapSeepage_NoBoss",
+      "MapSeepage"
+    ],
+    "ShortestId": "MapSeepage",
+    "Biomes": [
+      "Forest",
+      "Forest",
+      "Swamp"
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": -10
+  },
+  "MapHideoutShrine_Claimable": {
+    "Name": "Shrine Hideout",
+    "IDs": [
+      "MapHideoutShrine_Claimable"
+    ],
+    "ShortestId": "MapHideoutShrine_Claimable",
+    "Biomes": [
+      "Desert",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapSwampTower": {
+    "Name": "Sinking Spire",
+    "IDs": [
+      "MapSwampTower"
+    ],
+    "ShortestId": "MapSwampTower",
+    "Biomes": [],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "216, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapSlick_NoBoss": {
+    "Name": "Slick",
+    "IDs": [
+      "MapSlick_NoBoss"
+    ],
+    "ShortestId": "MapSlick_NoBoss",
+    "Biomes": [
+      "Mountain",
+      "Desert",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "MapSpiderWoods": {
+    "Name": "Spider Woods",
+    "IDs": [
+      "MapSpiderWoods",
+      "MapSpiderWoods_NoBoss"
+    ],
+    "ShortestId": "MapSpiderWoods",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "MapSteamingSprings": {
+    "Name": "Steaming Springs",
+    "IDs": [
+      "MapSteamingSprings",
+      "MapSteamingSprings_NoBoss"
+    ],
+    "ShortestId": "MapSteamingSprings",
+    "Biomes": [
+      "Mountain",
+      "Grass",
+      "Forest"
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "MapSteppe_NoBoss": {
+    "Name": "Steppe",
+    "IDs": [
+      "MapSteppe_NoBoss"
+    ],
+    "ShortestId": "MapSteppe_NoBoss",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "MapSulphuricCaverns": {
+    "Name": "Sulphuric Caverns",
+    "IDs": [
+      "MapSulphuricCaverns",
+      "MapSulphuricCaverns_NoBoss"
+    ],
+    "ShortestId": "MapSulphuricCaverns",
+    "Biomes": [
+      "Mountain",
+      "Swamp",
+      "Desert"
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 10
+  },
+  "MapSump": {
+    "Name": "Sump",
+    "IDs": [
+      "MapSump_NoBoss",
+      "MapSump"
+    ],
+    "ShortestId": "MapSump",
+    "Biomes": [
+      "Swamp",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapSunTemple": {
+    "Name": "Sun Temple",
+    "IDs": [
+      "MapSunTemple_NoBoss",
+      "MapSunTemple"
+    ],
+    "ShortestId": "MapSunTemple",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": -10
+  },
+  "SwampTower": {
+    "Name": "Swamp Tower",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "Swamp",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapUberBoss_CopperCitadel": {
+    "Name": "The Copper Citadel",
+    "IDs": [
+      "MapUberBoss_CopperCitadel"
+    ],
+    "ShortestId": "MapUberBoss_CopperCitadel",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 100
+  },
+  "MapUberBoss_IronCitadel": {
+    "Name": "The Iron Citadel",
+    "IDs": [
+      "MapUberBoss_IronCitadel"
+    ],
+    "ShortestId": "MapUberBoss_IronCitadel",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 100
+  },
+  "MapUberBoss_StoneCitadel": {
+    "Name": "The Stone Citadel",
+    "IDs": [
+      "MapUberBoss_StoneCitadel"
+    ],
+    "ShortestId": "MapUberBoss_StoneCitadel",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 100
+  },
+  "G_Endgame_Town": {
+    "Name": "The Ziggurat Refuge",
+    "IDs": [
+      "G_Endgame_Town"
+    ],
+    "ShortestId": "G_Endgame_Town",
+    "Biomes": [],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapUniqueUntaintedParadise": {
+    "Name": "Untainted Paradise",
+    "IDs": [
+      "MapUniqueUntaintedParadise"
+    ],
+    "ShortestId": "MapUniqueUntaintedParadise",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 100
+  },
+  "MapVaalCity": {
+    "Name": "Vaal City",
+    "IDs": [
+      "MapVaalCity",
+      "MapVaalCity_NoBoss"
+    ],
+    "ShortestId": "MapVaalCity",
+    "Biomes": [
+      "Swamp",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapVaalFactory": {
+    "Name": "Vaal Factory",
+    "IDs": [
+      "MapVaalFactory_NoBoss",
+      "MapVaalFactory"
+    ],
+    "ShortestId": "MapVaalFactory",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": -10
+  },
+  "MapVaalFoundry": {
+    "Name": "Vaal Foundry",
+    "IDs": [
+      "MapVaalFoundry_NoBoss",
+      "MapVaalFoundry"
+    ],
+    "ShortestId": "MapVaalFoundry",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": -10
+  },
+  "VaalVillage": {
+    "Name": "Vaal Village",
+    "IDs": [],
+    "ShortestId": "",
+    "Biomes": [
+      "Swamp",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  },
+  "MapUniqueVault": {
+    "Name": "Vaults of Kamasa",
+    "IDs": [
+      "MapUniqueVault"
+    ],
+    "ShortestId": "MapUniqueVault",
+    "Biomes": [
+      "",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": true,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 100
+  },
+  "MapWetlands": {
+    "Name": "Wetlands",
+    "IDs": [
+      "MapWetlands_NoBoss",
+      "MapWetlands"
+    ],
+    "ShortestId": "MapWetlands",
+    "Biomes": [
+      "Swamp",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "MapWillow": {
+    "Name": "Willow",
+    "IDs": [
+      "MapWillow_NoBoss",
+      "MapWillow"
+    ],
+    "ShortestId": "MapWillow",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 25
+  },
+  "MapWoodland": {
+    "Name": "Woodland",
+    "IDs": [
+      "MapWoodland_NoBoss",
+      "MapWoodland"
+    ],
+    "ShortestId": "MapWoodland",
+    "Biomes": [
+      "Forest",
+      "",
+      ""
+    ],
+    "NameColor": "255, 255, 255, 255",
+    "BackgroundColor": "220, 0, 0, 0",
+    "NodeColor": "200, 155, 155, 155",
+    "DrawLine": false,
+    "Highlight": true,
+    "Count": 0,
+    "LockedCount": 0,
+    "FogCount": 0,
+    "Weight": 1
+  }
+}
