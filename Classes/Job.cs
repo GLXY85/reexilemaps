@@ -37,3 +37,4 @@ public class Job
 
     public bool IsCompleted => _task?.IsCompleted ?? false;
 }
+

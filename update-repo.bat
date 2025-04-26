@@ -23,7 +23,11 @@ git commit -m "Major updates to ExileMaps plugin:
 - Fixed file encoding issues to UTF-8 for proper display of Russian characters
 - Fixed arrow texture loading in Initialise method for waypoint indicators
 - Added fallback rendering mechanism for waypoint arrows
-- Extended DrawWaypointArrow with additional error handling"
+- Extended DrawWaypointArrow with additional error handling
+- Fixed NullReferenceException in CacheNewMapNode method
+- Fully translated all UI texts to English for better compatibility
+- Improved player position detection for distance calculations
+- Optimized map caching performance with additional error handling"
 echo === Pushing to remote repository ===
 git push origin local-changes
 echo === Done! ===

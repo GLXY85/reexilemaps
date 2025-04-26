@@ -848,7 +848,7 @@ public class SearchSettings
         SearchPanel = new CustomNode
         {
             DrawDelegate = () => {
-                // ���������� ���������� ����� � ������ DrawSearchPanel � ReExileMapsCore
+                // ?????????? ?????????? ????? ? ?????? DrawSearchPanel ? ReExileMapsCore
             }
         };
     }
@@ -861,3 +861,4 @@ public static class SettingsHelpers {
         ImGui.SetCursorPosX(cursorPosX);
     }        
 }
+
