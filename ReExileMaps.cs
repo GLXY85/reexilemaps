@@ -2339,7 +2339,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             // Приоритет - позиция игрока
             if (GameController?.Game?.IngameState?.Data?.LocalPlayer != null)
             {
-                Vector2 playerPos = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Render>().Pos;
+                Vector2 playerPos = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Positioned>().Pos;
                 referencePositionText = "от позиции игрока";
                 LogMessage($"Расстояние рассчитывается от позиции игрока: {playerPos}");
                 return playerPos;
