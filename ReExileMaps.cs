@@ -101,7 +101,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     // Для расстояния по координатам
     private Dictionary<string, float> cachedDistances = new Dictionary<string, float>();
     private List<MapSearchItem> mapItems = new List<MapSearchItem>();
-    private string referencePositionText = "от центра экрана";
+    private string referencePositionText = "from screen center";
     private Vector2 manualReferencePosition = Vector2.Zero;
     private bool useManualReferencePosition = false;
     
@@ -1743,7 +1743,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 {
                     // Всегда используем центр экрана (определенную точку)
                     Vector2 referencePos = screenCenter;
-                    referencePositionText = "от географического центра";
+                    referencePositionText = "from geographic center";
                     
                     // Обновляем массив с их расстояниями для сортировки
                     mapItems.Clear();
@@ -2345,8 +2345,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             // Проверяем, используется ли ручная точка отсчета
             if (useManualReferencePosition && manualReferencePosition != Vector2.Zero)
             {
-                referencePositionText = "от заданной точки";
-                LogMessage($"Расстояние рассчитывается от ручной точки: {manualReferencePosition}");
+                referencePositionText = "from custom point";
+                LogMessage($"Distance is calculated from manual point: {manualReferencePosition}");
                 return manualReferencePosition;
             }
             
@@ -2368,22 +2368,22 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                                 if (pos != null) {
                                     // Преобразуем координаты в Vector2
                                     playerPos = new Vector2(pos.X, pos.Y);
-                                    LogMessage($"Получена позиция игрока: {playerPos}");
+                                    LogMessage($"Player position obtained: {playerPos}");
                                 }
                                 else {
-                                    LogMessage("Позиция игрока не определена, используем центр экрана");
+                                    LogMessage("Player position not defined, using screen center");
                                 }
                             }
                             catch (Exception ex) {
-                                LogError($"Ошибка при получении позиции: {ex.Message}");
+                                LogError($"Error getting position: {ex.Message}");
                             }
                         }
                         else {
-                            LogMessage("Entity игрока недоступен, используем центр экрана");
+                            LogMessage("Entity player is not accessible, using screen center");
                         }
                     }
                     catch (Exception ex) { 
-                        LogError($"Ошибка при доступе к данным игрока: {ex.Message}");
+                        LogError($"Error accessing player data: {ex.Message}");
                     }
                     
                     // Если позиция все еще не получена, используем последнюю известную позицию
@@ -2391,11 +2391,11 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                         playerPos = screenCenter;
                     }
                     
-                    referencePositionText = "от позиции игрока";
-                    LogMessage($"Расстояние рассчитывается от позиции игрока: {playerPos}");
+                    referencePositionText = "from player position";
+                    LogMessage($"Distance is calculated from player position: {playerPos}");
                     return playerPos;
                 } catch (Exception ex) {
-                    LogError($"Ошибка при получении позиции игрока: {ex.Message}");
+                    LogError($"Error getting player position: {ex.Message}");
                 }
             }
         }
@@ -2403,7 +2403,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         {
             try
             {
-                LogError($"Ошибка при получении позиции для расчета расстояния: {ex.Message}");
+                LogError($"Error getting position for distance calculation: {ex.Message}");
             }
             catch
             {
@@ -2412,8 +2412,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         }
         
         // Используем центр экрана как запасной вариант
-        referencePositionText = "от центра экрана";
-        LogMessage($"Расстояние рассчитывается от центра экрана: {screenCenter}");
+        referencePositionText = "from screen center";
+        LogMessage($"Distance is calculated from screen center: {screenCenter}");
         return screenCenter;
     }
 
@@ -2434,15 +2434,15 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.SetNextWindowSize(new Vector2(300, 400), ImGuiCond.FirstUseEver);
         
         bool showMapSearch = Settings.Search.ShowMapSearch;
-        if (ImGui.Begin("Быстрый поиск карт##quick_map_search", ref showMapSearch))
+        if (ImGui.Begin("Quick Map Search##quick_map_search", ref showMapSearch))
         {
             // Обновляем значение в настройках
             Settings.Search.ShowMapSearch = showMapSearch;
             
             // Поле поиска
-            ImGui.InputText("Поиск", ref query, 128);
+            ImGui.InputText("Search", ref query, 128);
             
-            if (ImGui.Button("Найти") || ImGui.IsKeyPressed(ImGuiKey.Enter))
+            if (ImGui.Button("Find") || ImGui.IsKeyPressed(ImGuiKey.Enter))
             {
                 // Выполняем поиск
                 UpdateSearchResults();
@@ -2450,7 +2450,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             
             ImGui.SameLine();
             
-            if (ImGui.Button("Очистить"))
+            if (ImGui.Button("Clear"))
             {
                 query = "";
                 results.Clear();
@@ -2463,9 +2463,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 
                 if (ImGui.BeginTable("search_results", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
                 {
-                    ImGui.TableSetupColumn("Название", ImGuiTableColumnFlags.WidthStretch);
-                    ImGui.TableSetupColumn("Расстояние", ImGuiTableColumnFlags.WidthFixed, 80);
-                    ImGui.TableSetupColumn("Действие", ImGuiTableColumnFlags.WidthFixed, 80);
+                    ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
+                    ImGui.TableSetupColumn("Distance", ImGuiTableColumnFlags.WidthFixed, 80);
+                    ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, 80);
                     ImGui.TableHeadersRow();
                     
                     foreach (var node in results.Take(Settings.Search.SearchPanelMaxItems))
@@ -2480,7 +2480,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                         ImGui.Text($"{distance:F0}");
                         
                         ImGui.TableNextColumn();
-                        if (ImGui.Button($"Метка##add_{node.Coordinates.X}_{node.Coordinates.Y}"))
+                        if (ImGui.Button($"Waypoint##add_{node.Coordinates.X}_{node.Coordinates.Y}"))
                         {
                             AddWaypoint(node);
                         }
@@ -2491,7 +2491,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             }
             else if (!string.IsNullOrEmpty(query))
             {
-                ImGui.TextColored(new Vector4(1, 0.5f, 0, 1), "По запросу ничего не найдено");
+                ImGui.TextColored(new Vector4(1, 0.5f, 0, 1), "No results found for your query");
             }
         }
         
@@ -2655,18 +2655,18 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
     private void DrawWaypointManagementTab()
     {
-        ImGui.Text("Текущие путевые точки:");
+        ImGui.Text("Current waypoints:");
         ImGui.Spacing();
         
         // Таблица путевых точек
         if (ImGui.BeginTable("waypoints_table", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
         {
-            ImGui.TableSetupColumn("Название", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("X", ImGuiTableColumnFlags.WidthFixed, 60);
             ImGui.TableSetupColumn("Y", ImGuiTableColumnFlags.WidthFixed, 60);
-            ImGui.TableSetupColumn("Показать", ImGuiTableColumnFlags.WidthFixed, 80);
-            ImGui.TableSetupColumn("Цвет", ImGuiTableColumnFlags.WidthFixed, 60);
-            ImGui.TableSetupColumn("Действия", ImGuiTableColumnFlags.WidthFixed, 100);
+            ImGui.TableSetupColumn("Show", ImGuiTableColumnFlags.WidthFixed, 80);
+            ImGui.TableSetupColumn("Color", ImGuiTableColumnFlags.WidthFixed, 60);
+            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 100);
             ImGui.TableHeadersRow();
             
             // Отображаем все путевые точки
@@ -2676,7 +2676,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 
                 // Название
                 ImGui.TableNextColumn();
-                string name = waypoint.Name ?? "Без названия";
+                string name = waypoint.Name ?? "Unnamed";
                 ImGui.InputText($"##name_{id}", ref name, 128);
                 if (name != waypoint.Name) {
                     waypoint.Name = name;
@@ -2721,7 +2721,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 
                 // Действия
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Удалить##remove_{id}"))
+                if (ImGui.Button($"Delete##remove_{id}"))
                 {
                     // Помечаем для удаления
                     Settings.Waypoints.Waypoints.Remove(id);
@@ -2735,14 +2735,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         ImGui.Spacing();
         
         // Кнопки для управления всеми путевыми точками
-        if (ImGui.Button("Удалить все путевые точки"))
+        if (ImGui.Button("Delete All Waypoints"))
         {
-            if (ImGui.BeginPopupModal("Подтверждение удаления", ref WaypointPanelIsOpen, ImGuiWindowFlags.AlwaysAutoResize))
+            if (ImGui.BeginPopupModal("Delete Confirmation", ref WaypointPanelIsOpen, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                ImGui.Text("Вы уверены, что хотите удалить все путевые точки?");
+                ImGui.Text("Are you sure you want to delete all waypoints?");
                 ImGui.Spacing();
                 
-                if (ImGui.Button("Да", new Vector2(120, 0)))
+                if (ImGui.Button("Yes", new Vector2(120, 0)))
                 {
                     Settings.Waypoints.Waypoints.Clear();
                     ImGui.CloseCurrentPopup();
@@ -2750,7 +2750,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 
                 ImGui.SameLine();
                 
-                if (ImGui.Button("Нет", new Vector2(120, 0)))
+                if (ImGui.Button("No", new Vector2(120, 0)))
                 {
                     ImGui.CloseCurrentPopup();
                 }
@@ -2758,7 +2758,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                 ImGui.EndPopup();
             }
             
-            ImGui.OpenPopup("Подтверждение удаления");
+            ImGui.OpenPopup("Delete Confirmation");
         }
     }
 

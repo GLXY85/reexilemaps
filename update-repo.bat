@@ -1,22 +1,23 @@
 @echo off
-echo === Проверка зависимостей ===
-echo ВАЖНО: Этот проект требует библиотеки ExileCore2 и GameOffsets2
-echo Проверьте, что эти библиотеки установлены для успешной сборки
+echo === Checking dependencies ===
+echo IMPORTANT: This project requires ExileCore2 and GameOffsets2 libraries
+echo Make sure these libraries are installed for successful build
 
-echo === Сборка проекта ===
+echo === Building project ===
 dotnet build --configuration Release
 
 git add .
 git status
 echo === Committing changes ===
-git commit -m "Устранены критические ошибки совместимости с ExileCore2:
-- Максимально упрощен метод получения позиции игрока через прямой доступ к Entity.Pos
-- Добавлена надежная обработка ошибок и дополнительное логирование
-- Исправлены методы DrawWaypoint и DrawWaypointArrow для работы с RectangleF в качестве угла
-- Обновлен метод GetMapNameFromDescription для совместимости с новым API
-- Исправлены пути к библиотекам ExileCore2 и GameOffsets2 в файле проекта
-- Добавлены дополнительные проверки для предотвращения ошибок при отсутствии данных
-- Улучшена обработка ошибок в ключевых методах отрисовки"
+git commit -m "Fixed critical compatibility issues with ExileCore2:
+- Simplified player position detection method using direct access to Entity.Pos
+- Added robust error handling and additional logging
+- Fixed DrawWaypoint and DrawWaypointArrow methods to work with RectangleF as angle
+- Updated GetMapNameFromDescription method for compatibility with new API
+- Fixed paths to ExileCore2 and GameOffsets2 libraries in project file
+- Translated UI interface from Russian to English
+- Added additional checks to prevent errors when data is missing
+- Improved error handling in key rendering methods"
 echo === Pushing to remote repository ===
 git push origin local-changes
 echo === Done! ===
