@@ -19,7 +19,8 @@ git commit -m "Major updates to ExileMaps plugin:
 - Translated UI interface from Russian to English
 - Added comprehensive bilingual (English/Russian) README with plugin features
 - Added detailed installation instructions and feature descriptions
-- Improved error handling in key rendering methods"
+- Improved error handling in key rendering methods
+- Fixed file encoding issues to UTF-8 for proper display of Russian characters"
 echo === Pushing to remote repository ===
 git push origin local-changes
 echo === Done! ===

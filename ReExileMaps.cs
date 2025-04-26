@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -53,11 +53,12 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     #region Declarations
     public static ReExileMapsCore Main;
 
+    // Константы для путей к файлам и ресурсам
     private const string defaultMapsPath = "json\\maps.json";
     private const string defaultModsPath = "json\\mods.json";
     private const string defaultBiomesPath = "json\\biomes.json";
     private const string defaultContentPath = "json\\content.json";
-    private const string ArrowPath = "textures\\arrow.png";
+    private const string ArrowTexturePath = "textures\\arrow.png";
     private const string IconsFile = "Icons.png";
     
     public IngameUIElements UI;
@@ -128,7 +129,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         
         Graphics.InitImage(IconsFile);
         iconsId = Graphics.GetTextureId(IconsFile);
-        Graphics.InitImage("arrow.png", Path.Combine(DirectoryFullName, ArrowPath));
+        Graphics.InitImage("arrow.png", Path.Combine(DirectoryFullName, ArrowTexturePath));
         arrowId = Graphics.GetTextureId("arrow.png");
 
         CanUseMultiThreading = true;
@@ -2511,7 +2512,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             var rect = new RectangleF(position.X - size/2, position.Y - size/2, size, size);
             // Используем угол как RectangleF (в API ExileCore2 ожидается RectangleF для угла)
             var angleRect = new RectangleF(0, 0, 0, 0);
-            Graphics.DrawImage("arrow.png", rect, angleRect, waypoint.Color);
+            Graphics.DrawImage(ArrowTexturePath, rect, angleRect, waypoint.Color);
             
             // Рисуем название, если оно есть
             if (!string.IsNullOrEmpty(waypoint.Name)) {
@@ -2551,7 +2552,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             var rect = new RectangleF(edgePoint.X - arrowSize/2, edgePoint.Y - arrowSize/2, arrowSize, arrowSize);
             // Создаем RectangleF для угла, как требуется в API
             var angleRect = new RectangleF(angle, 0, 0, 0);
-            Graphics.DrawImage("arrow.png", rect, angleRect, waypoint.Color);
+            Graphics.DrawImage(ArrowTexturePath, rect, angleRect, waypoint.Color);
             
             // Рисуем расстояние до точки
             Vector2 distancePos = edgePoint + new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * (arrowSize + 5);
@@ -2836,3 +2837,4 @@ public static class ColorHelper
         );
     }
 }
+
