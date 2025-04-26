@@ -27,7 +27,12 @@ git commit -m "Major updates to ExileMaps plugin:
 - Fixed NullReferenceException in CacheNewMapNode method
 - Fully translated all UI texts to English for better compatibility
 - Improved player position detection for distance calculations
-- Optimized map caching performance with additional error handling"
+- Optimized map caching performance with additional error handling
+- Completely rewrote waypoint arrow rendering system with multiple fallbacks
+- Added automatic texture directory checking and creation
+- Fixed distance display on waypoint arrows
+- Enhanced DrawRotatedImage method with better error handling
+- Added comprehensive logging for texture loading issues"
 echo === Pushing to remote repository ===
 git push origin local-changes
 echo === Done! ===

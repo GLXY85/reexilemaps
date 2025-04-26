@@ -121,6 +121,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         Main = this;        
         RegisterHotkeys();
         SubscribeToEvents();
+        
+        // Ensure textures directory exists before loading resources
+        EnsureTexturesDirectory();
 
         LoadDefaultBiomes();
         LoadDefaultContentTypes();
@@ -129,8 +132,25 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         
         Graphics.InitImage(IconsFile);
         iconsId = Graphics.GetTextureId(IconsFile);
-        Graphics.InitImage(ArrowTexturePath, Path.Combine(DirectoryFullName, ArrowTexturePath));
-        arrowId = Graphics.GetTextureId(ArrowTexturePath);
+        
+        // Fix arrow texture loading
+        string arrowTexturePath = Path.Combine(DirectoryFullName, ArrowTexturePath);
+        if (File.Exists(arrowTexturePath)) {
+            LogMessage($"Loading arrow texture from: {arrowTexturePath}");
+            Graphics.InitImage(ArrowTexturePath, arrowTexturePath);
+            arrowId = Graphics.GetTextureId(ArrowTexturePath);
+        } else {
+            LogError($"Arrow texture not found at: {arrowTexturePath}");
+            // Try absolute path as fallback
+            string alternatePath = Path.GetFullPath(ArrowTexturePath);
+            if (File.Exists(alternatePath)) {
+                LogMessage($"Loading arrow texture from alternate path: {alternatePath}");
+                Graphics.InitImage(ArrowTexturePath, alternatePath);
+                arrowId = Graphics.GetTextureId(ArrowTexturePath);
+            } else {
+                LogError($"Arrow texture not found at alternate path: {alternatePath}");
+            }
+        }
 
         CanUseMultiThreading = true;
 
@@ -1280,32 +1300,68 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         Graphics.DrawText(text, position, color);
     }
 
+    /// <summary>
+    /// Draws a rotated image at the specified position
+    /// </summary>
+    /// <param name="textureId">The texture ID to draw</param>
+    /// <param name="position">The position to draw at</param>
+    /// <param name="size">The size of the image</param>
+    /// <param name="angle">The angle to rotate the image by</param>
+    /// <param name="color">The color to tint the image with</param>
     private void DrawRotatedImage(IntPtr textureId, Vector2 position, Vector2 size, float angle, Color color)
     {
-        Vector2 center = position + size / 2;
-
-        float cosTheta = (float)Math.Cos(angle);
-        float sinTheta = (float)Math.Sin(angle);
-
-        Vector2 RotatePoint(Vector2 point)
-        {
-            Vector2 translatedPoint = point - center;
-            Vector2 rotatedPoint = new Vector2(
-                translatedPoint.X * cosTheta - translatedPoint.Y * sinTheta,
-                translatedPoint.X * sinTheta + translatedPoint.Y * cosTheta
-            );
-            return rotatedPoint + center;
+        if (textureId == IntPtr.Zero) {
+            LogError("Cannot draw rotated image with null texture ID");
+            return;
         }
 
-        Vector2 topLeft = RotatePoint(position);
-        Vector2 topRight = RotatePoint(position + new Vector2(size.X, 0));
-        Vector2 bottomRight = RotatePoint(position + size);
-        Vector2 bottomLeft = RotatePoint(position + new Vector2(0, size.Y));
-
-
-        Graphics.DrawQuad(textureId, topLeft, topRight, bottomRight, bottomLeft, color);
+        try {
+            // Find center point of the image
+            Vector2 center = position + size / 2;
+            
+            // Calculate sine and cosine of the angle for rotation
+            float cosTheta = (float)Math.Cos(angle);
+            float sinTheta = (float)Math.Sin(angle);
+            
+            // Helper function to rotate a point around the center
+            Vector2 RotatePoint(Vector2 point)
+            {
+                // Translate point relative to center
+                Vector2 translatedPoint = point - center;
+                
+                // Apply rotation matrix
+                Vector2 rotatedPoint = new Vector2(
+                    translatedPoint.X * cosTheta - translatedPoint.Y * sinTheta,
+                    translatedPoint.X * sinTheta + translatedPoint.Y * cosTheta
+                );
+                
+                // Translate back to original position
+                return rotatedPoint + center;
+            }
+            
+            // Calculate the four corners of the rotated rectangle
+            Vector2 topLeft = RotatePoint(position);
+            Vector2 topRight = RotatePoint(position + new Vector2(size.X, 0));
+            Vector2 bottomRight = RotatePoint(position + size);
+            Vector2 bottomLeft = RotatePoint(position + new Vector2(0, size.Y));
+            
+            // Draw the rotated quad with the texture
+            Graphics.DrawQuad(textureId, topLeft, topRight, bottomRight, bottomLeft, color);
+            
+            // Optional: For debugging, draw the outline
+            if (Settings.Debug?.DrawDebugInfo == true) {
+                Graphics.DrawLine(topLeft, topRight, 1, Color.Red);
+                Graphics.DrawLine(topRight, bottomRight, 1, Color.Red);
+                Graphics.DrawLine(bottomRight, bottomLeft, 1, Color.Red);
+                Graphics.DrawLine(bottomLeft, topLeft, 1, Color.Red);
+            }
         }
-        private void DrawGradientLine(Vector2 start, Vector2 end, Color startColor, Color endColor, float lineWidth)
+        catch (Exception ex) {
+            LogError($"Error in DrawRotatedImage: {ex.Message}");
+        }
+    }
+
+    private void DrawGradientLine(Vector2 start, Vector2 end, Color startColor, Color endColor, float lineWidth)
     {
         // No need to draw a gradient if the colors are the same
         if (startColor == endColor)
@@ -2516,45 +2572,102 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         if (!Settings.Waypoints.ShowWaypointArrows || !waypoint.Arrow) return;
         
         try {
+            // Get waypoint position and calculate direction vector
             Vector2 position = new Vector2(waypoint.Coordinates.X, waypoint.Coordinates.Y);
             Vector2 direction = position - screenCenter;
             
-            // ???? ????? ??????? ?????? ??? ??? ?? ??????, ?? ?????? ???????
+            // Skip arrow if waypoint is too close or already on screen
             if (direction.Length() < 100 || IsOnScreen(position)) return;
             
-            // ????????? ???? ??? ??????????? ???????
+            // Calculate angle for arrow rotation
             float angle = (float)Math.Atan2(direction.Y, direction.X);
             
-            // ??????? ??????? ?? ???? ??????
+            // Get screen dimensions
             float screenWidth = GameController.Window.GetWindowRectangle().Width;
             float screenHeight = GameController.Window.GetWindowRectangle().Height;
             
-            // ??????? ????? ??????????? ? ????? ??????
+            // Find intersection point with screen edge
             Vector2 edgePoint = CalculateScreenEdgePoint(screenCenter, direction, screenWidth, screenHeight);
             
-            // ?????? ???????
+            // Set arrow size and create rectangle for rendering
             float arrowSize = 30.0f;
-            var rect = new RectangleF(edgePoint.X - arrowSize/2, edgePoint.Y - arrowSize/2, arrowSize, arrowSize);
-            // ??????? RectangleF ??? ????, ??? ????????? ? API
-            var angleRect = new RectangleF(angle, 0, 0, 0);
+            RectangleF rect = new RectangleF(
+                edgePoint.X - arrowSize/2, 
+                edgePoint.Y - arrowSize/2, 
+                arrowSize, 
+                arrowSize
+            );
+            
+            // Create rotation rectangle (angle stored in X component)
+            RectangleF angleRect = new RectangleF(angle, 0, 0, 0);
+            
+            // Draw arrow using the most reliable method available
             try {
+                // First preference: Use texture ID and draw rotated image if available
                 if (arrowId != IntPtr.Zero) {
+                    // Use our custom rotation method
                     DrawRotatedImage(arrowId, new Vector2(rect.X, rect.Y), new Vector2(rect.Width, rect.Height), angle, waypoint.Color);
-                } else {
+                    LogMessage($"Drew arrow using texture ID at {edgePoint.X}, {edgePoint.Y}");
+                } 
+                // Second preference: Use texture path
+                else {
+                    // Fallback to regular Graphics.DrawImage with angle in RectangleF
                     Graphics.DrawImage(ArrowTexturePath, rect, angleRect, waypoint.Color);
+                    LogMessage($"Drew arrow using texture path at {edgePoint.X}, {edgePoint.Y}");
                 }
             } catch (Exception ex) {
-                LogError($"Error drawing arrow: {ex.Message}");
+                // Last resort: Draw a simple line as arrow
+                LogError($"Error drawing waypoint arrow texture: {ex.Message}. Using fallback triangle.");
+                try {
+                    // Calculate triangle points for a simple arrow
+                    float arrowLength = arrowSize * 0.8f;
+                    Vector2 arrowTip = edgePoint + new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * arrowLength;
+                    float sideAngle = 2.5f; // ~150 degrees
+                    Vector2 side1 = edgePoint + new Vector2(
+                        (float)Math.Cos(angle + sideAngle), 
+                        (float)Math.Sin(angle + sideAngle)
+                    ) * arrowLength * 0.6f;
+                    Vector2 side2 = edgePoint + new Vector2(
+                        (float)Math.Cos(angle - sideAngle), 
+                        (float)Math.Sin(angle - sideAngle)
+                    ) * arrowLength * 0.6f;
+                    
+                    // Draw a triangle
+                    Graphics.DrawLine(arrowTip, side1, 2f, waypoint.Color);
+                    Graphics.DrawLine(arrowTip, side2, 2f, waypoint.Color);
+                    Graphics.DrawLine(side1, side2, 2f, waypoint.Color);
+                } catch (Exception triangleEx) {
+                    LogError($"Failed to draw fallback triangle: {triangleEx.Message}");
+                }
             }
             
-            // ?????? ?????????? ?? ?????
-            Vector2 distancePos = edgePoint + new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * (arrowSize + 5);
-            int distance = (int)Vector2.Distance(screenCenter, position);
-            DrawCenteredTextWithBackground($"{waypoint.Name} - {distance}", distancePos, waypoint.Color, 
-                Color.FromArgb(200, 0, 0, 0), true, 10, 5);
+            // Draw distance text next to the arrow
+            try {
+                // Calculate position for distance text
+                Vector2 distancePos = edgePoint + new Vector2(
+                    (float)Math.Cos(angle), 
+                    (float)Math.Sin(angle)
+                ) * (arrowSize + 5);
+                
+                // Calculate actual distance
+                int distance = (int)Vector2.Distance(screenCenter, position);
+                
+                // Draw text with background
+                DrawCenteredTextWithBackground(
+                    $"{waypoint.Name} - {distance}", 
+                    distancePos, 
+                    waypoint.Color, 
+                    Color.FromArgb(200, 0, 0, 0), 
+                    true, 10, 5
+                );
+                
+                LogMessage($"Drew distance text: {distance} units at {distancePos.X}, {distancePos.Y}");
+            } catch (Exception textEx) {
+                LogError($"Error drawing waypoint distance text: {textEx.Message}");
+            }
         }
         catch (Exception e) {
-            LogError($"Error drawing waypoint arrow: {e.Message}\n{e.StackTrace}");
+            LogError($"Error in DrawWaypointArrow: {e.Message}\n{e.StackTrace}");
         }
     }
 
@@ -2804,6 +2917,70 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         catch (Exception e) {
             LogError($"Error getting map name: {e.Message}");
             return "Unknown Map";
+        }
+    }
+
+    /// <summary>
+    /// Ensures that the textures directory exists, creates it if needed
+    /// </summary>
+    private void EnsureTexturesDirectory()
+    {
+        try {
+            string texturesDir = Path.Combine(DirectoryFullName, "textures");
+            
+            if (!Directory.Exists(texturesDir)) {
+                LogMessage($"Creating textures directory at: {texturesDir}");
+                Directory.CreateDirectory(texturesDir);
+            }
+            
+            // Check if arrow.png exists in the textures directory
+            string arrowFile = Path.Combine(texturesDir, "arrow.png");
+            if (!File.Exists(arrowFile)) {
+                LogError($"Arrow texture file not found at: {arrowFile}");
+                
+                // Try to extract arrow.png from resources if available
+                string sourcePath = Path.Combine(DirectoryFullName, "arrow.png");
+                if (File.Exists(sourcePath)) {
+                    LogMessage($"Found arrow.png in plugin directory, copying to textures...");
+                    File.Copy(sourcePath, arrowFile, true);
+                    LogMessage($"Successfully copied arrow.png to textures directory");
+                } else {
+                    // Generate a simple arrow image as a fallback
+                    LogMessage($"Creating fallback arrow texture...");
+                    CreateFallbackArrowTexture(arrowFile);
+                }
+            } else {
+                LogMessage($"Arrow texture exists at: {arrowFile}");
+            }
+        } catch (Exception ex) {
+            LogError($"Error ensuring textures directory: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Creates a simple arrow texture as a fallback
+    /// </summary>
+    private void CreateFallbackArrowTexture(string filePath)
+    {
+        try {
+            // This is a placeholder - in a real implementation you would
+            // either embed a resource or create a simple bitmap programmatically
+            LogError($"Fallback arrow texture creation not implemented. Please add arrow.png manually to {Path.GetDirectoryName(filePath)}");
+            
+            // Example of how this might be implemented:
+            // using (Bitmap bmp = new Bitmap(32, 32))
+            // using (Graphics g = Graphics.FromImage(bmp)) {
+            //     g.Clear(Color.Transparent);
+            //     g.FillPolygon(Brushes.White, new Point[] {
+            //         new Point(16, 0),
+            //         new Point(0, 32),
+            //         new Point(16, 24),
+            //         new Point(32, 32)
+            //     });
+            //     bmp.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+            // }
+        } catch (Exception ex) {
+            LogError($"Error creating fallback arrow texture: {ex.Message}");
         }
     }
 }
