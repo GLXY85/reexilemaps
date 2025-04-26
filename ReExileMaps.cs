@@ -2361,7 +2361,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     // Пробуем разные способы получить позицию игрока
                     try {
                         // Метод 1: через GridPosition, если доступен
-                        var gridPos = player.GetComponentFromObject<IPositioned>()?.GridPos;
+                        var gridPos = player.GetComponent<IPositioned>()?.GridPos;
                         if (gridPos.HasValue && gridPos.Value != Vector2i.Zero) {
                             playerPos = new Vector2(gridPos.Value.X, gridPos.Value.Y);
                         }

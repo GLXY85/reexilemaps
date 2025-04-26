@@ -18,11 +18,31 @@ Re:ExileMaps is a plugin for Path of Exile that enhances the map display in the 
 
 1. Clone the repository or download it as a ZIP archive
 2. Place the contents in your Path of Exile client's plugins folder
+3. **Important**: Make sure to have ExileCore2 and GameOffsets2 referenced in your project, these are required dependencies
 
 ## Requirements
 
 - .NET 8.0
 - ExileCore2
+- GameOffsets2 (containing necessary type definitions)
+
+## Recent Fixes
+
+The recent updates include several important fixes:
+- Removed duplicate variable definitions
+- Added missing methods for waypoint functionality
+- Fixed map search typing issues
+- Improved position detection for distance calculations
+- Fixed rendering methods for waypoints and markers
+
+## Building
+
+To build the project, you need to have the required libraries referenced in your solution:
+```bash
+dotnet build --configuration Release
+```
+
+If you encounter errors related to missing types (like `AtlasPanel`, `Vector2i`, etc.), check that all required dependencies are properly set up.
 
 ## Usage
 
@@ -72,11 +92,31 @@ Re:ExileMaps - это плагин для Path of Exile, который улуч
 
 1. Клонируйте репозиторий или загрузите как ZIP-архив
 2. Разместите содержимое в папке с плагинами вашего клиента Path of Exile
+3. **Важно**: Убедитесь, что в вашем проекте есть ExileCore2 и GameOffsets2, это зависимые библиотеки
 
 ## Требования
 
 - .NET 8.0
 - ExileCore2
+- GameOffsets2 (содержащие необходимые определения типов)
+
+## Недавние исправления
+
+Недавние обновления включают несколько важных исправлений:
+- Удалены дублирующие определения переменных
+- Добавлены отсутствующие методы для функциональности путевых точек
+- Исправлены проблемы с вводом поиска карт
+- Улучшена обнаружение позиции для вычисления расстояний
+- Исправлены методы рендеринга для путевых точек и маркеров
+
+## Сборка
+
+Чтобы собрать проект, вам нужно иметь в решении ссылки на необходимые библиотеки:
+```bash
+dotnet build --configuration Release
+```
+
+Если вы столкнетесь с ошибками, связанными с отсутствием типов (например, `AtlasPanel`, `Vector2i`, и т.д.), проверьте, что все необходимые зависимости настроены правильно.
 
 ## Использование
 
