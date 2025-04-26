@@ -10,7 +10,8 @@ git add .
 git status
 echo === Committing changes ===
 git commit -m "Исправлены ошибки совместимости с новой версией ExileCore2:
-- Исправлен метод GetPlayerPositionForDistance для использования GetComponentFromObject<Render>
+- Переработан метод GetPlayerPositionForDistance с использованием TryGetComponent и GetFieldValue
+- Реализованы запасные варианты получения позиции игрока для повышения надежности
 - Исправлены методы DrawWaypoint и DrawWaypointArrow для работы с RectangleF в качестве угла
 - Обновлен метод GetMapNameFromDescription для совместимости с новым API
 - Исправлены пути к библиотекам ExileCore2 и GameOffsets2 в файле проекта

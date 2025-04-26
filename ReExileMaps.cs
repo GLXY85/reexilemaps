@@ -2360,13 +2360,29 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     
                     // Пробуем разные способы получить позицию игрока
                     try {
-                        // Метод 1: получаем позицию через доступные компоненты
-                        var posComponent = player.GetComponentFromObject<Render>();
-                        if (posComponent != null && posComponent.Pos != Vector2i.Zero) {
-                            playerPos = new Vector2(posComponent.Pos.X, posComponent.Pos.Y);
+                        // Метод 1: получаем позицию через адрес игрока
+                        if (player.Address != IntPtr.Zero) {
+                            try {
+                                // Используем GridPos из компонента Positioned, если он есть
+                                if (player.TryGetComponent(out var positioned)) {
+                                    var pos = positioned.GetFieldValue<Vector2i>("GridPos");
+                                    if (pos != Vector2i.Zero) {
+                                        playerPos = new Vector2(pos.X, pos.Y);
+                                    }
+                                }
+                                // Если не получилось, используем просто Entity.Pos
+                                else if (player.Pos != Vector2i.Zero) {
+                                    playerPos = new Vector2(player.Pos.X, player.Pos.Y);
+                                }
+                            }
+                            catch (Exception ex) {
+                                LogError($"Ошибка при получении позиции из компонента: {ex.Message}");
+                            }
                         }
                     } 
-                    catch { /* Игнорируем ошибку и пробуем следующий метод */ }
+                    catch (Exception ex) { 
+                        LogError($"Ошибка при доступе к компонентам игрока: {ex.Message}");
+                    }
                     
                     // Если позиция все еще не получена, используем последнюю известную позицию
                     if (playerPos == Vector2.Zero) {
