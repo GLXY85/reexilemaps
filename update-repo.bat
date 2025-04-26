@@ -3,24 +3,20 @@ echo === Проверка зависимостей ===
 echo ВАЖНО: Этот проект требует библиотеки ExileCore2 и GameOffsets2
 echo Проверьте, что эти библиотеки установлены для успешной сборки
 
-echo === Updating Repository ===
+echo === Сборка проекта ===
 dotnet build --configuration Release
 
 git add .
 git status
 echo === Committing changes ===
-git commit -m "Исправлены ошибки в ReExileMaps.cs:
-- Удалены дублирующиеся определения переменных cachedDistances, mapItems и referencePositionText
-- Добавлены недостающие методы для работы с путевыми точками
-- Добавлены свойства для работы с поиском карт
-- Исправлены пути к зависимостям в файле проекта
-- Исправлены ошибки типов в методах работы с картами
-- Исправлен метод GetPlayerPositionForDistance с использованием IPositioned вместо Positioned
-- Исправлен метод DrawImage с передачей имени текстуры вместо указателя
-- Исправлена работа с коллекцией nodesByName в SortDistanceColumn
-- Исправлена работа с ImGui при открытии панели поиска
-- Улучшен метод GetMapNameFromDescription для более надежного получения имен карт"
+git commit -m "Исправлены ошибки совместимости с новой версией ExileCore2:
+- Исправлен метод GetPlayerPositionForDistance для использования GetComponentFromObject<Render>
+- Исправлены методы DrawWaypoint и DrawWaypointArrow для работы с RectangleF в качестве угла
+- Обновлен метод GetMapNameFromDescription для совместимости с новым API
+- Исправлены пути к библиотекам ExileCore2 и GameOffsets2 в файле проекта
+- Добавлены дополнительные проверки для предотвращения ошибок при отсутствии данных
+- Улучшена обработка ошибок в ключевых методах отрисовки"
 echo === Pushing to remote repository ===
-git push origin local-changes
+git push origin master
 echo === Done! ===
 pause 
