@@ -7,6 +7,7 @@ using System.Linq;
 using System.Numerics;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 using ExileCore2;
 using ExileCore2.PoEMemory.Elements.AtlasElements;
@@ -179,7 +180,15 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         CheckKeybinds();
 
         if (WaypointPanelIsOpen) DrawWaypointPanel();
-        if (Settings.Search.PanelIsOpen) DrawSearchPanel();
+        
+        // Добавляем таймер для отложенного обновления поиска
+        if (Settings.Search.PanelIsOpen) {
+            // Если есть необходимость обновить поиск, и прошла секунда с последнего ввода
+            if (needSearchUpdate && DateTime.Now.Subtract(lastSearchUpdate).TotalSeconds > 0.75) {
+                UpdateSearchResults();
+            }
+            DrawSearchPanel();
+        }
 
         TickCount++;
         if (Settings.Graphics.RenderNTicks.Value % TickCount != 0) return;  
@@ -1808,145 +1817,148 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     isPropertySearch = true;
                     propertyName = parts[0].Trim().ToLower();
                     propertyValue = parts[1].Trim().ToLower();
-                    
-                    LogMessage($"Property search: '{propertyName}' = '{propertyValue}'");
                 }
             }
 
             searchResults.Clear();
             previousSearchQuery = searchQuery;
 
-            lock (mapCacheLock) {
-                IEnumerable<Node> query;
+            var searchTask = Task.Run(() => {
+                List<Node> results = new List<Node>();
                 
-                if (isPropertySearch) {
-                    query = mapCache.Values
-                        // Exclude completed maps (visited and unlocked)
-                        .Where(node => !(node.IsVisited && node.IsUnlocked))
-                        .Where(node => {
-                        // Search by property type
-                        switch (propertyName) {
-                            case "content":
-                            case "type":
-                                return node.Content != null && 
-                                       node.Content.Any(c => c.Value.Name.ToLower().Contains(propertyValue));
-                            
-                            case "effect":
-                            case "mod":
-                                return node.Effects != null && 
-                                       node.Effects.Any(e => e.Value.Name.ToLower().Contains(propertyValue) || 
-                                                           e.Value.Description.ToLower().Contains(propertyValue));
-                            
-                            case "biome":
-                                return node.Biomes != null && 
-                                       node.Biomes.Any(b => b.Value.Name.ToLower().Contains(propertyValue));
-                            
-                            case "name":
-                                return node.Name.ToLower().Contains(propertyValue) ||
-                                      (node.MapType?.Name?.ToLower()?.Contains(propertyValue) == true);
-                            
-                            case "status":
-                                if (propertyValue.Contains("visit"))
-                                    return node.IsVisited;
-                                else if (propertyValue.Contains("unlock"))
-                                    return node.IsUnlocked;
-                                else if (propertyValue.Contains("lock"))
-                                    return !node.IsUnlocked;
-                                else if (propertyValue.Contains("hidden"))
-                                    return !node.IsVisible;
-                                else if (propertyValue.Contains("tower"))
-                                    return node.IsTower;
-                                else if (propertyValue.Contains("fail"))
-                                    return node.IsVisited && !node.IsUnlocked;
-                                return false;
-                            
-                            default:
-                                // Try generic property search across all properties
-                                return node.Name.ToLower().Contains(propertyValue) ||
-                                      (node.MapType?.Name?.ToLower()?.Contains(propertyValue) == true) ||
-                                       node.Effects.Any(e => (e.Value.Name.ToLower().Contains(propertyValue) || 
-                                                           e.Value.Description.ToLower().Contains(propertyValue))) ||
-                                       node.Content.Any(c => c.Value.Name.ToLower().Contains(propertyValue)) ||
-                                       node.Biomes.Any(b => b.Value.Name.ToLower().Contains(propertyValue));
-                        }
-                    });
-                } else {
-                    // Standard search (no property specified)
-                    query = mapCache.Values
-                        // Exclude completed maps (visited and unlocked)
-                        .Where(node => !(node.IsVisited && node.IsUnlocked))
-                        .Where(node => node.Name.ToLower().Contains(searchQuery) || 
-                               (node.MapType?.Name?.ToLower()?.Contains(searchQuery) == true) ||
-                               node.Effects.Any(e => (e.Value.Name.ToLower().Contains(searchQuery) || 
-                                                   e.Value.Description.ToLower().Contains(searchQuery))) ||
-                               node.Content.Any(c => c.Value.Name.ToLower().Contains(searchQuery)) ||
-                               node.Biomes.Any(b => b.Value.Name.ToLower().Contains(searchQuery)));
-                }
-                
-                // Apply sorting
-                switch (Settings.Search.SortBy) {
-                    case "Distance":
-                        try {
-                            // Получаем положение курсора для сортировки
-                            var cursorNode = GetClosestNodeToCursor();
-                            Vector2 referencePos;
-                            
-                            if (cursorNode != null) {
-                                // Если курсор над картой, используем эту позицию
-                                referencePos = cursorNode.MapNode.Element.GetClientRect().Center;
-                                referencePositionText = $"от карты {cursorNode.Name}";
-                                LogMessage($"Sorting by distance from cursor position over {cursorNode.Name}");
-                            } else {
-                                // Если курсор не над картой, используем центр экрана
-                                referencePos = screenCenter;
-                                referencePositionText = "от центра экрана";
-                                LogMessage($"Sorting by distance from screen center");
-                            }
-                            
-                            // Сохраняем карты с их расстояниями для отображения
-                            mapItems.Clear();
-                            
-                            // Создаем список объектов MapSearchItem с расстояниями
-                            foreach (var node in query) {
-                                if (node == null || node.MapNode?.Element == null) continue;
+                lock (mapCacheLock) {
+                    IEnumerable<Node> query;
+                    
+                    if (isPropertySearch) {
+                        query = mapCache.Values
+                            // Exclude completed maps (visited and unlocked)
+                            .Where(node => !(node.IsVisited && node.IsUnlocked))
+                            .Where(node => {
+                            // Search by property type
+                            switch (propertyName) {
+                                case "content":
+                                case "type":
+                                    return node.Content != null && 
+                                           node.Content.Any(c => c.Value.Name.ToLower().Contains(propertyValue));
                                 
-                                float distance = float.MaxValue;
-                                try {
-                                    distance = Vector2.Distance(referencePos, node.MapNode.Element.GetClientRect().Center);
-                                } catch {}
+                                case "effect":
+                                case "mod":
+                                    return node.Effects != null && 
+                                           node.Effects.Any(e => e.Value.Name.ToLower().Contains(propertyValue) || 
+                                                               e.Value.Description.ToLower().Contains(propertyValue));
                                 
-                                mapItems.Add(new MapSearchItem(node, distance));
+                                case "biome":
+                                    return node.Biomes != null && 
+                                           node.Biomes.Any(b => b.Value.Name.ToLower().Contains(propertyValue));
+                                
+                                case "name":
+                                    return node.Name.ToLower().Contains(propertyValue) ||
+                                          (node.MapType?.Name?.ToLower()?.Contains(propertyValue) == true);
+                                
+                                case "status":
+                                    if (propertyValue.Contains("visit"))
+                                        return node.IsVisited;
+                                    else if (propertyValue.Contains("unlock"))
+                                        return node.IsUnlocked;
+                                    else if (propertyValue.Contains("lock"))
+                                        return !node.IsUnlocked;
+                                    else if (propertyValue.Contains("hidden"))
+                                        return !node.IsVisible;
+                                    else if (propertyValue.Contains("tower"))
+                                        return node.IsTower;
+                                    else if (propertyValue.Contains("fail"))
+                                        return node.IsVisited && !node.IsUnlocked;
+                                    return false;
+                                
+                                default:
+                                    // Try generic property search across all properties
+                                    return node.Name.ToLower().Contains(propertyValue) ||
+                                          (node.MapType?.Name?.ToLower()?.Contains(propertyValue) == true) ||
+                                           node.Effects.Any(e => (e.Value.Name.ToLower().Contains(propertyValue) || 
+                                                               e.Value.Description.ToLower().Contains(propertyValue))) ||
+                                           node.Content.Any(c => c.Value.Name.ToLower().Contains(propertyValue)) ||
+                                           node.Biomes.Any(b => b.Value.Name.ToLower().Contains(propertyValue));
                             }
-                            
-                            // Сортируем по возрастанию расстояния (ближние карты первыми)
-                            searchResults = mapItems.OrderBy(item => item.Distance)
-                                                   .Select(item => item.MapNode)
-                                                   .ToList();
-                        }
-                        catch (Exception ex) {
+                        });
+                    } else {
+                        // Standard search (no property specified)
+                        query = mapCache.Values
+                            // Exclude completed maps (visited and unlocked)
+                            .Where(node => !(node.IsVisited && node.IsUnlocked))
+                            .Where(node => node.Name.ToLower().Contains(searchQuery) || 
+                                   (node.MapType?.Name?.ToLower()?.Contains(searchQuery) == true) ||
+                                   node.Effects.Any(e => (e.Value.Name.ToLower().Contains(searchQuery) || 
+                                                       e.Value.Description.ToLower().Contains(searchQuery))) ||
+                                   node.Content.Any(c => c.Value.Name.ToLower().Contains(searchQuery)) ||
+                                   node.Biomes.Any(b => b.Value.Name.ToLower().Contains(searchQuery)));
+                    }
+                    
+                    // Apply sorting
+                    switch (Settings.Search.SortBy) {
+                        case "Distance":
                             try {
-                                LogError($"Error during distance sorting: {ex.Message}");
+                                // Получаем положение курсора для сортировки
+                                var cursorNode = GetClosestNodeToCursor();
+                                Vector2 referencePos;
+                                
+                                if (cursorNode != null) {
+                                    // Если курсор над картой, используем эту позицию
+                                    referencePos = cursorNode.MapNode.Element.GetClientRect().Center;
+                                    referencePositionText = $"от карты {cursorNode.Name}";
+                                } else {
+                                    // Если курсор не над картой, используем центр экрана
+                                    referencePos = screenCenter;
+                                    referencePositionText = "от центра экрана";
+                                }
+                                
+                                // Сохраняем карты с их расстояниями для отображения
+                                mapItems.Clear();
+                                
+                                // Создаем список объектов MapSearchItem с расстояниями
+                                foreach (var node in query) {
+                                    if (node == null || node.MapNode?.Element == null) continue;
+                                    
+                                    float distance = float.MaxValue;
+                                    try {
+                                        distance = Vector2.Distance(referencePos, node.MapNode.Element.GetClientRect().Center);
+                                    } catch {}
+                                    
+                                    mapItems.Add(new MapSearchItem(node, distance));
+                                }
+                                
+                                // Сортируем по возрастанию расстояния (ближние карты первыми)
+                                results = mapItems.OrderBy(item => item.Distance)
+                                                       .Select(item => item.MapNode)
+                                                       .ToList();
                             }
-                            catch {}
-                            // Запасной вариант при ошибке - сортировка по весу
-                            searchResults = query.OrderByDescending(n => n.Weight).ToList();
-                        }
-                        break;
-                    case "Name":
-                        searchResults = query.OrderBy(n => n.Name).ToList();
-                        break;
-                    case "Status":
-                        searchResults = query.OrderBy(n => n.IsVisited)
-                                           .ThenBy(n => !n.IsUnlocked)
-                                           .ThenBy(n => !n.IsVisible)
-                                           .ThenByDescending(n => n.Weight)
-                                           .ToList();
-                        break;
-                    case "Weight":
-                    default:
-                        searchResults = query.OrderByDescending(n => n.Weight).ToList();
-                        break;
+                            catch (Exception) {
+                                // Запасной вариант при ошибке - сортировка по весу
+                                results = query.OrderByDescending(n => n.Weight).ToList();
+                            }
+                            break;
+                        case "Name":
+                            results = query.OrderBy(n => n.Name).ToList();
+                            break;
+                        case "Status":
+                            results = query.OrderBy(n => n.IsVisited)
+                                               .ThenBy(n => !n.IsUnlocked)
+                                               .ThenBy(n => !n.IsVisible)
+                                               .ThenByDescending(n => n.Weight)
+                                               .ToList();
+                            break;
+                        case "Weight":
+                        default:
+                            results = query.OrderByDescending(n => n.Weight).ToList();
+                            break;
+                    }
                 }
+                
+                return results;
+            });
+            
+            // Ограничиваем время ожидания результатов поиска
+            if (searchTask.Wait(500)) {
+                searchResults = searchTask.Result;
             }
         }
         catch (Exception ex) {
@@ -1982,14 +1994,22 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             ImGui.SameLine();
             string searchQuery = Settings.Search.SearchQuery;
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 80);
-            bool enterPressed = ImGui.InputText("###SearchQuery", ref searchQuery, 100, ImGuiInputTextFlags.EnterReturnsTrue);
-            Settings.Search.SearchQuery = searchQuery;
+            
+            // Изменяем обработку ввода в поле поиска, добавляем отложенный поиск
+            if (ImGui.InputText("###SearchQuery", ref searchQuery, 100, ImGuiInputTextFlags.None))
+            {
+                // Только сохраняем введенный текст, но не производим поиск
+                Settings.Search.SearchQuery = searchQuery;
+                // Отмечаем, что поиск нужно обновить, но делаем это с задержкой
+                needSearchUpdate = true;
+            }
             
             ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.5f, 0.7f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.6f, 0.8f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.2f, 0.4f, 0.6f, 1.0f));
-            if (ImGui.Button("Search", new Vector2(75, 0)) || enterPressed) {
+            // Осуществляем поиск при нажатии на кнопку или по таймеру
+            if (ImGui.Button("Search", new Vector2(75, 0))) {
                 UpdateSearchResults();
             }
             ImGui.PopStyleColor(3);
