@@ -19,6 +19,11 @@ using ExileCore2.Shared.Attributes;
 using ExileCore2.Shared; // For RectangleF
 using GameOffsets2.Native; // For Vector2i
 using ReExileMaps.Classes; // For Node and Waypoint classes
+using ExileCore2.PoEMemory.Components; // Для компонентного доступа
+using ExileCore2.PoEMemory.MemoryObjects; // Для доступа к объектам памяти
+using ExileCore2.PoEMemory.Elements; // Для доступа к UI элементам
+using ExileCore2.PoEMemory.Elements.Atlas; // Для доступа к Atlas элементам
+using ExileCore2.PoEMemory.FilesInMemory; // Для доступа к файлам в памяти
 
 using ImGuiNET;
 using Vector2 = System.Numerics.Vector2;
@@ -2417,12 +2422,29 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                         // Method 1: get position via player address
                         if (player != null && player.Address != IntPtr.Zero) {
                             try {
-                                // Simplest approach - direct access to Pos
-                                var pos = player.Pos;
-                                if (pos != null) {
-                                    // Convert coordinates to Vector2
-                                    playerPos = new Vector2(pos.X, pos.Y);
-                                    LogMessage($"Player position obtained: {playerPos}");
+                                // Используем GetComponent<Render> для получения компонента рендера
+                                var renderComponent = player.GetComponent<Render>();
+                                if (renderComponent != null) {
+                                    // Получаем позицию из компонента рендера
+                                    playerPos = new Vector2(renderComponent.Pos.X, renderComponent.Pos.Y);
+                                    LogMessage($"Player position obtained from Render component: {playerPos}");
+                                    referencePositionText = "from player position";
+                                    return playerPos;
+                                }
+                                
+                                // Альтернативный метод, если первый не сработал
+                                var positionable = player.GetComponent<Positionable>();
+                                if (positionable != null) {
+                                    playerPos = new Vector2(positionable.GridPos.X, positionable.GridPos.Y);
+                                    LogMessage($"Player position obtained from Positionable component: {playerPos}");
+                                    referencePositionText = "from player grid position";
+                                    return playerPos;
+                                }
+                                
+                                // Пробуем прямой доступ к Pos, если компоненты не сработали
+                                if (player.Pos != null) {
+                                    playerPos = new Vector2(player.Pos.X, player.Pos.Y);
+                                    LogMessage($"Player position obtained directly: {playerPos}");
                                     referencePositionText = "from player position";
                                     return playerPos;
                                 }
