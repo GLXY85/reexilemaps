@@ -18,6 +18,8 @@ namespace ReExileMaps.Classes
         private float weight = 1.0f;
         private Color color = Color.FromArgb(255, 255, 255, 255);
         private bool highlight = true;
+        private string description = "";
+        private bool showOnMap = true;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -80,6 +82,32 @@ namespace ReExileMaps.Classes
                 {
                     highlight = value;
                     OnPropertyChanged(nameof(Highlight));
+                }
+            }
+        }
+
+        public string Description
+        {
+            get => description;
+            set
+            {
+                if (description != value)
+                {
+                    description = value;
+                    OnPropertyChanged(nameof(Description));
+                }
+            }
+        }
+
+        public bool ShowOnMap
+        {
+            get => showOnMap;
+            set
+            {
+                if (showOnMap != value)
+                {
+                    showOnMap = value;
+                    OnPropertyChanged(nameof(ShowOnMap));
                 }
             }
         }

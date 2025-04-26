@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using GameOffsets2.Native;
+using GameOffsets.Native;
 using static ReExileMaps.ReExileMapsCore;
 
 namespace ReExileMaps.Classes
@@ -26,13 +27,14 @@ namespace ReExileMaps.Classes
 
         public override string ToString()
         {
-            return Description.Replace("$", Value1.ToString());
+            return $"{Name}: {Value1:F1}";
         }
 
         public string GetSources() => string.Join(", ", Sources.Select(x => $"({x.X}, {x.Y})"));
 
-        public void RecalculateWeight() {
-            Weight = Enabled && Main.Settings.MapMods.MapModTypes.TryGetValue(ID.ToString(), out var mod) ? mod.Weight * Value1 : 0;
+        public void RecalculateWeight()
+        {
+            Weight = Value1;
         }
 
         public string Name

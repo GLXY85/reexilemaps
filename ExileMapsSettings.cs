@@ -17,7 +17,32 @@ namespace ReExileMaps;
 
 public class ReExileMapsSettings : ISettings
 {
-    public ToggleNode Enable { get; set; } = new ToggleNode(false);
+    public ReExileMapsSettings()
+    {
+        Enable = new ToggleNode(true);
+        SearchHotkey = new HotkeyNode(System.Windows.Forms.Keys.F4);
+        WaypointHotkey = new HotkeyNode(System.Windows.Forms.Keys.F5);
+        NearestHotkey = new HotkeyNode(System.Windows.Forms.Keys.F6);
+        MidHotkey = new HotkeyNode(System.Windows.Forms.Keys.F7);
+    }
+
+    public ToggleNode Enable { get; set; }
+
+    [Menu("Настройки поиска", "Настройки для панели поиска карт")]
+    public SearchSettings Search { get; set; } = new SearchSettings();
+
+    [Menu("Горячая клавиша поиска", "Открывает и закрывает панель поиска")]
+    public HotkeyNode SearchHotkey { get; set; }
+
+    [Menu("Горячая клавиша точек", "Открывает и закрывает панель точек")]
+    public HotkeyNode WaypointHotkey { get; set; }
+
+    [Menu("Горячая клавиша ближайшей", "Добавляет метку на ближайшей к курсору точке")]
+    public HotkeyNode NearestHotkey { get; set; }
+
+    [Menu("Горячая клавиша середины", "Добавляет метку на точке в центре экрана")]
+    public HotkeyNode MidHotkey { get; set; }
+
     public FeatureSettings Features { get; set; } = new FeatureSettings();    
     public HotkeySettings Keybinds { get; set; } = new HotkeySettings();  
     public GraphicSettings Graphics { get; set; } = new GraphicSettings();
@@ -28,9 +53,6 @@ public class ReExileMapsSettings : ISettings
     public ContentSettings MapContent { get; set; } = new ContentSettings();
     public MapModSettings MapMods { get; set; } = new MapModSettings();
     public WaypointSettings Waypoints { get; set; } = new WaypointSettings();
-
-    [Menu("Search Settings")]
-    public SearchSettings Search { get; set; } = new SearchSettings();
 }
 
 [Submenu(CollapsedByDefault = false)]

@@ -2,17 +2,17 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
-using GameOffsets2.Native;
-using ExileCore2.PoEMemory.Elements.AtlasElements;
-using ExileCore2.Shared.Enums;
+using GameOffsets.Native;
+using ExileCore.PoEMemory.Elements.Atlas;
+using ExileCore.Shared.Enums;
 using System.Text;
 using System.Linq;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
-// Использование псевдонима для решения конфликта имен
-using AtlasNodeDescription = ExileCore2.PoEMemory.Elements.AtlasElements.AtlasNode;
+// Использование псевдонима для совместимости с новой структурой
+using AtlasNodeDescription = ExileCore.PoEMemory.Elements.Atlas.AtlasNode;
 
 namespace ReExileMaps.Classes;
 

@@ -11,30 +11,25 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Security;
-using ExileCore2.PoEMemory; // Убираем часть Core.
-using ExileCore2.Shared.Helpers;
-using ExileCore2.Shared.Interfaces;
-using ExileCore2.Shared.Enums;
-using ExileCore2.Shared.Attributes;
-using ExileCore2.Shared; // For RectangleF
-using ExileCore2.Plugins; // Добавляем пространство имен для PluginBase
-using GameOffsets2.Native; // For Vector2i
+using ExileCore;
+using ExileCore.Shared;
+using ExileCore.Shared.Enums;
+using ExileCore.Shared.Interfaces;
+using ExileCore.Shared.Helpers;
+using ExileCore.PoEMemory.Elements;
+using ExileCore.PoEMemory.Elements.Atlas;
+using GameOffsets.Native; // For Vector2i
 using ReExileMaps.Classes; // For Node and Waypoint classes
-using ExileCore2.PoEMemory.Components; // Убираем часть Core.
-using ExileCore2.PoEMemory.MemoryObjects; // Убираем часть Core.
-using ExileCore2.PoEMemory.Elements; // Убираем часть Core.
-using ExileCore2.PoEMemory.Elements.AtlasElements; // Убираем часть Core.
-using ExileCore2.PoEMemory.FilesInMemory; // Убираем часть Core.
 using System.Diagnostics; // Для использования Stopwatch
 
-// Использование псевдонима для решения конфликта имен
-using AtlasNodeDescription = ExileCore2.PoEMemory.Elements.AtlasElements.AtlasNode;
+// Использование псевдонима для совместимости с новой структурой
+using AtlasNodeDescription = ExileCore.PoEMemory.Elements.Atlas.AtlasNode;
 
 using ImGuiNET;
 using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
 using Vector4 = System.Numerics.Vector4;
-using CoreRectangleF = ExileCore2.Shared.RectangleF; // Явно указываем, что будем использовать RectangleF из ExileCore2
+using CoreRectangleF = ExileCore.Shared.RectangleF; // Явно указываем, что будем использовать RectangleF из ExileCore
 
 namespace ReExileMaps;
 
@@ -60,29 +55,11 @@ public class MapSearchItem
 
 #nullable enable
 // Main plugin class
-public class ReExileMapsCore : IPlugin<ReExileMapsSettings>
+public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 {
     #region Declarations
     public static ReExileMapsCore Main;
     
-    public string Name => "ReExileMaps";
-    public ReExileMapsSettings Settings { get; set; } = new ReExileMapsSettings();
-    public IGraphics Graphics { get; set; }
-    public IGameController GameController { get; set; }
-    public string DirectoryFullName { get; set; }
-    public bool CanUseMultiThreading { get; set; }
-    
-    // Методы логирования
-    private void LogMessage(string message)
-    {
-        GameController.DefaultLog.Info($"[ReExileMaps] {message}");
-    }
-    
-    private void LogError(string message)
-    {
-        GameController.DefaultLog.Error($"[ReExileMaps] {message}");
-    }
-
     // Constants for paths to files and resources
     private const string defaultMapsPath = "json\\maps.json";
     private const string defaultModsPath = "json\\mods.json";
@@ -91,8 +68,8 @@ public class ReExileMapsCore : IPlugin<ReExileMapsSettings>
     private const string ArrowTexturePath = "textures\\arrow.png";
     private const string IconsFile = "Icons.png";
     
-    public ExileCore2.PoEMemory.Elements.IngameUI UI;
-    public ExileCore2.PoEMemory.Elements.AtlasElements.AtlasPanelElement AtlasPanel;
+    public ExileCore.PoEMemory.Elements.IngameUI UI;
+    public ExileCore.PoEMemory.Elements.Atlas.AtlasPanelElement AtlasPanel;
 
     private Vector2 screenCenter;
     private Dictionary<Vector2i, Node> mapCache = [];
@@ -146,7 +123,7 @@ public class ReExileMapsCore : IPlugin<ReExileMapsSettings>
     #endregion
 
     #region ExileCore Methods
-    public override bool Initialise()
+    public bool Initialise()
     {
         Main = this;        
         RegisterHotkeys();
@@ -187,12 +164,12 @@ public class ReExileMapsCore : IPlugin<ReExileMapsSettings>
         return true;
     }
     
-    public override void AreaChange(ExileCore2.Shared.GameArea area)
+    public void AreaChange(GameArea area)
     {
         refreshCache = true;
     }
 
-    public override void Tick()
+    public void Tick()
     {
         try {
             if (GameController?.Game?.IngameState?.IngameUi == null) return;
@@ -222,27 +199,21 @@ public class ReExileMapsCore : IPlugin<ReExileMapsSettings>
                 cacheTicks = 0;
             }
             
-            if (GameController?.Window?.GetWindowRectangle() == null) return;
-            screenCenter = GameController.Window.GetWindowRectangle().Center - GameController.Window.GetWindowRectangle().Location;
+            UpdateMapData();
+
+            CheckKeybinds();
             
-            if (refreshCache && !refreshingCache && (DateTime.Now.Subtract(lastRefresh).TotalSeconds > Settings.Graphics.MapCacheRefreshRate || mapCache.Count == 0))
-            {
-                var job = new Job($"{nameof(ReExileMapsCore)}RefreshCache", () =>
-                {
-                    RefreshMapCache();
-                    refreshCache = false;
-                });
-                job.Start();
+            if (refreshCache) {
+                RefreshMapCache();
             }
+
+            TickCount += 1;
+        } catch (Exception e) {
+            LogError($"Error in Tick: {e.Message}\n{e.StackTrace}");
         }
-        catch (Exception ex) {
-            LogError($"Error in Tick: {ex.Message}\n{ex.StackTrace}");
-        }
-        
-        return;
     }
 
-    public override void Render()
+    public void Render()
     {
         CheckKeybinds();
 
@@ -323,18 +294,10 @@ public class ReExileMapsCore : IPlugin<ReExileMapsSettings>
     /// Subscribes to events that trigger a refresh of the map cache.
     /// </summary>
     private void SubscribeToEvents() {
-        try {
-            Settings.MapTypes.Maps.CollectionChanged += (_, _) => { RecalculateWeights(); };
-            Settings.MapTypes.Maps.PropertyChanged += (_, _) => { RecalculateWeights(); };
-            Settings.Biomes.Biomes.PropertyChanged += (_, _) => { RecalculateWeights(); };
-            Settings.Biomes.Biomes.CollectionChanged += (_, _) => { RecalculateWeights(); };
-            Settings.MapContent.ContentTypes.CollectionChanged += (_, _) => { RecalculateWeights(); };
-            Settings.MapContent.ContentTypes.PropertyChanged += (_, _) => { RecalculateWeights(); };
-            Settings.MapMods.MapModTypes.CollectionChanged += (_, _) => { RecalculateWeights(); };
-            Settings.MapMods.MapModTypes.PropertyChanged += (_, _) => { RecalculateWeights(); };
-        } catch (Exception e) {
-            LogError("Error subscribing to events: " + e.Message);
-        }
+        Settings.Search.PanelIsOpen.OnValueChanged += (sender, b) => {
+            SearchPanelIsOpen = b;
+            if (b) searchPanelPosition = new Vector2(Graphics.Width / 2, Graphics.Height / 2);
+        };
     }
 
     ///MARK: RegisterHotkeys
@@ -342,27 +305,35 @@ public class ReExileMapsCore : IPlugin<ReExileMapsSettings>
     /// Registers the hotkeys defined in the settings.
     /// </summary>
     private void RegisterHotkeys() {
-        RegisterHotkey(Settings.Keybinds.RefreshMapCacheHotkey);
-        RegisterHotkey(Settings.Keybinds.DebugKey);
-        RegisterHotkey(Settings.Keybinds.ToggleWaypointPanelHotkey);
-        RegisterHotkey(Settings.Keybinds.AddWaypointHotkey);
-        RegisterHotkey(Settings.Keybinds.DeleteWaypointHotkey);
-        RegisterHotkey(Settings.Keybinds.ShowTowerRangeHotkey);
-        RegisterHotkey(Settings.Keybinds.UpdateMapsKey);
-        RegisterHotkey(Settings.Keybinds.ToggleLockedNodesHotkey);
-        RegisterHotkey(Settings.Keybinds.ToggleUnlockedNodesHotkey);
-        RegisterHotkey(Settings.Keybinds.ToggleVisitedNodesHotkey);
-        RegisterHotkey(Settings.Keybinds.ToggleHiddenNodesHotkey);
-        RegisterHotkey(Settings.Keybinds.SearchPanelHotkey);
+        RegisterHotkey(Settings.SearchHotkey);
+        RegisterHotkey(Settings.WaypointHotkey);
+        RegisterHotkey(Settings.NearestHotkey);
+        RegisterHotkey(Settings.MidHotkey);
+        Settings.MidHotkey.PressedFunc = OnMidHotkeyPressed;
+        Settings.NearestHotkey.PressedFunc = OnNearestHotkeyPressed;
+        Settings.WaypointHotkey.PressedFunc = OnWaypointHotkeyPressed;
+        Settings.SearchHotkey.PressedFunc = OnSearchHotkeyPressed;
     }
-    
-    private static void RegisterHotkey(KeyboardHotkey hotkey)
+
+    private static void RegisterHotkey(Hotkey hotkey)
     {
-        Input.RegisterKey(hotkey);
-        hotkey.OnValueChanged += () => { Input.RegisterKey(hotkey); };
+        try { hotkey?.Register(); } catch (Exception) { /* ignore */ }
     }
+
     private void CheckKeybinds() {
         try {
+            if (Settings.SearchHotkey.PressedOnce())
+                OnSearchHotkeyPressed();
+
+            if (Settings.WaypointHotkey.PressedOnce())
+                OnWaypointHotkeyPressed();
+
+            if (Settings.NearestHotkey.PressedOnce())
+                OnNearestHotkeyPressed();
+
+            if (Settings.MidHotkey.PressedOnce())
+                OnMidHotkeyPressed();
+
             if (AtlasPanel == null || !AtlasPanel.IsVisible)
                 return;
 
@@ -439,6 +410,32 @@ public class ReExileMapsCore : IPlugin<ReExileMapsSettings>
         catch (Exception ex) {
             LogError($"Error in CheckKeybinds: {ex.Message}\n{ex.StackTrace}");
         }
+    }
+
+    private void OnSearchHotkeyPressed()
+    {
+        SearchPanelIsOpen = !SearchPanelIsOpen;
+        if (SearchPanelIsOpen)
+            searchPanelPosition = new Vector2(Graphics.Width / 2, Graphics.Height / 2);
+    }
+
+    private void OnWaypointHotkeyPressed()
+    {
+        WaypointPanelIsOpen = !WaypointPanelIsOpen;
+    }
+
+    private void OnNearestHotkeyPressed()
+    {
+        var node = GetClosestNodeToCursor();
+        if (node != null)
+            AddWaypoint(node);
+    }
+
+    private void OnMidHotkeyPressed()
+    {
+        var node = GetClosestNodeToCenterScreen();
+        if (node != null)
+            AddWaypoint(node);
     }
     #endregion
 
@@ -3013,6 +3010,19 @@ public class ReExileMapsCore : IPlugin<ReExileMapsSettings>
         } catch (Exception ex) {
             LogError($"Error creating fallback arrow texture: {ex.Message}");
         }
+    }
+
+    // Методы логирования
+    private void LogMessage(string message)
+    {
+        if (GameController?.DefaultLog != null)
+            GameController.DefaultLog.Info($"[ReExileMaps] {message}");
+    }
+    
+    private void LogError(string message)
+    {
+        if (GameController?.DefaultLog != null)
+            GameController.DefaultLog.Error($"[ReExileMaps] {message}");
     }
 }
 

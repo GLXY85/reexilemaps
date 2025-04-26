@@ -3,14 +3,14 @@ using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using GameOffsets2.Native;
-using ExileCore2.PoEMemory.Elements.AtlasElements;
-using ExileCore2.Shared.Enums;
+using GameOffsets.Native;
+using ExileCore.PoEMemory.Elements.Atlas;
+using ExileCore.Shared.Enums;
 using static ReExileMaps.ReExileMapsCore;
 using Newtonsoft.Json;
 
-// Использование псевдонима для решения конфликта имен
-using AtlasNodeDescription = ExileCore2.PoEMemory.Elements.AtlasElements.AtlasNode;
+// Использование псевдонима для совместимости с новой структурой
+using AtlasNodeDescription = ExileCore.PoEMemory.Elements.Atlas.AtlasNode;
 
 namespace ReExileMaps.Classes
 {

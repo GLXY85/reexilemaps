@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using System.ComponentModel;
 using System.Linq;
 using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace ReExileMaps.Classes
 {
@@ -53,8 +54,10 @@ namespace ReExileMaps.Classes
 
         public bool MatchID(string id)
         {
-            if (string.IsNullOrWhiteSpace(id)) return false;
-            return Array.Exists(IDs, x => x.Equals(id, StringComparison.OrdinalIgnoreCase));
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(ID))
+                return false;
+                
+            return Regex.IsMatch(id, ID, RegexOptions.IgnoreCase);
         }
 
         public string BiomesToString() {
