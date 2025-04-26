@@ -85,12 +85,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private List<Node> searchResults = [];
     private string previousSearchQuery = "";
 
-    // ��� ���������� �� ����������
-    private Dictionary<string, float> cachedDistances = new Dictionary<string, float>();
-    private List<MapSearchItem> mapItems = new List<MapSearchItem>();
-    private string referencePositionText = "�� ������ ������";
-
-    // ��������� ���� ��� ����������� �����������
+    // Фильтрованный кеш для ускорения отображения
     private Dictionary<Vector2i, Node> filteredMapCache = new Dictionary<Vector2i, Node>();
     private DateTime lastSearchUpdate = DateTime.MinValue;
     private DateTime lastWaypointUpdate = DateTime.MinValue;
