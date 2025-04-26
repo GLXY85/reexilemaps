@@ -2261,24 +2261,24 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     {
         try
         {
+            // Получаем позицию игрока для расчета расстояния
             Vector2 referencePosition = GetPlayerPositionForDistance();
-            LogMessage($"Сортировка карт по расстоянию: {referencePosition}");
             
-            cachedDistances.Clear();
+            // Словарь для хранения расстояний до карт
+            var cachedDistances = new Dictionary<string, float>();
             
-            // Считаем расстояния для всех карт и кэшируем их
+            // Рассчитываем расстояние для каждой карты
             foreach (var mapItem in currentItems)
             {
                 try
                 {
-                    // Получаем название карты из объекта AtlasNodeDescription
-                    string mapName = GetMapNameFromDescription(mapItem);
-                    if (string.IsNullOrEmpty(mapName)) continue;
+                    string mapItemName = mapItem.Name;
+                    if (string.IsNullOrEmpty(mapItemName)) continue;
                     
                     float distance = float.MaxValue; // Значение по умолчанию
                     
                     // Ищем по названию карты в словаре узлов
-                    if (nodesByName.TryGetValue(mapName, out var matchingNodes) && 
+                    if (nodesByName.TryGetValue(mapItemName, out var matchingNodes) && 
                         matchingNodes != null && matchingNodes.Count > 0)
                     {
                         // Берем первый подходящий узел
@@ -2291,7 +2291,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     }
                     
                     // Сохраняем расстояние в кэше
-                    cachedDistances[mapItem] = distance;
+                    cachedDistances[mapItemName] = distance;
                 }
                 catch (Exception ex)
                 {
@@ -2299,7 +2299,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     try
                     {
                         LogError($"Ошибка при расчете расстояния для карты: {ex.Message}");
-                        cachedDistances[mapItem] = float.MaxValue;
+                        cachedDistances[mapItem.Name] = float.MaxValue;
                     }
                     catch
                     {
@@ -2311,8 +2311,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             // Сортируем карты по расстоянию (ближайшие первыми)
             currentItems.Sort((a, b) => 
             {
-                float distA = cachedDistances.TryGetValue(a, out float dA) ? dA : float.MaxValue;
-                float distB = cachedDistances.TryGetValue(b, out float dB) ? dB : float.MaxValue;
+                float distA = cachedDistances.TryGetValue(a.Name, out float dA) ? dA : float.MaxValue;
+                float distB = cachedDistances.TryGetValue(b.Name, out float dB) ? dB : float.MaxValue;
                 return distA.CompareTo(distB);
             });
         }
@@ -2348,13 +2348,28 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             if (GameController?.Game?.IngameState?.Data?.LocalPlayer != null)
             {
                 try {
-                    // Используем компонент для получения позиции, если доступен
-                    var playerPos = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<ExileCore2.Shared.Interfaces.Positioned>()?.GridPos ?? Vector2.Zero;
-                    if (playerPos != Vector2.Zero) {
-                        referencePositionText = "от позиции игрока";
-                        LogMessage($"Расстояние рассчитывается от позиции игрока: {playerPos}");
-                        return playerPos;
+                    // Пытаемся получить позицию игрока из доступных компонентов
+                    var player = GameController.Game.IngameState.Data.LocalPlayer;
+                    var playerPos = Vector2.Zero;
+                    
+                    // Пробуем разные способы получить позицию игрока
+                    try {
+                        // Метод 1: через GridPosition, если доступен
+                        var gridPos = player.GetComponentFromObject<IPositioned>()?.GridPos;
+                        if (gridPos.HasValue && gridPos.Value != Vector2i.Zero) {
+                            playerPos = new Vector2(gridPos.Value.X, gridPos.Value.Y);
+                        }
+                    } 
+                    catch { /* Игнорируем ошибку и пробуем следующий метод */ }
+                    
+                    // Если позиция все еще не получена, используем последнюю известную позицию
+                    if (playerPos == Vector2.Zero) {
+                        playerPos = screenCenter;
                     }
+                    
+                    referencePositionText = "от позиции игрока";
+                    LogMessage($"Расстояние рассчитывается от позиции игрока: {playerPos}");
+                    return playerPos;
                 } catch (Exception ex) {
                     LogError($"Ошибка при получении позиции игрока: {ex.Message}");
                 }
@@ -2469,7 +2484,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             float size = 25.0f * waypoint.Scale;
             
             // Рисуем иконку маркера на карте
-            Graphics.DrawImage(arrowId, new RectangleF(position.X, position.Y, size, size), 0, waypoint.Color.ToImguiVec4());
+            Graphics.DrawImage("arrow.png", new RectangleF(position.X, position.Y, size, size), 0, waypoint.Color);
             
             // Рисуем название, если оно есть
             if (!string.IsNullOrEmpty(waypoint.Name)) {
@@ -2506,7 +2521,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             
             // Рисуем стрелку
             float arrowSize = 30.0f;
-            Graphics.DrawImage(arrowId, new RectangleF(edgePoint.X, edgePoint.Y, arrowSize, arrowSize), angle, waypoint.Color.ToImguiVec4());
+            Graphics.DrawImage("arrow.png", new RectangleF(edgePoint.X, edgePoint.Y, arrowSize, arrowSize), angle, waypoint.Color);
             
             // Рисуем расстояние до точки
             Vector2 distancePos = edgePoint + new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * (arrowSize + 5);
@@ -2744,19 +2759,28 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private string GetMapNameFromDescription(AtlasNodeDescription nodeDesc)
     {
         try {
-            if (nodeDesc == null) return "Unknown";
+            if (nodeDesc == null) return string.Empty;
             
-            // Используем метод ToString() для получения имени, так как у AtlasNodeDescription нет свойства Name
+            // Пытаемся получить имя из объекта AtlasNodeDescription
             string name = nodeDesc.ToString();
-            if (string.IsNullOrEmpty(name)) {
-                name = "Unknown Map";
+            
+            // Проверяем различные свойства, в которых может быть имя
+            if (string.IsNullOrEmpty(name) || name.Contains("Unknown")) {
+                // Пробуем получить имя из дополнительных свойств
+                if (nodeDesc.IsVisited && !string.IsNullOrEmpty(nodeDesc.Text)) {
+                    name = nodeDesc.Text;
+                }
+                // Если не удалось получить имя, используем координаты
+                else {
+                    name = $"Map #{nodeDesc.Coordinate.X}_{nodeDesc.Coordinate.Y}";
+                }
             }
             
             return name;
         }
         catch (Exception e) {
             LogError($"Error getting map name: {e.Message}");
-            return "Error";
+            return string.Empty;
         }
     }
 }

@@ -11,10 +11,11 @@ git commit -m "Исправлены ошибки в ReExileMaps.cs:
 - Добавлены свойства для работы с поиском карт
 - Исправлены пути к зависимостям в файле проекта
 - Исправлены ошибки типов в методах работы с картами
-- Исправлен метод GetPlayerPositionForDistance с использованием ExileCore2.Shared.Interfaces.Positioned
-- Исправлен метод DrawImage с использованием RectangleF
+- Исправлен метод GetPlayerPositionForDistance с использованием IPositioned вместо Positioned
+- Исправлен метод DrawImage с передачей имени текстуры вместо указателя
 - Исправлена работа с коллекцией nodesByName в SortDistanceColumn
-- Исправлена работа с ImGui при открытии панели поиска"
+- Исправлена работа с ImGui при открытии панели поиска
+- Улучшен метод GetMapNameFromDescription для более надежного получения имен карт"
 echo === Pushing to remote repository ===
 git push origin local-changes
 echo === Done! ===
