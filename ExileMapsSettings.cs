@@ -848,7 +848,7 @@ public class SearchSettings
         SearchPanel = new CustomNode
         {
             DrawDelegate = () => {
-                // ?????????? ?????????? ????? ? ?????? DrawSearchPanel ? ReExileMapsCore
+                // Drawing is handled by the DrawSearchPanel method in ReExileMapsCore
             }
         };
     }

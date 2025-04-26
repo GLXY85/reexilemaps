@@ -1,32 +1,32 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using Newtonsoft.Json;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-
-using ExileCore2;
-using ExileCore2.PoEMemory.Elements.AtlasElements;
-using ExileCore2.PoEMemory.MemoryObjects;
+using System.Runtime.InteropServices;
+using System.Security;
+using ExileCore2.Shared.Abstract;
 using ExileCore2.Shared.Helpers;
-using ExileCore2.Shared.Nodes;
+using ExileCore2.Shared.Interfaces;
 using ExileCore2.Shared.Enums;
 using ExileCore2.Shared.Attributes;
-using ExileCore2.Shared; // ??? RectangleF
-using GameOffsets2.Native; // ??? Vector2i
+using ExileCore2.Shared; // For RectangleF
+using GameOffsets2.Native; // For Vector2i
 
 using ImGuiNET;
-
-using RectangleF = ExileCore2.Shared.RectangleF;
-using ReExileMaps.Classes;
+using Vector2 = System.Numerics.Vector2;
+using Vector3 = System.Numerics.Vector3;
+using Vector4 = System.Numerics.Vector4;
 
 namespace ReExileMaps;
 
-// ????????? ??? ?????????? ? ????????, ???? ??? ??? ? ??????????
+// Interface for components with a position, if not available in the library
 public interface IPositioned
 {
     Vector2i? GridPos { get; }
@@ -53,7 +53,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     #region Declarations
     public static ReExileMapsCore Main;
 
-    // ????????? ??? ????? ? ?????? ? ????????
+    // Constants for paths to files and resources
     private const string defaultMapsPath = "json\\maps.json";
     private const string defaultModsPath = "json\\mods.json";
     private const string defaultBiomesPath = "json\\biomes.json";
@@ -92,21 +92,21 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private List<Node> searchResults = [];
     private string previousSearchQuery = "";
 
-    // ????????????? ??? ??? ????????? ???????????
+    // Filtered cache for faster rendering
     private Dictionary<Vector2i, Node> filteredMapCache = new Dictionary<Vector2i, Node>();
     private DateTime lastSearchUpdate = DateTime.MinValue;
     private DateTime lastWaypointUpdate = DateTime.MinValue;
     private bool needSearchUpdate = true;
     private bool needWaypointUpdate = true;
 
-    // ??? ?????????? ?? ???????????
+    // For distance calculations
     private Dictionary<string, float> cachedDistances = new Dictionary<string, float>();
     private List<MapSearchItem> mapItems = new List<MapSearchItem>();
     private string referencePositionText = "from screen center";
     private Vector2 manualReferencePosition = Vector2.Zero;
     private bool useManualReferencePosition = false;
     
-    // ??? ??????
+    // For search
     private Dictionary<string, List<Node>> nodesByName = new Dictionary<string, List<Node>>();
     private List<MapSearchItem> currentItems = new List<MapSearchItem>();
     private string query = "";
@@ -184,7 +184,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
             AtlasHasBeenClosed = false;
 
             cacheTicks++;
-            // ????????? ????????????? ?????????? ???? ?????? 30 ?????, ? ?? 100
+            // Check and update cached maps every 30 ticks, not 100
             if (cacheTicks % 30 == 0) {
                 if (AtlasPanel.Descriptions != null && AtlasPanel.Descriptions.Count > mapCache.Count)
                     refreshCache = true;
@@ -217,9 +217,9 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
         if (WaypointPanelIsOpen) DrawWaypointPanel();
         
-        // ????????? ?????? ??? ??????????? ?????????? ??????
+        // Update the search panel to show recent search results
         if (Settings.Search.PanelIsOpen) {
-            // ???? ???? ????????????? ???????? ?????, ? ?????? ??????? ? ?????????? ?????
+            // If there's a pending update request and it's been more than 0.75 seconds
             if (needSearchUpdate && DateTime.Now.Subtract(lastSearchUpdate).TotalSeconds > 0.75) {
                 UpdateSearchResults();
             }
@@ -233,14 +233,14 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
 
         if (!AtlasPanel.IsVisible) return;
         
-        // ????????????? ????????? ???, ???? ?? ????
+        // Initialize the cache if it doesn't exist
         if (mapCache.Count == 0) {
             var job = new Job($"{nameof(ReExileMapsCore)}InitialRefreshCache", () => {
                 RefreshMapCache();
                 refreshCache = false;
             });
             job.Start();
-            return; // ?????????? ???? ????, ???????? ? ?????????
+            return; // Return until map data is loaded and ready
         }
         
         // Filter out nodes based on settings.

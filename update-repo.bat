@@ -32,7 +32,9 @@ git commit -m "Major updates to ExileMaps plugin:
 - Added automatic texture directory checking and creation
 - Fixed distance display on waypoint arrows
 - Enhanced DrawRotatedImage method with better error handling
-- Added comprehensive logging for texture loading issues"
+- Added comprehensive logging for texture loading issues
+- Completed translation of all remaining Russian comments to English
+- Fixed encoding issues in code comments throughout the project"
 echo === Pushing to remote repository ===
 git push origin local-changes
 echo === Done! ===
