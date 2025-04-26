@@ -32,5 +32,15 @@ namespace ReExileMaps.Classes
                 color.A / 255.0f
             );
         }
+        
+        public static Vector4 ToImguiVec4(this Color color)
+        {
+            return new Vector4(
+                color.R / 255.0f, 
+                color.G / 255.0f, 
+                color.B / 255.0f, 
+                color.A / 255.0f
+            );
+        }
     }
 }
