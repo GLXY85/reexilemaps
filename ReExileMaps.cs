@@ -16,8 +16,8 @@ using ExileCore2.Shared.Helpers;
 using ExileCore2.Shared.Nodes;
 using ExileCore2.Shared.Enums;
 using ExileCore2.Shared.Attributes;
-
-using GameOffsets2.Native;
+using ExileCore2.Shared; // Для RectangleF
+using GameOffsets2.Native; // Для Vector2i
 
 using ImGuiNET;
 
@@ -25,6 +25,12 @@ using RectangleF = ExileCore2.Shared.RectangleF;
 using ReExileMaps.Classes;
 
 namespace ReExileMaps;
+
+// Интерфейс для компонента с позицией, если его нет в библиотеке
+public interface IPositioned
+{
+    Vector2i? GridPos { get; }
+}
 
 // Helper classes
 public class MapSearchItem

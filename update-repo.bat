@@ -1,4 +1,8 @@
 @echo off
+echo === Проверка зависимостей ===
+echo ВАЖНО: Этот проект требует библиотеки ExileCore2 и GameOffsets2
+echo Проверьте, что эти библиотеки установлены для успешной сборки
+
 echo === Updating Repository ===
 dotnet build --configuration Release
 
