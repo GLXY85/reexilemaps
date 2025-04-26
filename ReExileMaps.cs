@@ -2361,59 +2361,29 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
                     // Пробуем разные способы получить позицию игрока
                     try {
                         // Метод 1: получаем позицию через адрес игрока
-                        if (player.Address != IntPtr.Zero) {
+                        if (player != null && player.Address != IntPtr.Zero) {
                             try {
-                                // Используем компоненты Entity для получения позиции
-                                var components = player.GetComponents();
-                                if (components != null && components.Count > 0) {
-                                    foreach (var component in components) {
-                                        if (component != null) {
-                                            try {
-                                                // Проверяем разные поля, которые могут содержать позицию
-                                                var properties = component.GetType().GetProperties();
-                                                foreach (var prop in properties) {
-                                                    if (prop.Name.Contains("Pos") || prop.Name.Contains("Grid")) {
-                                                        var value = prop.GetValue(component);
-                                                        if (value != null) {
-                                                            if (value is Vector2i vec2i && vec2i != Vector2i.Zero) {
-                                                                playerPos = new Vector2(vec2i.X, vec2i.Y);
-                                                                break;
-                                                            }
-                                                            else if (value is Vector2 vec2 && vec2 != Vector2.Zero) {
-                                                                playerPos = vec2;
-                                                                break;
-                                                            }
-                                                            else if (value is Vector3 vec3 && vec3 != Vector3.Zero) {
-                                                                playerPos = new Vector2(vec3.X, vec3.Y);
-                                                                break;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            catch {
-                                                // Игнорируем ошибки при обработке компонента
-                                            }
-                                        }
-                                    }
+                                // Самый простой вариант - прямой доступ к Pos
+                                var pos = player.Pos;
+                                if (pos != null) {
+                                    // Преобразуем координаты в Vector2
+                                    playerPos = new Vector2(pos.X, pos.Y);
+                                    LogMessage($"Получена позиция игрока: {playerPos}");
                                 }
-                                
-                                // Если не удалось получить позицию из компонентов, используем Pos напрямую
-                                if (playerPos == Vector2.Zero) {
-                                    // Проверяем, что Pos у Entity это Vector3
-                                    var pos = player.Pos;
-                                    if (pos != Vector3.Zero) {
-                                        playerPos = new Vector2(pos.X, pos.Y);
-                                    }
+                                else {
+                                    LogMessage("Позиция игрока не определена, используем центр экрана");
                                 }
                             }
                             catch (Exception ex) {
-                                LogError($"Ошибка при получении позиции из компонента: {ex.Message}");
+                                LogError($"Ошибка при получении позиции: {ex.Message}");
                             }
                         }
-                    } 
+                        else {
+                            LogMessage("Entity игрока недоступен, используем центр экрана");
+                        }
+                    }
                     catch (Exception ex) { 
-                        LogError($"Ошибка при доступе к компонентам игрока: {ex.Message}");
+                        LogError($"Ошибка при доступе к данным игрока: {ex.Message}");
                     }
                     
                     // Если позиция все еще не получена, используем последнюю известную позицию

@@ -9,10 +9,9 @@ dotnet build --configuration Release
 git add .
 git status
 echo === Committing changes ===
-git commit -m "Исправлены критические ошибки совместимости с новой версией ExileCore2:
-- Полностью переработан метод GetPlayerPositionForDistance с использованием рефлексии
-- Добавлена универсальная обработка компонентов с поддержкой Vector2, Vector2i и Vector3
-- Исправлено определение позиции игрока из объекта Entity.Pos
+git commit -m "Устранены критические ошибки совместимости с ExileCore2:
+- Максимально упрощен метод получения позиции игрока через прямой доступ к Entity.Pos
+- Добавлена надежная обработка ошибок и дополнительное логирование
 - Исправлены методы DrawWaypoint и DrawWaypointArrow для работы с RectangleF в качестве угла
 - Обновлен метод GetMapNameFromDescription для совместимости с новым API
 - Исправлены пути к библиотекам ExileCore2 и GameOffsets2 в файле проекта
