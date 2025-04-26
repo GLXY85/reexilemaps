@@ -47,15 +47,38 @@ public class ReExileMapsSettings : ExileCore2.Shared.Interfaces.ISettings
     public HotkeySettings Keybinds { get; set; } = new HotkeySettings();  
     public GraphicSettings Graphics { get; set; } = new GraphicSettings();
 
-    [Menu("Map Settings")]
+    [Menu("Map Types", "Настройки типов карт")]
+    [JsonIgnore]
+    public EmptyNode MapTypesHeader { get; set; }
+    [JsonIgnore]    
+    [Menu("Map Table")]
+    public CustomNode MapTable { get; set; }
+
     public MapSettings MapTypes { get; set; } = new MapSettings();
     public BiomeSettings Biomes { get; set; } = new BiomeSettings();
     public ContentSettings MapContent { get; set; } = new ContentSettings();
     public MapModSettings MapMods { get; set; } = new MapModSettings();
     public WaypointSettings Waypoints { get; set; } = new WaypointSettings();
+
+    public CustomNode CustomMapSettings { get; set; }
+
+    [JsonIgnore]
+    public ObservableDictionary<string, Map> Maps { get; set; } = [];
+    
+    public bool HighlightMapNodes { get; set; } = true;
+    public bool ColorNodesByWeight { get; set; } = true;
+    public bool DrawWeightOnMap { get; set; } = false;
+    public bool ShowMapNames { get; set; } = true;
+    public bool UseColorsForMapNames { get; set; } = true;
+    public bool UseWeightColorsForMapNames { get; set; } = true;
+    public bool ShowMapNamesOnUnlockedNodes { get; set; } = true;
+    public bool ShowMapNamesOnLockedNodes { get; set; } = true;
+    public bool ShowMapNamesOnHiddenNodes { get; set; } = true;
+    public Color GoodNodeColor { get; set; } = Color.FromArgb(200, 50, 255, 50);
+    public Color BadNodeColor { get; set; } = Color.FromArgb(200, 255, 50, 50);
 }
 
-[Submenu(CollapsedByDefault = false)]
+[Submenu]
 public class FeatureSettings
 {
     [Menu("Atlas Range", "Range (from your current viewpoint) to process atlas nodes.")]
@@ -406,24 +429,7 @@ public class MapSettings
     [JsonIgnore]
     public CustomNode CustomMapSettings { get; set; }
 
-    [Menu("Map Types", 1032, CollapsedByDefault = false)]
     [JsonIgnore]
-    public EmptyNode MapTypesHeader { get; set; }
-    [JsonIgnore]    
-    [Menu(null, parentIndex = 1032)]
-    public CustomNode MapTable { get; set; }
-
-    public bool HighlightMapNodes { get; set; } = true;
-    public bool ColorNodesByWeight { get; set; } = true;
-    public bool DrawWeightOnMap { get; set; } = false;
-    public bool ShowMapNames { get; set; } = true;
-    public bool UseColorsForMapNames { get; set; } = true;
-    public bool UseWeightColorsForMapNames { get; set; } = true;
-    public bool ShowMapNamesOnUnlockedNodes { get; set; } = true;
-    public bool ShowMapNamesOnLockedNodes { get; set; } = true;
-    public bool ShowMapNamesOnHiddenNodes { get; set; } = true;
-    public Color GoodNodeColor { get; set; } = Color.FromArgb(200, 50, 255, 50);
-    public Color BadNodeColor { get; set; } = Color.FromArgb(200, 255, 50, 50);
     public ObservableDictionary<string, Map> Maps { get; set; } = [];
 }
 
@@ -431,7 +437,7 @@ public class MapSettings
 /// Settings for Biomes
 /// </summary>
 /// MARK: BiomeSettings
-[Submenu(CollapsedByDefault = true)]
+[Submenu]
 public class BiomeSettings
 {
     [JsonIgnore]
@@ -516,7 +522,7 @@ public class BiomeSettings
 /// Settings for Map Content
 /// </summary>
 /// MARK: ContentSettings
-[Submenu(CollapsedByDefault = true)]
+[Submenu]
 public class ContentSettings
 {
     [JsonIgnore]

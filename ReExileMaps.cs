@@ -164,7 +164,7 @@ public class ReExileMapsCore : ExileCore2.BaseSettingsPlugin<ReExileMapsSettings
         return true;
     }
     
-    public override void AreaChange(GameArea area)
+    public override void AreaChange(object area)
     {
         refreshCache = true;
     }
