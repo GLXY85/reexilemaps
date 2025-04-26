@@ -15,7 +15,7 @@ using static ReExileMaps.ReExileMapsCore;
 
 namespace ReExileMaps;
 
-public class ReExileMapsSettings : ISettings
+public class ReExileMapsSettings : ExileCore2.Shared.Interfaces.ISettings
 {
     public ReExileMapsSettings()
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using GameOffsets.Native;
+using GameOffsets2.Native;
 
 namespace ReExileMaps.Classes
 {

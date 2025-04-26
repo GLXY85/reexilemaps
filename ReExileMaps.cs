@@ -11,25 +11,25 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Security;
-using ExileCore;
-using ExileCore.Shared;
-using ExileCore.Shared.Enums;
-using ExileCore.Shared.Interfaces;
-using ExileCore.Shared.Helpers;
-using ExileCore.PoEMemory.Elements;
-using ExileCore.PoEMemory.Elements.Atlas;
-using GameOffsets.Native; // For Vector2i
-using ReExileMaps.Classes; // For Node and Waypoint classes
+using ExileCore2;
+using ExileCore2.Shared;
+using ExileCore2.Shared.Enums;
+using ExileCore2.Shared.Interfaces;
+using ExileCore2.Shared.Helpers;
+using ExileCore2.PoEMemory.Elements;
+using ExileCore2.PoEMemory.Elements.Atlas;
+using GameOffsets2.Native;
+using ReExileMaps.Classes;
 using System.Diagnostics; // Для использования Stopwatch
 
 // Использование псевдонима для совместимости с новой структурой
-using AtlasNodeDescription = ExileCore.PoEMemory.Elements.Atlas.AtlasNode;
+using AtlasNodeDescription = ExileCore2.PoEMemory.Elements.Atlas.AtlasNode;
 
 using ImGuiNET;
 using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
 using Vector4 = System.Numerics.Vector4;
-using CoreRectangleF = ExileCore.Shared.RectangleF; // Явно указываем, что будем использовать RectangleF из ExileCore
+using CoreRectangleF = ExileCore2.Shared.RectangleF;
 
 namespace ReExileMaps;
 
@@ -55,7 +55,7 @@ public class MapSearchItem
 
 #nullable enable
 // Main plugin class
-public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
+public class ReExileMapsCore : ExileCore2.BaseSettingsPlugin<ReExileMapsSettings>
 {
     #region Declarations
     public static ReExileMapsCore Main;
@@ -68,8 +68,8 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     private const string ArrowTexturePath = "textures\\arrow.png";
     private const string IconsFile = "Icons.png";
     
-    public ExileCore.PoEMemory.Elements.IngameUI UI;
-    public ExileCore.PoEMemory.Elements.Atlas.AtlasPanelElement AtlasPanel;
+    public ExileCore2.PoEMemory.Elements.IngameUI UI;
+    public ExileCore2.PoEMemory.Elements.Atlas.AtlasPanelElement AtlasPanel;
 
     private Vector2 screenCenter;
     private Dictionary<Vector2i, Node> mapCache = [];
@@ -123,7 +123,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
     #endregion
 
     #region ExileCore Methods
-    public bool Initialise()
+    public override bool Initialise()
     {
         Main = this;        
         RegisterHotkeys();
@@ -164,12 +164,12 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         return true;
     }
     
-    public void AreaChange(GameArea area)
+    public override void AreaChange(GameArea area)
     {
         refreshCache = true;
     }
 
-    public void Tick()
+    public override void Tick()
     {
         try {
             if (GameController?.Game?.IngameState?.IngameUi == null) return;
@@ -213,7 +213,7 @@ public class ReExileMapsCore : BaseSettingsPlugin<ReExileMapsSettings>
         }
     }
 
-    public void Render()
+    public override void Render()
     {
         CheckKeybinds();
 

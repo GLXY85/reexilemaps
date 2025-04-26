@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
-using GameOffsets.Native;
-using ExileCore.PoEMemory.Elements.Atlas;
-using ExileCore.Shared.Enums;
+using GameOffsets2.Native;
+using ExileCore2.PoEMemory.Elements.Atlas;
+using ExileCore2.Shared.Enums;
 using System.Text;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
 // Использование псевдонима для совместимости с новой структурой
-using AtlasNodeDescription = ExileCore.PoEMemory.Elements.Atlas.AtlasNode;
+using AtlasNodeDescription = ExileCore2.PoEMemory.Elements.Atlas.AtlasNode;
 
 namespace ReExileMaps.Classes;
 

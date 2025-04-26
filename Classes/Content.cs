@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using ExileCore2;
-using ExileCore2.Shared.Enums;
-using ExileCore2.Shared.Attributes;
-using ExileCore2.Shared.Nodes;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.ComponentModel;
