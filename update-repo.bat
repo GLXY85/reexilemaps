@@ -9,14 +9,16 @@ dotnet build --configuration Release
 git add .
 git status
 echo === Committing changes ===
-git commit -m "Fixed critical compatibility issues with ExileCore2:
+git commit -m "Major updates to ExileMaps plugin:
+- Fixed critical compatibility issues with ExileCore2
 - Simplified player position detection method using direct access to Entity.Pos
 - Added robust error handling and additional logging
 - Fixed DrawWaypoint and DrawWaypointArrow methods to work with RectangleF as angle
 - Updated GetMapNameFromDescription method for compatibility with new API
 - Fixed paths to ExileCore2 and GameOffsets2 libraries in project file
 - Translated UI interface from Russian to English
-- Added additional checks to prevent errors when data is missing
+- Added comprehensive bilingual (English/Russian) README with plugin features
+- Added detailed installation instructions and feature descriptions
 - Improved error handling in key rendering methods"
 echo === Pushing to remote repository ===
 git push origin local-changes

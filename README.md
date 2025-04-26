@@ -1,6 +1,52 @@
-# Re:ExileMaps
+# ExileMaps | Карты Изгнания
 
-A plugin for displaying maps in Path of Exile.
+## English Description
+
+**ExileMaps** is a plugin for Path of Exile that enhances map navigation and provides useful atlas information. The plugin is designed to work with ExileCore2.
+
+### Features
+
+- **Interactive Map Display**: View and interact with the Atlas map in real-time
+- **Map Search**: Quickly find maps by name or properties 
+- **Distance Calculation**: Calculate and display distances between map nodes
+- **Waypoint System**: Set custom waypoints on the Atlas for navigation
+- **Map Information**: View detailed information about maps, including mods, effects, and biomes
+- **Minimap Display**: Show the Atlas data in a convenient minimap view
+- **Custom Filtering**: Filter maps by various criteria to find exactly what you need
+- **Visual Indicators**: Colored indicators show map weights, distances, and other properties
+- **Hotkey Support**: Customize keyboard shortcuts for quick access to functions
+- **Customizable UI**: Adjust colors, sizes, and other display options to your preference
+
+### Installation
+
+1. Make sure ExileCore2 is installed
+2. Place the plugin files in the `Plugins/Source/reexilemaps` directory of your ExileCore2 installation
+3. Make sure the ExileCore2.dll and GameOffsets2.dll are properly referenced
+4. Restart ExileCore2
+
+## Описание на русском
+
+**ExileMaps** - это плагин для Path of Exile, который улучшает навигацию по картам и предоставляет полезную информацию об атласе. Плагин разработан для работы с ExileCore2.
+
+### Функции
+
+- **Интерактивное отображение карты**: Просмотр и взаимодействие с Атласом карт в реальном времени
+- **Поиск карт**: Быстрый поиск карт по названию или свойствам
+- **Расчет расстояний**: Вычисление и отображение расстояний между узлами карт
+- **Система путевых точек**: Установка пользовательских путевых точек на Атласе для навигации
+- **Информация о картах**: Просмотр подробной информации о картах, включая модификаторы, эффекты и биомы
+- **Отображение миникарты**: Показ данных Атласа в удобном виде миникарты
+- **Настраиваемая фильтрация**: Фильтрация карт по различным критериям для поиска именно того, что вам нужно
+- **Визуальные индикаторы**: Цветовые индикаторы показывают веса карт, расстояния и другие свойства
+- **Поддержка горячих клавиш**: Настройка сочетаний клавиш для быстрого доступа к функциям
+- **Настраиваемый интерфейс**: Настройка цветов, размеров и других параметров отображения по вашему вкусу
+
+### Установка
+
+1. Убедитесь, что ExileCore2 установлен
+2. Поместите файлы плагина в каталог `Plugins/Source/reexilemaps` вашей установки ExileCore2
+3. Убедитесь, что ExileCore2.dll и GameOffsets2.dll правильно подключены
+4. Перезапустите ExileCore2
 
 ## Description
 
