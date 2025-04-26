@@ -24,6 +24,6 @@ git commit -m "Исправления в проекте ExileMaps:
 - Исправлены ошибки отображения расстояний на стрелках
 - Улучшена обработка ошибок в методе DrawRotatedImage"
 echo === Отправка в удаленный репозиторий ===
-git push origin master
+git push origin local-changes
 echo === Готово! ===
 pause 

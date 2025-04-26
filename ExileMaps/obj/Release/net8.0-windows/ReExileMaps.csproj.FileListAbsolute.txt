@@ -8,3 +8,4 @@ C:\PY\trae test\ExileMaps\obj\Release\net8.0-windows\ReExileMaps.csproj.CoreComp
 C:\PY\trae test\ExileMaps\obj\Release\net8.0-windows\ReExileMaps.dll
 C:\PY\trae test\ExileMaps\obj\Release\net8.0-windows\refint\ReExileMaps.dll
 C:\PY\trae test\ExileMaps\obj\Release\net8.0-windows\ref\ReExileMaps.dll
+C:\PY\trae test\ExileMaps\obj\Release\net8.0-windows\ReExileMaps.sourcelink.json
