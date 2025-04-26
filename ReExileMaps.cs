@@ -11,29 +11,30 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Security;
-using ExileCore2.Core.PoEMemory; // Вместо ExileCore2.Shared.Abstract
-using ExileCore2.Core.Shared.Helpers;
-using ExileCore2.Core.Shared.Interfaces;
-using ExileCore2.Core.Shared.Enums;
-using ExileCore2.Core.Shared.Attributes;
-using ExileCore2.Core.Shared; // For RectangleF
+using ExileCore2.PoEMemory; // Убираем часть Core.
+using ExileCore2.Shared.Helpers;
+using ExileCore2.Shared.Interfaces;
+using ExileCore2.Shared.Enums;
+using ExileCore2.Shared.Attributes;
+using ExileCore2.Shared; // For RectangleF
+using ExileCore2.Plugins; // Добавляем пространство имен для PluginBase
 using GameOffsets2.Native; // For Vector2i
 using ReExileMaps.Classes; // For Node and Waypoint classes
-using ExileCore2.Core.PoEMemory.Components; // Для компонентного доступа
-using ExileCore2.Core.PoEMemory.MemoryObjects; // Для доступа к объектам памяти
-using ExileCore2.Core.PoEMemory.Elements; // Для доступа к UI элементам
-using ExileCore2.Core.PoEMemory.Elements.AtlasElements; // Для доступа к Atlas элементам и классу AtlasNode
-using ExileCore2.Core.PoEMemory.FilesInMemory; // Для доступа к файлам в памяти
+using ExileCore2.PoEMemory.Components; // Убираем часть Core.
+using ExileCore2.PoEMemory.MemoryObjects; // Убираем часть Core.
+using ExileCore2.PoEMemory.Elements; // Убираем часть Core.
+using ExileCore2.PoEMemory.Elements.AtlasElements; // Убираем часть Core.
+using ExileCore2.PoEMemory.FilesInMemory; // Убираем часть Core.
 using System.Diagnostics; // Для использования Stopwatch
 
 // Использование псевдонима для решения конфликта имен
-using AtlasNodeDescription = ExileCore2.Core.PoEMemory.Elements.AtlasElements.AtlasNode;
+using AtlasNodeDescription = ExileCore2.PoEMemory.Elements.AtlasElements.AtlasNode;
 
 using ImGuiNET;
 using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
 using Vector4 = System.Numerics.Vector4;
-using CoreRectangleF = ExileCore2.Core.Shared.RectangleF; // Явно указываем, что будем использовать RectangleF из ExileCore2
+using CoreRectangleF = ExileCore2.Shared.RectangleF; // Явно указываем, что будем использовать RectangleF из ExileCore2
 
 namespace ReExileMaps;
 
@@ -59,10 +60,28 @@ public class MapSearchItem
 
 #nullable enable
 // Main plugin class
-public class ReExileMapsCore : PluginBase<ReExileMapsSettings>
+public class ReExileMapsCore : IPlugin<ReExileMapsSettings>
 {
     #region Declarations
     public static ReExileMapsCore Main;
+    
+    public string Name => "ReExileMaps";
+    public ReExileMapsSettings Settings { get; set; } = new ReExileMapsSettings();
+    public IGraphics Graphics { get; set; }
+    public IGameController GameController { get; set; }
+    public string DirectoryFullName { get; set; }
+    public bool CanUseMultiThreading { get; set; }
+    
+    // Методы логирования
+    private void LogMessage(string message)
+    {
+        GameController.DefaultLog.Info($"[ReExileMaps] {message}");
+    }
+    
+    private void LogError(string message)
+    {
+        GameController.DefaultLog.Error($"[ReExileMaps] {message}");
+    }
 
     // Constants for paths to files and resources
     private const string defaultMapsPath = "json\\maps.json";
@@ -72,8 +91,8 @@ public class ReExileMapsCore : PluginBase<ReExileMapsSettings>
     private const string ArrowTexturePath = "textures\\arrow.png";
     private const string IconsFile = "Icons.png";
     
-    public IngameUI UI;
-    public AtlasPanelElement AtlasPanel;
+    public ExileCore2.PoEMemory.Elements.IngameUI UI;
+    public ExileCore2.PoEMemory.Elements.AtlasElements.AtlasPanelElement AtlasPanel;
 
     private Vector2 screenCenter;
     private Dictionary<Vector2i, Node> mapCache = [];
@@ -168,7 +187,7 @@ public class ReExileMapsCore : PluginBase<ReExileMapsSettings>
         return true;
     }
     
-    public override void AreaChange(GameArea area)
+    public override void AreaChange(ExileCore2.Shared.GameArea area)
     {
         refreshCache = true;
     }

@@ -4,13 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GameOffsets2.Native;
-using ExileCore2.Core.PoEMemory.Elements.AtlasElements;
-using ExileCore2.Core.Shared.Enums;
+using ExileCore2.PoEMemory.Elements.AtlasElements;
+using ExileCore2.Shared.Enums;
 using static ReExileMaps.ReExileMapsCore;
 using Newtonsoft.Json;
 
 // Использование псевдонима для решения конфликта имен
-using AtlasNodeDescription = ExileCore2.Core.PoEMemory.Elements.AtlasElements.AtlasNode;
+using AtlasNodeDescription = ExileCore2.PoEMemory.Elements.AtlasElements.AtlasNode;
 
 namespace ReExileMaps.Classes
 {
@@ -27,7 +27,7 @@ namespace ReExileMaps.Classes
 
         [JsonConverter(typeof(Vector2iConverter))]
         public Vector2i Coordinates;
-        public MapIcon Icon { get; set; }
+        public ExileCore2.Shared.Enums.MapIcon Icon { get; set; }
         public Color Color { get; set; }
 
         [JsonIgnore]
