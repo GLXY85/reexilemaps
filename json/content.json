@@ -1,0 +1,47 @@
+{
+    "Breach": {
+        "Color": "200, 166, 90, 255",
+        "Name": "Breach",
+        "Weight": 4.25
+    },
+    "Cleansed": {
+        "Name": "Cleansed",
+        "Color": "205, 126, 0, 126",
+        "Weight": 2.0
+    },
+    "Corrupted": {
+        "Name": "Corrupted",
+        "Color": "205, 126, 0, 126",
+        "Weight": 2.0
+    },
+    "Corrupted Nexus": {
+        "Name": "Corrupted Nexus",
+        "Color": "220, 255, 0, 239",
+        "Weight": 5.0
+    },
+    "Delirium": {
+        "Color": "200, 220, 220, 220",
+        "Name": "Delirium",
+        "Weight": 5.0
+    },
+    "Expedition": {
+        "Color": "200, 218, 165, 32",
+        "Name": "Expedition",
+        "Weight": 4.0
+    },
+    "Map Boss": {
+        "Name": "Map Boss",
+        "Weight": 4.5,
+        "Color": "220, 0, 208, 255"
+    },
+    "Unique Map": {
+        "Name": "Unique Map",
+        "Weight": 5.0,
+        "Color": "240, 255, 125, 0"
+    },
+    "Ritual": {
+        "Color": "200, 178, 34, 34",
+        "Name": "Ritual",
+        "Weight": 4.0
+    }
+}
